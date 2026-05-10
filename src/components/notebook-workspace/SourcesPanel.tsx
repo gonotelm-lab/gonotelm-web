@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
 import {
   Box,
@@ -12,6 +15,7 @@ import {
 } from '@mui/material'
 import { AddSourceDialog } from './AddSourceDialog'
 import { SourceListRow } from './SourceListRow'
+import { subtleScrollbarSx } from './scrollbar'
 import type { SourceListItem } from './sourceTypes'
 
 interface SourcesPanelProps {
@@ -66,6 +70,7 @@ export function SourcesPanel({
       <Box
         sx={{
           width: { xs: '100%', md: collapsed ? 0 : '100%' },
+          height: '100%',
           minWidth: 0,
           overflow: 'hidden',
           transition: 'width 280ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -76,6 +81,11 @@ export function SourcesPanel({
           sx={{
             p: 2,
             width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
             opacity: collapsed ? 0 : 1,
             transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
             transition:
@@ -120,12 +130,20 @@ export function SourcesPanel({
               size="small"
               checked={allSourcesChecked}
               indeterminate={someSourcesChecked}
+              disableRipple
+              icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
+              checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
+              indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: 16 }} />}
+              sx={{ p: 0, m: 0 }}
               onChange={(e) => onToggleAll(e.target.checked)}
             />
           </Box>
         </Stack>
 
-        <Stack spacing={0} sx={{ mt: 1.25, maxHeight: 320, overflowY: 'auto', pr: 0.5 }}>
+        <Stack
+          spacing={0}
+          sx={{ mt: 1.25, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}
+        >
           {sourceListItems.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               暂无来源

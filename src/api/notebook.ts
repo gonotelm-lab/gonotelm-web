@@ -18,6 +18,20 @@ export function getNotebook(id: string) {
   return request<Notebook>(`/api/v1/notebook/${id}`)
 }
 
+interface UpdateNotebookNameRequest {
+  name: string
+}
+
+export function updateNotebookName(
+  id: string,
+  payload: UpdateNotebookNameRequest,
+) {
+  return request<null>(`/api/v1/notebook/${id}/name`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 interface ListNotebooksParams {
   limit?: number
   offset?: number

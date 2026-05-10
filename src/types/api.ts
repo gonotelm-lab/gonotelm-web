@@ -91,3 +91,66 @@ export interface UploadFileSourceResponse {
 export interface PollSourceStatusResponse {
   status: SourceStatus
 }
+
+export type ChatMessageRole = 'user' | 'assistant'
+
+export interface ChatMessageContentText {
+  content: string
+}
+
+export interface ChatMessageContent {
+  created_at: number
+  kind: string
+  text?: ChatMessageContentText
+}
+
+export interface ChatMessageListItem {
+  id: string
+  chat_id: string
+  role: ChatMessageRole
+  content?: ChatMessageContent
+}
+
+export interface ChatCreateMessageRequest {
+  notebook_id: string
+  prompt: string
+  source_ids?: string[]
+}
+
+export interface ChatCreateMessageResponse {
+  msg_id: string
+  task_id: string
+}
+
+export interface ChatAbortStreamRequest {
+  chat_id: string
+  task_id: string
+}
+
+export interface ChatListMessagesResponse {
+  messages: ChatMessageListItem[]
+  limit: number
+  has_more: boolean
+  next_cursor: number
+}
+
+export type MessageStreamPhaseType = 'retrieving' | 'thinking' | 'answer'
+export type MessageStreamPhaseStatus = 'typing' | 'finished'
+export type ChatMessageStreamFinishReason = 'stop' | 'length' | 'content_filter' | string
+
+export interface ChatMessageStreamPhase {
+  type: MessageStreamPhaseType
+  status: MessageStreamPhaseStatus
+  content?: string
+}
+
+export interface ChatMessageStreamEvent {
+  id: number
+  heartbeat?: string
+  phase?: ChatMessageStreamPhase
+  finished?: boolean
+  finish_reason?: ChatMessageStreamFinishReason
+  timestamp: number
+  extra?: Record<string, unknown>
+  stream_id?: string
+}

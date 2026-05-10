@@ -1,5 +1,6 @@
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import { Box, Divider, IconButton, Paper, Stack, Typography } from '@mui/material'
+import { subtleScrollbarSx } from './scrollbar'
 
 interface InsightsPanelProps {
   onCollapse: () => void
@@ -7,7 +8,10 @@ interface InsightsPanelProps {
 
 export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 2, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    >
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           Insights
@@ -30,20 +34,30 @@ export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
 
       <Box
         sx={{
-          minHeight: 180,
-          border: 1,
-          borderStyle: 'dashed',
-          borderColor: 'divider',
-          borderRadius: 1.5,
-          display: 'grid',
-          placeItems: 'center',
-          px: 2,
-          textAlign: 'center',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          ...subtleScrollbarSx,
         }}
       >
-        <Typography variant="body2" color="text.secondary">
-          Insight 区域占位中，后续再接入内容。
-        </Typography>
+        <Box
+          sx={{
+            minHeight: 180,
+            height: '100%',
+            border: 1,
+            borderStyle: 'dashed',
+            borderColor: 'divider',
+            borderRadius: 1.5,
+            display: 'grid',
+            placeItems: 'center',
+            px: 2,
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Insight 区域占位中，后续再接入内容。
+          </Typography>
+        </Box>
       </Box>
     </Paper>
   )

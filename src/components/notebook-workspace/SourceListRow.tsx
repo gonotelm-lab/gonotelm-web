@@ -4,13 +4,14 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DescriptionIcon from '@mui/icons-material/Description'
+import DownloadIcon from '@mui/icons-material/Download'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import NotesIcon from '@mui/icons-material/Notes'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import PreviewIcon from '@mui/icons-material/Preview'
 import ReplayIcon from '@mui/icons-material/Replay'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 import {
   Box,
   Checkbox,
@@ -19,11 +20,16 @@ import {
   Menu,
   MenuItem,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import type { SourceListItem } from './sourceTypes'
+
+const previewableFileIconTypeSet = new Set<SourceListItem['iconType']>([
+  'markdown',
+  'pdf',
+  'txt',
+])
 
 interface SourceListRowProps {
   item: SourceListItem
@@ -51,9 +57,20 @@ export function SourceListRow({
   const isAwaitingReady =
     item.status === 'inited' || item.status === 'uploading' || item.status === 'preparing'
   const rowSelectable = !isProcessing && !removing
+  const canPreview =
+    item.kind === 'text' ||
+    (item.kind === 'file' && previewableFileIconTypeSet.has(item.iconType))
+  const isFileDownloadOnly = item.kind === 'file' && !canPreview
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
 
   const actionMenuOpen = Boolean(actionAnchorEl)
+  const actionMenuItemSx = {
+    minHeight: 34,
+    px: 1.25,
+    display: 'flex',
+    alignItems: 'center',
+  }
+  const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
 
   const handleToggleRow = () => {
     if (!rowSelectable) return
@@ -82,6 +99,12 @@ export function SourceListRow({
   const handlePreviewSource = () => {
     closeActionMenu()
     onPreviewItem(item.id)
+  }
+
+  const handleDownloadSource = () => {
+    closeActionMenu()
+    if (!item.fileUrl) return
+    window.open(item.fileUrl, '_blank', 'noopener,noreferrer')
   }
 
   const handleOpenSourceUrl = () => {
@@ -202,58 +225,48 @@ export function SourceListRow({
           <MenuItem
             disabled={!item.urlContent}
             onClick={handleOpenSourceUrl}
-            sx={{ minWidth: 40, minHeight: 34, px: 1, justifyContent: 'center' }}
+            sx={actionMenuItemSx}
           >
-            <Tooltip
-              title={<Typography sx={{ fontSize: 11 }}>打开链接</Typography>}
-              placement="left"
-              enterDelay={150}
-            >
-              <OpenInNewIcon sx={{ fontSize: 16, color: 'info.main' }} />
-            </Tooltip>
+            <OpenInNewIcon sx={{ fontSize: 16, color: 'info.main' }} />
+            <Typography sx={actionMenuTextSx}>打开链接</Typography>
           </MenuItem>
         ) : null}
-        {item.kind === 'text' || item.kind === 'file' ? (
+        {canPreview ? (
           <MenuItem
             onClick={handlePreviewSource}
-            sx={{ minWidth: 40, minHeight: 34, px: 1, justifyContent: 'center' }}
+            sx={actionMenuItemSx}
           >
-            <Tooltip
-              title={<Typography sx={{ fontSize: 11 }}>预览</Typography>}
-              placement="left"
-              enterDelay={150}
-            >
-              <VisibilityIcon sx={{ fontSize: 16 }} />
-            </Tooltip>
+            <PreviewIcon sx={{ fontSize: 16 }} />
+            <Typography sx={actionMenuTextSx}>预览</Typography>
+          </MenuItem>
+        ) : null}
+        {isFileDownloadOnly ? (
+          <MenuItem
+            disabled={!item.fileUrl}
+            onClick={handleDownloadSource}
+            sx={actionMenuItemSx}
+          >
+            <DownloadIcon sx={{ fontSize: 16 }} />
+            <Typography sx={actionMenuTextSx}>下载</Typography>
           </MenuItem>
         ) : null}
         {isFailed ? (
           <MenuItem
             disabled={isBusy || removing}
             onClick={handleRetrySource}
-            sx={{ minWidth: 40, minHeight: 34, px: 1, justifyContent: 'center' }}
+            sx={actionMenuItemSx}
           >
-            <Tooltip
-              title={<Typography sx={{ fontSize: 11 }}>重试</Typography>}
-              placement="left"
-              enterDelay={150}
-            >
-              <ReplayIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-            </Tooltip>
+            <ReplayIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+            <Typography sx={actionMenuTextSx}>重试</Typography>
           </MenuItem>
         ) : null}
         <MenuItem
           disabled={isBusy || removing}
           onClick={handleDeleteSource}
-          sx={{ minWidth: 40, minHeight: 34, px: 1, justifyContent: 'center' }}
+          sx={actionMenuItemSx}
         >
-          <Tooltip
-            title={<Typography sx={{ fontSize: 11 }}>删除</Typography>}
-            placement="left"
-            enterDelay={150}
-          >
-            <DeleteIcon sx={{ fontSize: 16, color: 'error.main' }} />
-          </Tooltip>
+          <DeleteIcon sx={{ fontSize: 16, color: 'error.main' }} />
+          <Typography sx={actionMenuTextSx}>删除</Typography>
         </MenuItem>
       </Menu>
     </Box>

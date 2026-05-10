@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Box, Dialog, DialogContent, DialogTitle, Link, Typography } from '@mui/material'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Box, Dialog, DialogContent, DialogTitle, Fade, Link, Typography } from '@mui/material'
+import 'highlight.js/styles/github-dark.css'
+import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import remarkGfm from 'remark-gfm'
 import {
   createSource,
   deleteSource,
@@ -9,12 +14,12 @@ import {
   uploadFileSource,
   uploadToObjectStorage,
 } from '../api/source'
-import { getNotebook, listNotebookSources } from '../api/notebook'
+import { getNotebook, listNotebookSources, updateNotebookName } from '../api/notebook'
 import { fileMd5 } from '../lib/md5'
 import { resolveUploadMimeType } from '../lib/sourceMime'
 import { useSourcePolling } from '../hooks/useSourcePolling'
 import { type SourceCard, useWorkspaceStore } from '../store/workspace'
-import type { SourceKind, SourceStatus } from '../types/api'
+import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import { ChatPanel } from '../components/notebook-workspace/ChatPanel'
 import { InsightsPanel } from '../components/notebook-workspace/InsightsPanel'
 import { SourcesPanel } from '../components/notebook-workspace/SourcesPanel'
@@ -24,6 +29,11 @@ import type { SourceListItem } from '../components/notebook-workspace/sourceType
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
 const sourceRemoveAnimationMs = 300
+const previewableFileIconTypeSet = new Set<SourceListItem['iconType']>([
+  'markdown',
+  'pdf',
+  'txt',
+])
 
 const isProcessingStatus = (status?: SourceStatus) =>
   !!status && processingStatusSet.has(status)
@@ -52,13 +62,21 @@ const truncateUTF8 = (text: string, maxChars: number) => {
   return chars.slice(0, maxChars).join('')
 }
 
+const canPreviewSourceItem = (item: SourceListItem) =>
+  item.kind === 'text' ||
+  (item.kind === 'file' && previewableFileIconTypeSet.has(item.iconType))
+
 export function NotebookWorkspacePage() {
   const { id = '' } = useParams()
+  const queryClient = useQueryClient()
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
   const [selectedSourceIds, setSelectedSourceIds] = useState<Record<string, boolean>>({})
   const [removingSourceIds, setRemovingSourceIds] = useState<Record<string, boolean>>({})
   const [previewingSourceId, setPreviewingSourceId] = useState<string | null>(null)
+  const [previewDialogItem, setPreviewDialogItem] = useState<SourceListItem | null>(null)
+  const [notebookNameDraft, setNotebookNameDraft] = useState('')
+  const [isNotebookNameEditing, setIsNotebookNameEditing] = useState(false)
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
@@ -73,6 +91,7 @@ export function NotebookWorkspacePage() {
     resetWorkspace()
     setRemovingSourceIds({})
     setPreviewingSourceId(null)
+    setPreviewDialogItem(null)
   }, [id, resetWorkspace])
 
   useEffect(() => {
@@ -159,6 +178,10 @@ export function NotebookWorkspacePage() {
   const retrySourceMutation = useMutation({
     mutationFn: (sourceId: string) => retrySourcePreparation(sourceId),
   })
+  const updateNotebookNameMutation = useMutation({
+    mutationFn: ({ notebookId, name }: { notebookId: string; name: string }) =>
+      updateNotebookName(notebookId, { name }),
+  })
 
   const isBusy = useMemo(
     () =>
@@ -191,6 +214,60 @@ export function NotebookWorkspacePage() {
     () => sourceListItems.find((item) => item.id === previewingSourceId) ?? null,
     [previewingSourceId, sourceListItems],
   )
+  const activePreviewItem = previewingSourceItem ?? previewDialogItem
+  const isPreviewDialogOpen = Boolean(previewingSourceId)
+  const isPreviewingMarkdown = activePreviewItem?.iconType === 'markdown'
+  const markdownTextFromSource =
+    isPreviewingMarkdown ? activePreviewItem?.textContent ?? '' : ''
+  const markdownPreviewFileUrl =
+    isPreviewingMarkdown && activePreviewItem?.fileUrl
+      ? activePreviewItem.fileUrl
+      : ''
+  const markdownPreviewFallbackQuery = useQuery({
+    queryKey: ['source-markdown-preview', activePreviewItem?.id ?? '', markdownPreviewFileUrl],
+    enabled: Boolean(
+      isPreviewDialogOpen &&
+        isPreviewingMarkdown &&
+        !markdownTextFromSource.trim() &&
+        markdownPreviewFileUrl,
+    ),
+    queryFn: async () => {
+      const response = await fetch(markdownPreviewFileUrl, { credentials: 'omit' })
+      if (!response.ok) {
+        throw new Error(`request failed: ${response.status}`)
+      }
+      return response.text()
+    },
+    staleTime: 5 * 60 * 1_000,
+  })
+  const markdownPreviewText =
+    markdownTextFromSource || markdownPreviewFallbackQuery.data || ''
+  const hasMarkdownPreviewText = Boolean(markdownPreviewText.trim())
+  const markdownHasCodeFence = /```/.test(markdownPreviewText)
+  const markdownCodeHighlightPluginQuery = useQuery({
+    queryKey: ['markdown-code-highlight-plugin'],
+    enabled:
+      isPreviewDialogOpen &&
+      isPreviewingMarkdown &&
+      hasMarkdownPreviewText &&
+      markdownHasCodeFence,
+    queryFn: async () => {
+      const module = await import('rehype-highlight')
+      return module.default
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+  })
+  const markdownRehypePlugins = useMemo(
+    () => [
+      rehypeRaw,
+      rehypeSanitize,
+      ...(markdownCodeHighlightPluginQuery.data
+        ? [markdownCodeHighlightPluginQuery.data]
+        : []),
+    ],
+    [markdownCodeHighlightPluginQuery.data],
+  )
 
   const selectableSourceItems = useMemo(
     () =>
@@ -205,6 +282,12 @@ export function NotebookWorkspacePage() {
   const someSourcesChecked =
     !allSourcesChecked &&
     selectableSourceItems.some((item) => Boolean(selectedSourceIds[item.id]))
+
+  const selectedSourceIdList = useMemo(
+    () =>
+      Object.keys(selectedSourceIds).filter((sourceId) => Boolean(selectedSourceIds[sourceId])),
+    [selectedSourceIds],
+  )
 
   const toggleAllSourceChecked = (checked: boolean) => {
     const next: Record<string, boolean> = {}
@@ -371,6 +454,8 @@ export function NotebookWorkspacePage() {
   const handlePreviewSource = (sourceId: string) => {
     const targetSource = sourceListItems.find((item) => item.id === sourceId)
     if (!targetSource) return
+    if (!canPreviewSourceItem(targetSource)) return
+    setPreviewDialogItem(targetSource)
     if (targetSource.kind !== 'file' || targetSource.fileUrl) {
       setPreviewingSourceId(sourceId)
       return
@@ -412,23 +497,103 @@ export function NotebookWorkspacePage() {
     })()
   }
 
-  const notebookName = notebookQuery.data?.name ?? 'Loading notebook...'
+  const handleClosePreviewDialog = () => {
+    if (previewingSourceItem) {
+      setPreviewDialogItem(previewingSourceItem)
+    }
+    setPreviewingSourceId(null)
+  }
+
+  const handlePreviewDialogExited = () => {
+    setPreviewDialogItem(null)
+  }
+
+  const handleNotebookNameFocus = () => {
+    setNotebookNameDraft(notebookQuery.data?.name ?? '')
+    setIsNotebookNameEditing(true)
+  }
+
+  const handleNotebookNameBlur = async () => {
+    if (!id) {
+      setIsNotebookNameEditing(false)
+      return
+    }
+
+    const currentName = notebookQuery.data?.name ?? ''
+    const nextName = notebookNameDraft.trim()
+    if (!nextName || nextName === currentName) {
+      setNotebookNameDraft(currentName)
+      setIsNotebookNameEditing(false)
+      return
+    }
+
+    setIsNotebookNameEditing(false)
+    queryClient.setQueryData<Notebook>(['notebook', id], (prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        name: nextName,
+      }
+    })
+
+    try {
+      await updateNotebookNameMutation.mutateAsync({
+        notebookId: id,
+        name: nextName,
+      })
+      setNotebookNameDraft(nextName)
+    } catch (error) {
+      queryClient.setQueryData<Notebook>(['notebook', id], (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          name: currentName,
+        }
+      })
+      setNotebookNameDraft(currentName)
+      console.warn('update notebook name failed', error)
+    }
+  }
+
+  const notebookName = isNotebookNameEditing
+    ? notebookNameDraft
+    : notebookQuery.data?.name ?? ''
 
   return (
-    <>
-      <WorkspaceHeader notebookName={notebookName} isFetching={notebookQuery.isFetching} />
+    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <WorkspaceHeader
+        notebookName={notebookName}
+        isFetching={notebookQuery.isFetching}
+        isUpdatingName={updateNotebookNameMutation.isPending}
+        onNotebookNameChange={setNotebookNameDraft}
+        onNotebookNameFocus={handleNotebookNameFocus}
+        onNotebookNameBlur={() => {
+          void handleNotebookNameBlur()
+        }}
+      />
 
-      <Box sx={{ width: '100%', px: 2, py: 2 }}>
+      <Box sx={{ width: '100%', flex: 1, minHeight: 0, px: 1, py: 1, overflow: 'hidden' }}>
         <Box
           sx={{
             display: 'grid',
-            gap: 2,
+            gap: 1,
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
               md: `${isSourcesPanelCollapsed ? '0%' : '23%'} minmax(0, 1fr) ${isInsightsPanelCollapsed ? '0%' : '23%'}`,
               xl: `${isSourcesPanelCollapsed ? '0%' : '23%'} minmax(0, 1fr) ${isInsightsPanelCollapsed ? '0%' : '23%'}`,
             },
+            gridTemplateRows: {
+              xs: 'repeat(3, minmax(0, 1fr))',
+              md: 'minmax(0, 1fr)',
+            },
             transition: 'grid-template-columns 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+            '& > *': {
+              minWidth: 0,
+              minHeight: 0,
+            },
           }}
         >
           <SourcesPanel
@@ -451,6 +616,8 @@ export function NotebookWorkspacePage() {
           />
 
           <ChatPanel
+            notebookId={id}
+            selectedSourceIds={selectedSourceIdList}
             sourcesPanelCollapsed={isSourcesPanelCollapsed}
             insightsPanelCollapsed={isInsightsPanelCollapsed}
             onExpandSourcesPanel={() => setIsSourcesPanelCollapsed(false)}
@@ -460,6 +627,7 @@ export function NotebookWorkspacePage() {
           <Box
             sx={{
               width: { xs: '100%', md: isInsightsPanelCollapsed ? 0 : '100%' },
+              height: '100%',
               minWidth: 0,
               overflow: 'hidden',
               transition: 'width 280ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -468,6 +636,7 @@ export function NotebookWorkspacePage() {
             <Box
               sx={{
                 width: '100%',
+                height: '100%',
                 opacity: { xs: 1, md: isInsightsPanelCollapsed ? 0 : 1 },
                 transform: { xs: 'translateX(0)', md: isInsightsPanelCollapsed ? 'translateX(100%)' : 'translateX(0)' },
                 transition:
@@ -482,30 +651,128 @@ export function NotebookWorkspacePage() {
       </Box>
 
       <Dialog
-        open={Boolean(previewingSourceItem)}
-        onClose={() => setPreviewingSourceId(null)}
+        open={isPreviewDialogOpen}
+        onClose={handleClosePreviewDialog}
+        transitionDuration={{ enter: 180, exit: 120 }}
+        slots={{ transition: Fade }}
+        slotProps={{
+          transition: {
+            onExited: handlePreviewDialogExited,
+            easing: {
+              enter: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              exit: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            },
+          },
+        }}
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>{previewingSourceItem?.name ?? '来源预览'}</DialogTitle>
-        <DialogContent dividers>
-          {previewingSourceItem?.kind === 'text' ? (
+        <DialogTitle>{activePreviewItem?.name ?? '来源预览'}</DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            minHeight: { xs: 300, md: 460 },
+            maxHeight: { xs: '65vh', md: 460 },
+            overflowY: 'auto',
+          }}
+        >
+          {isPreviewingMarkdown ? (
+            hasMarkdownPreviewText ? (
+              <Box
+                sx={{
+                  fontSize: 13.5,
+                  lineHeight: 1.7,
+                  wordBreak: 'break-word',
+                  '& p': { my: 1 },
+                  '& ul, & ol': { pl: 3, my: 1 },
+                  '& pre': {
+                    my: 1.25,
+                    borderRadius: 1,
+                    overflowX: 'auto',
+                  },
+                  '& pre code': {
+                    display: 'block',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: '0.85em',
+                  },
+                  '& :not(pre) > code': {
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: '0.85em',
+                    bgcolor: 'grey.100',
+                    borderRadius: 0.5,
+                    px: 0.5,
+                    py: 0.15,
+                  },
+                  '& table': { width: '100%', borderCollapse: 'collapse', my: 1.5 },
+                  '& th, & td': {
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    px: 1,
+                    py: 0.5,
+                    textAlign: 'left',
+                  },
+                  '& blockquote': {
+                    borderLeft: '3px solid',
+                    borderColor: 'divider',
+                    pl: 1.5,
+                    ml: 0,
+                    color: 'text.secondary',
+                  },
+                }}
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={markdownRehypePlugins}
+                  components={{
+                    a: ({ node: _node, href, ...props }) => {
+                      const shouldOpenInNewTab = Boolean(href && !href.startsWith('#'))
+                      return (
+                        <Link
+                          {...props}
+                          href={href}
+                          target={shouldOpenInNewTab ? '_blank' : undefined}
+                          rel={shouldOpenInNewTab ? 'noopener noreferrer' : undefined}
+                          underline="hover"
+                        />
+                      )
+                    },
+                  }}
+                >
+                  {markdownPreviewText}
+                </ReactMarkdown>
+              </Box>
+            ) : markdownPreviewFallbackQuery.isFetching ? (
+              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+                Markdown 内容加载中...
+              </Typography>
+            ) : markdownPreviewFallbackQuery.isError ? (
+              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+                Markdown 内容加载失败，请稍后重试。
+              </Typography>
+            ) : (
+              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+                Markdown 内容尚未准备完成，暂不可预览。
+              </Typography>
+            )
+          ) : null}
+
+          {activePreviewItem?.kind === 'text' ? (
             <Typography sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 13.5 }}>
-              {previewingSourceItem.textContent?.trim() || '暂无可预览文本内容。'}
+              {activePreviewItem.textContent?.trim() || '暂无可预览文本内容。'}
             </Typography>
           ) : null}
 
-          {previewingSourceItem?.kind === 'file' ? (
-            previewingSourceItem.fileUrl ? (
+          {activePreviewItem?.kind === 'file' && activePreviewItem.iconType !== 'markdown' ? (
+            activePreviewItem.fileUrl ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                 <Box
                   component="iframe"
-                  src={previewingSourceItem.fileUrl}
+                  src={activePreviewItem.fileUrl}
                   title="source-file-preview"
                   sx={{ width: '100%', minHeight: 460, border: 0, borderRadius: 1 }}
                 />
                 <Link
-                  href={previewingSourceItem.fileUrl}
+                  href={activePreviewItem.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   underline="hover"
@@ -522,6 +789,6 @@ export function NotebookWorkspacePage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </>
+    </Box>
   )
 }
