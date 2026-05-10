@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import {
+  Box,
   IconButton,
   Paper,
   Stack,
@@ -16,14 +18,22 @@ import {
 } from '../../api/chat'
 import { ApiError } from '../../lib/http'
 import type { ChatMessageListItem, MessageStreamPhaseType } from '../../types/api'
+import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { ChatComposer } from './chat-panel/ChatComposer'
 import { ChatMessagesList } from './chat-panel/ChatMessagesList'
 import type { ChatUiMessage } from './chat-panel/types'
 
 const chatMessagesPageLimit = 20
 const scrollLoadTopThresholdPx = 260
+const showScrollToBottomButtonThresholdPx = 80
+const scrollToBottomAnimationDurationMs = 460
 const streamReconnectDelayMs = 600
 const streamStatusMinVisibleMs = 900
+const scrollToBottomButtonTokens = {
+  size: 32,
+  rightPx: 7.8,
+  marginBottom: 1.15,
+}
 
 interface ChatPanelProps {
   notebookId: string
@@ -94,6 +104,7 @@ export function ChatPanel({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null)
+  const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false)
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
   const streamAbortControllerRef = useRef<AbortController | null>(null)
@@ -102,6 +113,8 @@ export function ChatPanel({
   const shouldAutoScrollToBottomRef = useRef(true)
   const streamRunTokenRef = useRef(0)
   const copyFeedbackTimerRef = useRef<number | null>(null)
+  const scrollToBottomAnimationRafRef = useRef<number | null>(null)
+  const isProgrammaticScrollToBottomRef = useRef(false)
   const streamStatusSwitchTimerRef = useRef<number | null>(null)
   const pendingStreamStatusRef = useRef<{ phase: MessageStreamPhaseType; text: string } | null>(null)
   const lastStreamStatusAtRef = useRef(0)
@@ -146,7 +159,62 @@ export function ChatPanel({
     const container = messageListRef.current
     if (!container) return
     container.scrollTop = container.scrollHeight
+    setShowScrollToBottomButton(false)
   }, [])
+
+  const stopScrollToBottomAnimation = useCallback(() => {
+    if (scrollToBottomAnimationRafRef.current !== null) {
+      window.cancelAnimationFrame(scrollToBottomAnimationRafRef.current)
+      scrollToBottomAnimationRafRef.current = null
+    }
+    isProgrammaticScrollToBottomRef.current = false
+  }, [])
+
+  const syncScrollToBottomButtonVisibility = useCallback(() => {
+    const container = messageListRef.current
+    if (!container) {
+      setShowScrollToBottomButton(false)
+      return
+    }
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight
+    const nextVisible = distanceToBottom > showScrollToBottomButtonThresholdPx
+    setShowScrollToBottomButton((prev) => (prev === nextVisible ? prev : nextVisible))
+  }, [])
+
+  const smoothScrollToBottom = useCallback(() => {
+    const container = messageListRef.current
+    if (!container) return
+
+    const startTop = container.scrollTop
+    const targetTop = Math.max(container.scrollHeight - container.clientHeight, 0)
+    const delta = targetTop - startTop
+    if (Math.abs(delta) < 1) {
+      setShowScrollToBottomButton(false)
+      return
+    }
+
+    stopScrollToBottomAnimation()
+    isProgrammaticScrollToBottomRef.current = true
+    setShowScrollToBottomButton(false)
+
+    const startedAt = performance.now()
+    const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - startedAt) / scrollToBottomAnimationDurationMs, 1)
+      container.scrollTop = startTop + delta * easeOutCubic(progress)
+      if (progress < 1) {
+        scrollToBottomAnimationRafRef.current = window.requestAnimationFrame(tick)
+        return
+      }
+      scrollToBottomAnimationRafRef.current = null
+      isProgrammaticScrollToBottomRef.current = false
+      syncScrollToBottomButtonVisibility()
+    }
+
+    scrollToBottomAnimationRafRef.current = window.requestAnimationFrame(tick)
+  }, [stopScrollToBottomAnimation, syncScrollToBottomButtonVisibility])
 
   const clearStreamStatusSchedule = useCallback(() => {
     if (streamStatusSwitchTimerRef.current !== null) {
@@ -212,8 +280,9 @@ export function ChatPanel({
         copyFeedbackTimerRef.current = null
       }
       clearStreamStatusSchedule()
+      stopScrollToBottomAnimation()
     }
-  }, [clearStreamStatusSchedule])
+  }, [clearStreamStatusSchedule, stopScrollToBottomAnimation])
 
   useEffect(() => {
     streamRunTokenRef.current += 1
@@ -222,6 +291,7 @@ export function ChatPanel({
     abortRequestedRef.current = false
     pendingScrollRestoreRef.current = null
     shouldAutoScrollToBottomRef.current = true
+    stopScrollToBottomAnimation()
     clearStreamStatusSchedule()
     lastStreamStatusAtRef.current = 0
     setComposerValue('')
@@ -232,11 +302,12 @@ export function ChatPanel({
     setActiveTaskId(null)
     setActiveAssistantMessageId(null)
     setCopiedUserMessageId(null)
+    setShowScrollToBottomButton(false)
     if (copyFeedbackTimerRef.current !== null) {
       window.clearTimeout(copyFeedbackTimerRef.current)
       copyFeedbackTimerRef.current = null
     }
-  }, [clearStreamStatusSchedule, notebookId])
+  }, [clearStreamStatusSchedule, notebookId, stopScrollToBottomAnimation])
 
   useLayoutEffect(() => {
     if (messagesQuery.isFetchingNextPage) return
@@ -248,6 +319,16 @@ export function ChatPanel({
     container.scrollTop = pending.prevTop + delta
     pendingScrollRestoreRef.current = null
   }, [messagesQuery.data?.pages.length, messagesQuery.isFetchingNextPage])
+
+  useEffect(() => {
+    syncScrollToBottomButtonVisibility()
+  }, [
+    displayMessages.length,
+    messagesQuery.data?.pages.length,
+    messagesQuery.isFetchingNextPage,
+    messagesQuery.isLoading,
+    syncScrollToBottomButtonVisibility,
+  ])
 
   useEffect(() => {
     if (!shouldAutoScrollToBottomRef.current) return
@@ -496,6 +577,11 @@ export function ChatPanel({
     const container = messageListRef.current
     if (!container) return
 
+    if (isProgrammaticScrollToBottomRef.current) {
+      return
+    }
+    syncScrollToBottomButtonVisibility()
+
     if (
       container.scrollTop > scrollLoadTopThresholdPx ||
       !messagesQuery.hasNextPage ||
@@ -516,6 +602,7 @@ export function ChatPanel({
     messagesQuery.hasNextPage,
     messagesQuery.isFetchingNextPage,
     messagesQuery.isLoading,
+    syncScrollToBottomButtonVisibility,
   ])
 
   const handleComposerKeyDown = (
@@ -589,7 +676,7 @@ export function ChatPanel({
         </IconButton>
       )}
       <Stack spacing={0.5}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           对话
         </Typography>
       </Stack>
@@ -614,21 +701,48 @@ export function ChatPanel({
         </Typography>
       ) : null}
 
-      <ChatComposer
-        value={composerValue}
-        isStreaming={isStreaming}
-        isInputDisabled={!notebookId || isStreaming}
-        isSubmitDisabled={submitDisabled}
-        isAbortDisabled={abortStreamMutation.isPending || !activeTaskId}
-        onValueChange={setComposerValue}
-        onKeyDown={handleComposerKeyDown}
-        onSend={() => {
-          void handleSendMessage()
-        }}
-        onAbort={() => {
-          void handleAbortStream()
-        }}
-      />
+      <Box sx={{ position: 'relative' }}>
+        {showScrollToBottomButton ? (
+          <IconButton
+            size="small"
+            aria-label="回到底部"
+            onClick={smoothScrollToBottom}
+            sx={{
+              position: 'absolute',
+              right: `${scrollToBottomButtonTokens.rightPx}px`,
+              bottom: `calc(100% + ${scrollToBottomButtonTokens.marginBottom * 8}px)`,
+              width: scrollToBottomButtonTokens.size,
+              height: scrollToBottomButtonTokens.size,
+              border: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
+              zIndex: 2,
+              '&:hover': {
+                bgcolor: 'background.default',
+              },
+            }}
+          >
+            <ArrowDownwardIcon fontSize="small" />
+          </IconButton>
+        ) : null}
+
+        <ChatComposer
+          value={composerValue}
+          isStreaming={isStreaming}
+          isInputDisabled={!notebookId || isStreaming}
+          isSubmitDisabled={submitDisabled}
+          isAbortDisabled={abortStreamMutation.isPending || !activeTaskId}
+          onValueChange={setComposerValue}
+          onKeyDown={handleComposerKeyDown}
+          onSend={() => {
+            void handleSendMessage()
+          }}
+          onAbort={() => {
+            void handleAbortStream()
+          }}
+        />
+      </Box>
     </Paper>
   )
 }

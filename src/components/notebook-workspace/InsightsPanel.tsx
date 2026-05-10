@@ -1,5 +1,6 @@
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import { Box, Divider, IconButton, Paper, Stack, Typography } from '@mui/material'
+import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { subtleScrollbarSx } from './scrollbar'
 
 interface InsightsPanelProps {
@@ -13,7 +14,7 @@ export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
       sx={{ p: 2, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           Insights
         </Typography>
         <IconButton

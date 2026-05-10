@@ -2,11 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box, Dialog, DialogContent, DialogTitle, Fade, Link, Typography } from '@mui/material'
-import 'highlight.js/styles/github-dark.css'
-import ReactMarkdown from 'react-markdown'
-import rehypeRaw from 'rehype-raw'
-import rehypeSanitize from 'rehype-sanitize'
-import remarkGfm from 'remark-gfm'
 import {
   createSource,
   deleteSource,
@@ -22,6 +17,8 @@ import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import { ChatPanel } from '../components/notebook-workspace/ChatPanel'
 import { InsightsPanel } from '../components/notebook-workspace/InsightsPanel'
+import { MarkdownRenderer } from '../components/notebook-workspace/MarkdownRenderer'
+import { SourceSelectionController } from '../components/notebook-workspace/SourceSelectionController'
 import { SourcesPanel } from '../components/notebook-workspace/SourcesPanel'
 import { WorkspaceHeader } from '../components/notebook-workspace/WorkspaceHeader'
 import type { SourceListItem } from '../components/notebook-workspace/sourceTypes'
@@ -73,6 +70,7 @@ export function NotebookWorkspacePage() {
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
   const [selectedSourceIds, setSelectedSourceIds] = useState<Record<string, boolean>>({})
   const [removingSourceIds, setRemovingSourceIds] = useState<Record<string, boolean>>({})
+  const [isHydratingSources, setIsHydratingSources] = useState(false)
   const [previewingSourceId, setPreviewingSourceId] = useState<string | null>(null)
   const [previewDialogItem, setPreviewDialogItem] = useState<SourceListItem | null>(null)
   const [notebookNameDraft, setNotebookNameDraft] = useState('')
@@ -90,6 +88,7 @@ export function NotebookWorkspacePage() {
   useEffect(() => {
     resetWorkspace()
     setRemovingSourceIds({})
+    setIsHydratingSources(true)
     setPreviewingSourceId(null)
     setPreviewDialogItem(null)
   }, [id, resetWorkspace])
@@ -119,6 +118,7 @@ export function NotebookWorkspacePage() {
     if (!id || !notebook) return
 
     let cancelled = false
+    setIsHydratingSources(true)
     const hydrateNotebookSources = async () => {
       if (notebook.source_count <= 0) {
         setSources([])
@@ -158,6 +158,10 @@ export function NotebookWorkspacePage() {
 
     void hydrateNotebookSources().catch((error) => {
       console.warn('hydrate notebook sources failed', error)
+    }).finally(() => {
+      if (!cancelled) {
+        setIsHydratingSources(false)
+      }
     })
 
     return () => {
@@ -243,31 +247,6 @@ export function NotebookWorkspacePage() {
   const markdownPreviewText =
     markdownTextFromSource || markdownPreviewFallbackQuery.data || ''
   const hasMarkdownPreviewText = Boolean(markdownPreviewText.trim())
-  const markdownHasCodeFence = /```/.test(markdownPreviewText)
-  const markdownCodeHighlightPluginQuery = useQuery({
-    queryKey: ['markdown-code-highlight-plugin'],
-    enabled:
-      isPreviewDialogOpen &&
-      isPreviewingMarkdown &&
-      hasMarkdownPreviewText &&
-      markdownHasCodeFence,
-    queryFn: async () => {
-      const module = await import('rehype-highlight')
-      return module.default
-    },
-    staleTime: Number.POSITIVE_INFINITY,
-    gcTime: Number.POSITIVE_INFINITY,
-  })
-  const markdownRehypePlugins = useMemo(
-    () => [
-      rehypeRaw,
-      rehypeSanitize,
-      ...(markdownCodeHighlightPluginQuery.data
-        ? [markdownCodeHighlightPluginQuery.data]
-        : []),
-    ],
-    [markdownCodeHighlightPluginQuery.data],
-  )
 
   const selectableSourceItems = useMemo(
     () =>
@@ -303,26 +282,6 @@ export function NotebookWorkspacePage() {
       [id]: checked,
     }))
   }
-
-  useEffect(() => {
-    setSelectedSourceIds((prev) => {
-      const next: Record<string, boolean> = {}
-      for (const item of selectableSourceItems) {
-        if (prev[item.id]) {
-          next[item.id] = true
-        }
-      }
-      const prevKeys = Object.keys(prev)
-      const nextKeys = Object.keys(next)
-      if (
-        prevKeys.length === nextKeys.length &&
-        prevKeys.every((key) => prev[key] === next[key])
-      ) {
-        return prev
-      }
-      return next
-    })
-  }, [selectableSourceItems])
 
   const handleCreateSimpleSource = async (
     kind: Extract<SourceKind, 'text' | 'url'>,
@@ -561,6 +520,14 @@ export function NotebookWorkspacePage() {
 
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SourceSelectionController
+        notebookId={id}
+        sourceListItems={sourceListItems}
+        selectableSourceItems={selectableSourceItems}
+        selectedSourceIds={selectedSourceIds}
+        isHydratingSources={isHydratingSources}
+        onSelectedSourceIdsChange={setSelectedSourceIds}
+      />
       <WorkspaceHeader
         notebookName={notebookName}
         isFetching={notebookQuery.isFetching}
@@ -678,68 +645,8 @@ export function NotebookWorkspacePage() {
         >
           {isPreviewingMarkdown ? (
             hasMarkdownPreviewText ? (
-              <Box
-                sx={{
-                  fontSize: 13.5,
-                  lineHeight: 1.7,
-                  wordBreak: 'break-word',
-                  '& p': { my: 1 },
-                  '& ul, & ol': { pl: 3, my: 1 },
-                  '& pre': {
-                    my: 1.25,
-                    borderRadius: 1,
-                    overflowX: 'auto',
-                  },
-                  '& pre code': {
-                    display: 'block',
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    fontSize: '0.85em',
-                  },
-                  '& :not(pre) > code': {
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    fontSize: '0.85em',
-                    bgcolor: 'grey.100',
-                    borderRadius: 0.5,
-                    px: 0.5,
-                    py: 0.15,
-                  },
-                  '& table': { width: '100%', borderCollapse: 'collapse', my: 1.5 },
-                  '& th, & td': {
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    px: 1,
-                    py: 0.5,
-                    textAlign: 'left',
-                  },
-                  '& blockquote': {
-                    borderLeft: '3px solid',
-                    borderColor: 'divider',
-                    pl: 1.5,
-                    ml: 0,
-                    color: 'text.secondary',
-                  },
-                }}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={markdownRehypePlugins}
-                  components={{
-                    a: ({ node: _node, href, ...props }) => {
-                      const shouldOpenInNewTab = Boolean(href && !href.startsWith('#'))
-                      return (
-                        <Link
-                          {...props}
-                          href={href}
-                          target={shouldOpenInNewTab ? '_blank' : undefined}
-                          rel={shouldOpenInNewTab ? 'noopener noreferrer' : undefined}
-                          underline="hover"
-                        />
-                      )
-                    },
-                  }}
-                >
-                  {markdownPreviewText}
-                </ReactMarkdown>
+              <Box sx={{ wordBreak: 'break-word' }}>
+                <MarkdownRenderer content={markdownPreviewText} />
               </Box>
             ) : markdownPreviewFallbackQuery.isFetching ? (
               <Typography sx={{ fontSize: 13.5 }} color="text.secondary">

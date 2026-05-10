@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material'
 import { AddSourceDialog } from './AddSourceDialog'
+import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { SourceListRow } from './SourceListRow'
 import { subtleScrollbarSx } from './scrollbar'
 import type { SourceListItem } from './sourceTypes'
@@ -94,7 +95,7 @@ export function SourcesPanel({
           }}
         >
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          <Typography variant={panelTitleVariant} sx={panelTitleSx}>
             来源
           </Typography>
           <IconButton
