@@ -101,9 +101,13 @@ const tryParseApiResult = async <T>(response: Response): Promise<ApiResult<T> | 
 }
 
 export function createChatMessage(payload: ChatCreateMessageRequest) {
+  const normalizedPayload: ChatCreateMessageRequest = {
+    ...payload,
+    prompt: payload.prompt.trimEnd(),
+  }
   return request<ChatCreateMessageResponse>('/api/v1/chat/message/create', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
   })
 }
 

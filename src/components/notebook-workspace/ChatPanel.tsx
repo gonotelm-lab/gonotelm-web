@@ -396,8 +396,8 @@ export function ChatPanel({
     if (!notebookId) return
     if (isStreaming || createMessageMutation.isPending) return
 
-    const prompt = composerValue.trim()
-    if (!prompt) return
+    const prompt = composerValue.trimEnd()
+    if (!prompt.trim()) return
 
     setErrorText('')
     setComposerValue('')

@@ -1,8 +1,9 @@
 import { Box } from '@mui/material'
 import ReactMarkdown from 'react-markdown'
-import rehypeSanitize from 'rehype-sanitize'
+import rehypeKatex from 'rehype-katex'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import { MarkdownCode } from './MarkdownCode'
 
 interface AssistantMarkdownProps {
@@ -100,11 +101,36 @@ export function AssistantMarkdown({ content }: AssistantMarkdownProps) {
         },
         '& a': { color: 'primary.main', textDecoration: 'none' },
         '& a:hover': { textDecoration: 'underline' },
+        '& .katex': {
+          fontSize: '0.96em',
+        },
+        '& .katex-display': {
+          m: 0,
+          my: 0.7,
+          overflowX: 'auto',
+          overflowY: 'visible',
+          textAlign: 'left',
+        },
+        '& .katex-display > .katex': {
+          textAlign: 'left',
+        },
+        '& .katex-display + .katex-display': {
+          mt: 0.28,
+        },
+        '& p + .katex-display, & .katex-display + p': {
+          mt: 0.72,
+        },
+        '& .math.math-display': {
+          my: 0.7,
+        },
+        '& .math.math-display + .math.math-display': {
+          mt: 0.28,
+        },
       }}
     >
       <ReactMarkdown
-        remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks]}
-        rehypePlugins={[rehypeSanitize]}
+        remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           code: MarkdownCode,
         }}
