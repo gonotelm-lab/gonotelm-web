@@ -17,11 +17,16 @@ import {
   streamChatEvents,
 } from '../../api/chat'
 import { ApiError } from '../../lib/http'
-import type { ChatMessageListItem, MessageStreamPhaseType } from '../../types/api'
+import type {
+  ChatMessageCitation,
+  ChatMessageListItem,
+  ChatMessageStreamCitation,
+  MessageStreamPhaseType,
+} from '../../types/api'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { ChatComposer } from './chat-panel/ChatComposer'
 import { ChatMessagesList } from './chat-panel/ChatMessagesList'
-import type { ChatUiMessage } from './chat-panel/types'
+import type { ChatUiCitationDetail, ChatUiMessage } from './chat-panel/types'
 
 const chatMessagesPageLimit = 20
 const scrollLoadTopThresholdPx = 260
@@ -29,6 +34,12 @@ const showScrollToBottomButtonThresholdPx = 80
 const scrollToBottomAnimationDurationMs = 460
 const streamReconnectDelayMs = 600
 const streamStatusMinVisibleMs = 900
+const streamChunkFlushIntervalMs = 28
+const streamChunkImmediateFlushSize = 96
+const streamAutoScrollThresholdPx = 42
+const chatPanelLeftPadding = 3
+const chatPanelRightContentPadding = 2.75
+const chatPanelRightContentPaddingPx = chatPanelRightContentPadding * 8
 const scrollToBottomButtonTokens = {
   size: 32,
   rightPx: 7.8,
@@ -79,12 +90,76 @@ const writeTextWithFallback = async (text: string) => {
   }
 }
 
+const toCitationDetailsFromMessageCitation = (citation?: ChatMessageCitation): ChatUiCitationDetail[] => {
+  if (!citation || citation.length === 0) {
+    return []
+  }
+
+  const citationDetails: ChatUiCitationDetail[] = []
+  citation.forEach((citationItem, sourceIndex) => {
+    const sourceId = citationItem.source_id
+    ;(citationItem.doc_ids ?? []).forEach((docId, docIndex) => {
+      citationDetails.push({
+        marker: `[[${sourceIndex}#${docIndex}]]`,
+        sourceIndex,
+        docIndex,
+        sourceId,
+        docId,
+      })
+    })
+  })
+
+  return citationDetails
+}
+
+const toCitationDetailsFromStreamCitation = (citation?: ChatMessageStreamCitation): ChatUiCitationDetail[] => {
+  if (!citation || citation.length === 0) {
+    return []
+  }
+
+  const citationDetails: ChatUiCitationDetail[] = []
+  citation.forEach((citationItem, sourceIndex) => {
+    const sourceId = citationItem.source_id
+    ;(citationItem.docs ?? []).forEach((doc, docIndex) => {
+      citationDetails.push({
+        marker: `[[${sourceIndex}#${docIndex}]]`,
+        sourceIndex,
+        docIndex,
+        sourceId,
+        docId: doc.id,
+      })
+    })
+  })
+
+  return citationDetails
+}
+
+const mergeDistinctCitationDetails = (
+  current: ChatUiCitationDetail[] | undefined,
+  incoming: ChatUiCitationDetail[],
+) => {
+  if (incoming.length === 0) {
+    return current ?? []
+  }
+
+  const detailByMarker = new Map<string, ChatUiCitationDetail>()
+  for (const citationDetail of current ?? []) {
+    detailByMarker.set(citationDetail.marker, citationDetail)
+  }
+  for (const citationDetail of incoming) {
+    detailByMarker.set(citationDetail.marker, citationDetail)
+  }
+
+  return Array.from(detailByMarker.values())
+}
+
 const mapChatItemToUiMessage = (message: ChatMessageListItem): ChatUiMessage => {
   const msgRole = String(message.role).toLowerCase()
   return {
     id: message.id,
     role: msgRole === 'user' ? 'user' : 'assistant',
     text: message.content?.text?.content ?? '',
+    citationDetails: toCitationDetailsFromMessageCitation(message.citation),
   }
 }
 
@@ -104,6 +179,7 @@ export function ChatPanel({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null)
+  const [enableThinking, setEnableThinking] = useState(false)
   const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false)
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
@@ -118,6 +194,9 @@ export function ChatPanel({
   const streamStatusSwitchTimerRef = useRef<number | null>(null)
   const pendingStreamStatusRef = useRef<{ phase: MessageStreamPhaseType; text: string } | null>(null)
   const lastStreamStatusAtRef = useRef(0)
+  const pendingAssistantChunkRef = useRef('')
+  const pendingAssistantChunkMessageIdRef = useRef<string | null>(null)
+  const pendingAssistantChunkFlushTimerRef = useRef<number | null>(null)
 
   const createMessageMutation = useMutation({
     mutationFn: createChatMessage,
@@ -224,6 +303,15 @@ export function ChatPanel({
     pendingStreamStatusRef.current = null
   }, [])
 
+  const clearPendingAssistantChunkBuffer = useCallback(() => {
+    if (pendingAssistantChunkFlushTimerRef.current !== null) {
+      window.clearTimeout(pendingAssistantChunkFlushTimerRef.current)
+      pendingAssistantChunkFlushTimerRef.current = null
+    }
+    pendingAssistantChunkRef.current = ''
+    pendingAssistantChunkMessageIdRef.current = null
+  }, [])
+
   const applyStreamStatusImmediately = useCallback(
     (phase: MessageStreamPhaseType | null, text: string) => {
       setStreamPhaseType(phase)
@@ -281,8 +369,9 @@ export function ChatPanel({
       }
       clearStreamStatusSchedule()
       stopScrollToBottomAnimation()
+      clearPendingAssistantChunkBuffer()
     }
-  }, [clearStreamStatusSchedule, stopScrollToBottomAnimation])
+  }, [clearPendingAssistantChunkBuffer, clearStreamStatusSchedule, stopScrollToBottomAnimation])
 
   useEffect(() => {
     streamRunTokenRef.current += 1
@@ -303,11 +392,12 @@ export function ChatPanel({
     setActiveAssistantMessageId(null)
     setCopiedUserMessageId(null)
     setShowScrollToBottomButton(false)
+    clearPendingAssistantChunkBuffer()
     if (copyFeedbackTimerRef.current !== null) {
       window.clearTimeout(copyFeedbackTimerRef.current)
       copyFeedbackTimerRef.current = null
     }
-  }, [clearStreamStatusSchedule, notebookId, stopScrollToBottomAnimation])
+  }, [clearPendingAssistantChunkBuffer, clearStreamStatusSchedule, notebookId, stopScrollToBottomAnimation])
 
   useLayoutEffect(() => {
     if (messagesQuery.isFetchingNextPage) return
@@ -345,6 +435,13 @@ export function ChatPanel({
 
   const appendAssistantChunk = useCallback(
     (assistantMessageId: string, contentChunk: string) => {
+      const container = messageListRef.current
+      const shouldStickToBottom = Boolean(
+        container &&
+          container.scrollHeight - container.scrollTop - container.clientHeight <
+            streamAutoScrollThresholdPx,
+      )
+
       setLiveMessages((prev) =>
         prev.map((message) =>
           message.id === assistantMessageId
@@ -353,14 +450,93 @@ export function ChatPanel({
         ),
       )
 
-      const container = messageListRef.current
-      if (!container) return
-
-      const distanceToBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight
-      if (distanceToBottom < 120) {
-        container.scrollTop = container.scrollHeight
+      if (shouldStickToBottom) {
+        window.requestAnimationFrame(() => {
+          const currentContainer = messageListRef.current
+          if (!currentContainer) return
+          currentContainer.scrollTop = currentContainer.scrollHeight
+        })
       }
+    },
+    [],
+  )
+
+  const flushPendingAssistantChunk = useCallback(() => {
+    if (pendingAssistantChunkFlushTimerRef.current !== null) {
+      window.clearTimeout(pendingAssistantChunkFlushTimerRef.current)
+      pendingAssistantChunkFlushTimerRef.current = null
+    }
+
+    const assistantMessageId = pendingAssistantChunkMessageIdRef.current
+    const bufferedChunk = pendingAssistantChunkRef.current
+    if (!assistantMessageId || !bufferedChunk) {
+      return
+    }
+
+    pendingAssistantChunkRef.current = ''
+    appendAssistantChunk(assistantMessageId, bufferedChunk)
+  }, [appendAssistantChunk])
+
+  const queueAssistantChunk = useCallback(
+    (assistantMessageId: string, chunk: string) => {
+      if (!chunk) {
+        return
+      }
+
+      if (pendingAssistantChunkMessageIdRef.current !== assistantMessageId) {
+        flushPendingAssistantChunk()
+        pendingAssistantChunkMessageIdRef.current = assistantMessageId
+        pendingAssistantChunkRef.current = ''
+      }
+
+      pendingAssistantChunkRef.current += chunk
+      if (pendingAssistantChunkRef.current.length >= streamChunkImmediateFlushSize) {
+        flushPendingAssistantChunk()
+        return
+      }
+
+      if (pendingAssistantChunkFlushTimerRef.current !== null) {
+        return
+      }
+
+      pendingAssistantChunkFlushTimerRef.current = window.setTimeout(() => {
+        pendingAssistantChunkFlushTimerRef.current = null
+        flushPendingAssistantChunk()
+      }, streamChunkFlushIntervalMs)
+    },
+    [flushPendingAssistantChunk],
+  )
+
+  const applyAssistantCitationDetails = useCallback(
+    (assistantMessageId: string, citationDetails: ChatUiCitationDetail[]) => {
+      if (citationDetails.length === 0) {
+        return
+      }
+
+      setLiveMessages((prev) =>
+        prev.map((message) => {
+          if (message.id !== assistantMessageId) {
+            return message
+          }
+
+          const mergedCitationDetails = mergeDistinctCitationDetails(
+            message.citationDetails,
+            citationDetails,
+          )
+          const currentCitationDetails = message.citationDetails ?? []
+          const unchanged =
+            currentCitationDetails.length === mergedCitationDetails.length &&
+            currentCitationDetails.every(
+              (citationDetail, idx) =>
+                citationDetail.marker === mergedCitationDetails[idx]?.marker,
+            )
+          if (unchanged) {
+            return message
+          }
+
+          return { ...message, citationDetails: mergedCitationDetails }
+        }),
+      )
     },
     [],
   )
@@ -397,6 +573,12 @@ export function ChatPanel({
               }
 
               const phase = event.phase
+              if (phase?.citation) {
+                applyAssistantCitationDetails(
+                  assistantMessageId,
+                  toCitationDetailsFromStreamCitation(phase.citation),
+                )
+              }
               if (phase?.type === 'retrieving') {
                 queueStreamStatus('retrieving', '正在检索来源...')
               } else if (phase?.type === 'thinking') {
@@ -406,11 +588,12 @@ export function ChatPanel({
                 setStreamPhaseType('answer')
                 setStreamStatus('')
                 if (phase.content) {
-                  appendAssistantChunk(assistantMessageId, phase.content)
+                  queueAssistantChunk(assistantMessageId, phase.content)
                 }
               }
 
               if (event.finished) {
+                flushPendingAssistantChunk()
                 finished = true
                 clearStreamStatusSchedule()
                 setStreamPhaseType('answer')
@@ -450,9 +633,11 @@ export function ChatPanel({
       }
 
       if (runToken !== streamRunTokenRef.current) {
+        clearPendingAssistantChunkBuffer()
         return
       }
 
+      flushPendingAssistantChunk()
       setActiveTaskId(null)
       setActiveAssistantMessageId(null)
       clearStreamStatusSchedule()
@@ -461,13 +646,17 @@ export function ChatPanel({
       lastStreamStatusAtRef.current = 0
       streamAbortControllerRef.current = null
       abortRequestedRef.current = false
+      clearPendingAssistantChunkBuffer()
       await refreshHistoryAfterStream()
     },
     [
-      appendAssistantChunk,
+      applyAssistantCitationDetails,
       applyStreamStatusImmediately,
+      clearPendingAssistantChunkBuffer,
       clearStreamStatusSchedule,
+      flushPendingAssistantChunk,
       notebookId,
+      queueAssistantChunk,
       queueStreamStatus,
       refreshHistoryAfterStream,
     ],
@@ -490,7 +679,7 @@ export function ChatPanel({
     setLiveMessages((prev) => [
       ...prev,
       { id: userMessageId, role: 'user', text: prompt },
-      { id: assistantMessageId, role: 'assistant', text: '' },
+      { id: assistantMessageId, role: 'assistant', text: '', citationDetails: [] },
     ])
     window.requestAnimationFrame(() => {
       scrollToBottom()
@@ -501,6 +690,7 @@ export function ChatPanel({
         notebook_id: notebookId,
         prompt,
         source_ids: selectedSourceIds,
+        enable_thinking: enableThinking,
       })
       await runStreamSession(created.task_id, assistantMessageId)
     } catch (error) {
@@ -522,6 +712,7 @@ export function ChatPanel({
     runStreamSession,
     scrollToBottom,
     selectedSourceIds,
+    enableThinking,
   ])
 
   const handleAbortStream = useCallback(async () => {
@@ -632,7 +823,17 @@ export function ChatPanel({
   return (
     <Paper
       variant="outlined"
-      sx={{ px: 4.5, py: 2, height: '100%', minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      sx={{
+        pl: chatPanelLeftPadding,
+        pr: 0,
+        py: 2,
+        height: '100%',
+        minHeight: 0,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
     >
       {sourcesPanelCollapsed && (
         <IconButton
@@ -675,7 +876,7 @@ export function ChatPanel({
           <KeyboardDoubleArrowLeftIcon fontSize="small" />
         </IconButton>
       )}
-      <Stack spacing={0.5}>
+      <Stack spacing={0.5} sx={{ pr: chatPanelRightContentPadding }}>
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           对话
         </Typography>
@@ -685,6 +886,7 @@ export function ChatPanel({
         messageListRef={messageListRef}
         messages={displayMessages}
         streamStatus={showStreamStatus ? streamStatus : ''}
+        streamPhaseType={showStreamStatus ? streamPhaseType : null}
         showStreamFlowAnimation={showStreamFlowAnimation}
         isLoadingHistory={messagesQuery.isLoading}
         isFetchingMore={messagesQuery.isFetchingNextPage}
@@ -696,12 +898,16 @@ export function ChatPanel({
       />
 
       {errorText ? (
-        <Typography variant="caption" color="error.main" sx={{ mt: 1 }}>
+        <Typography
+          variant="caption"
+          color="error.main"
+          sx={{ mt: 1, pr: chatPanelRightContentPadding }}
+        >
           {errorText}
         </Typography>
       ) : null}
 
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{ position: 'relative', pr: chatPanelRightContentPadding }}>
         {showScrollToBottomButton ? (
           <IconButton
             size="small"
@@ -709,7 +915,7 @@ export function ChatPanel({
             onClick={smoothScrollToBottom}
             sx={{
               position: 'absolute',
-              right: `${scrollToBottomButtonTokens.rightPx}px`,
+              right: `${scrollToBottomButtonTokens.rightPx + chatPanelRightContentPaddingPx}px`,
               bottom: `calc(100% + ${scrollToBottomButtonTokens.marginBottom * 8}px)`,
               width: scrollToBottomButtonTokens.size,
               height: scrollToBottomButtonTokens.size,
@@ -733,7 +939,10 @@ export function ChatPanel({
           isInputDisabled={!notebookId || isStreaming}
           isSubmitDisabled={submitDisabled}
           isAbortDisabled={abortStreamMutation.isPending || !activeTaskId}
+          enableThinking={enableThinking}
+          isThinkingToggleDisabled={isStreaming || createMessageMutation.isPending}
           onValueChange={setComposerValue}
+          onThinkingToggle={setEnableThinking}
           onKeyDown={handleComposerKeyDown}
           onSend={() => {
             void handleSendMessage()

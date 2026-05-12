@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
+import type { MouseEvent } from 'react'
 import { Box } from '@mui/material'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
-import rehypeSanitize from 'rehype-sanitize'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -10,6 +12,12 @@ import { MarkdownCode } from './chat-panel/MarkdownCode'
 
 interface MarkdownRendererProps {
   content: string
+  renderCitationAsSuperscript?: boolean
+  onCitationClick?: (
+    event: MouseEvent<HTMLAnchorElement>,
+    sourceIndex: string,
+    docIndex: string,
+  ) => void
 }
 
 const markdownBaseTypography = {
@@ -43,12 +51,78 @@ const markdownTableTokens = {
   cellPaddingY: 0.55,
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+const markdownSanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'sup'],
+  attributes: {
+    ...defaultSchema.attributes,
+    a: [
+      ...(defaultSchema.attributes?.a ?? []),
+      ['href', /^#cite-[a-zA-Z0-9_%\-]+~[a-zA-Z0-9_%\-]+$/],
+    ],
+    sup: [...(defaultSchema.attributes?.sup ?? [])],
+  },
+}
+
+const citationPattern = /<sup>\s*([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)\s*<\/sup>/gi
+const markdownCodeSegmentPattern = /(```[\s\S]*?```|`[^`\n]*`)/g
+
+function transformCitationSuperscript(content: string): string {
+  if (!content) {
+    return content
+  }
+
+  const segments = content.split(markdownCodeSegmentPattern)
+  return segments
+    .map((segment, idx) => {
+      if (idx % 2 === 1) {
+        return segment
+      }
+      return segment.replace(citationPattern, (_matched, sourceIndex: string, docIndex: string) => {
+        const citationHref = `#cite-${encodeURIComponent(sourceIndex)}~${encodeURIComponent(docIndex)}`
+        return `[\\[${sourceIndex}\\]](${citationHref})`
+      })
+    })
+    .join('')
+}
+
+function parseCitationHref(href: string | undefined): { sourceIndex: string; docIndex: string } | null {
+  if (!href || !href.startsWith('#cite-')) {
+    return null
+  }
+
+  const payload = href.slice('#cite-'.length)
+  const splitIdx = payload.indexOf('~')
+  if (splitIdx <= 0 || splitIdx >= payload.length - 1) {
+    return null
+  }
+
+  const sourceIndex = decodeURIComponent(payload.slice(0, splitIdx))
+  const docIndex = decodeURIComponent(payload.slice(splitIdx + 1))
+  if (!sourceIndex || !docIndex) {
+    return null
+  }
+
+  return { sourceIndex, docIndex }
+}
+
+export function MarkdownRenderer({
+  content,
+  renderCitationAsSuperscript = false,
+  onCitationClick,
+}: MarkdownRendererProps) {
+  const renderedContent = useMemo(
+    () => (renderCitationAsSuperscript ? transformCitationSuperscript(content) : content),
+    [content, renderCitationAsSuperscript],
+  )
+
   return (
     <Box
       sx={{
         ...markdownBaseTypography,
         color: 'text.primary',
+        fontVariantLigatures: 'none',
+        fontFeatureSettings: '"liga" 0, "calt" 0',
         '& h1, & h2, & h3, & h4': {
           m: 0,
           fontWeight: 700,
@@ -103,6 +177,21 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         },
         '& a': { color: 'primary.main', textDecoration: 'none' },
         '& a:hover': { textDecoration: 'underline' },
+        '& a[href^="#cite-"]': {
+          ml: 0.2,
+          color: 'primary.main',
+          fontWeight: 600,
+          fontSize: '0.74em',
+          lineHeight: 1,
+          verticalAlign: 'super',
+          textDecoration: 'none',
+          cursor: 'pointer',
+          transition: 'color 0.15s ease',
+        },
+        '& a[href^="#cite-"]:hover': {
+          color: 'primary.dark',
+          textDecoration: 'underline',
+        },
         '& .katex': {
           fontSize: '0.96em',
         },
@@ -135,9 +224,26 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     >
       <ReactMarkdown
         remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}
-        rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeKatex]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], rehypeKatex]}
         components={{
           a: ({ node: _node, href, ...props }) => {
+            const citationHref = parseCitationHref(href)
+            if (citationHref) {
+              return (
+                <a
+                  {...props}
+                  href={href}
+                  onClick={(event) => {
+                    if (!onCitationClick) {
+                      return
+                    }
+                    event.preventDefault()
+                    onCitationClick(event, citationHref.sourceIndex, citationHref.docIndex)
+                  }}
+                />
+              )
+            }
+
             const shouldOpenInNewTab = Boolean(href && !href.startsWith('#'))
             return (
               <a
@@ -151,7 +257,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           code: MarkdownCode,
         }}
       >
-        {content}
+        {renderedContent}
       </ReactMarkdown>
     </Box>
   )

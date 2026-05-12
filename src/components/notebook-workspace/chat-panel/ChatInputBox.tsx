@@ -1,7 +1,14 @@
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import StopCircleIcon from '@mui/icons-material/StopCircle'
-import { IconButton, Paper, TextField } from '@mui/material'
+import {
+  Box,
+  Button,
+  IconButton,
+  Paper,
+  TextField,
+} from '@mui/material'
 
 interface ChatInputBoxProps {
   value: string
@@ -9,17 +16,23 @@ interface ChatInputBoxProps {
   isInputDisabled: boolean
   isSubmitDisabled: boolean
   isAbortDisabled: boolean
+  enableThinking: boolean
+  isThinkingToggleDisabled: boolean
+  leftControlsExtra?: ReactNode
+  rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
+  onThinkingToggle: (enabled: boolean) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
 }
 
 const inputBoxLayoutTokens = {
-  paddingLeft: 2.4,
+  paddingLeft: 2.1,
   paddingRight: 1.1,
-  paddingY: 0.65,
-  gap: 0.75,
+  paddingTop: 0.65,
+  paddingBottom: 0.55,
+  gap: 1.28,
   borderRadius: 2,
 }
 
@@ -38,7 +51,12 @@ export function ChatInputBox({
   isInputDisabled,
   isSubmitDisabled,
   isAbortDisabled,
+  enableThinking,
+  isThinkingToggleDisabled,
+  leftControlsExtra,
+  rightControlsExtra,
   onValueChange,
+  onThinkingToggle,
   onKeyDown,
   onSend,
   onAbort,
@@ -49,9 +67,10 @@ export function ChatInputBox({
       sx={{
         pl: inputBoxLayoutTokens.paddingLeft,
         pr: inputBoxLayoutTokens.paddingRight,
-        py: inputBoxLayoutTokens.paddingY,
+        pt: inputBoxLayoutTokens.paddingTop,
+        pb: inputBoxLayoutTokens.paddingBottom,
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
         gap: inputBoxLayoutTokens.gap,
         borderRadius: inputBoxLayoutTokens.borderRadius,
       }}
@@ -76,7 +95,7 @@ export function ChatInputBox({
           '& .MuiInputBase-root': {
             fontSize: inputTextTokens.fontSize,
             lineHeight: inputTextTokens.lineHeight,
-            alignItems: 'center',
+            alignItems: 'flex-start',
           },
           '& textarea': {
             scrollbarWidth: 'thin',
@@ -102,30 +121,70 @@ export function ChatInputBox({
         }}
       />
 
-      <IconButton
-        color="primary"
-        onClick={() => {
-          if (isStreaming) {
-            onAbort()
-            return
-          }
-          onSend()
-        }}
-        disabled={isStreaming ? isAbortDisabled : isSubmitDisabled}
+      <Box
         sx={{
-          width: inputActionButtonTokens.size,
-          height: inputActionButtonTokens.size,
-          border: 1,
-          borderColor: 'primary.main',
-          flexShrink: 0,
-          cursor:
-            isStreaming
-              ? (isAbortDisabled ? 'not-allowed' : 'pointer')
-              : (isSubmitDisabled ? 'not-allowed' : 'pointer'),
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        {isStreaming ? <StopCircleIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
-      </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.55 }}>
+          <Button
+            size="small"
+            variant={enableThinking ? 'contained' : 'outlined'}
+            color={enableThinking ? 'primary' : 'inherit'}
+            onClick={() => {
+              onThinkingToggle(!enableThinking)
+            }}
+            disabled={isThinkingToggleDisabled}
+            startIcon={<AutoAwesomeIcon sx={{ fontSize: 15 }} />}
+            sx={{
+              borderRadius: 999,
+              textTransform: 'none',
+              fontSize: 12.8,
+              fontWeight: 600,
+              minHeight: 29,
+              px: 1.25,
+              color: enableThinking ? 'primary.contrastText' : 'text.secondary',
+              borderColor: enableThinking ? 'primary.main' : 'divider',
+              '&:hover': {
+                borderColor: enableThinking ? 'primary.main' : 'text.secondary',
+              },
+            }}
+          >
+            深度思考
+          </Button>
+          {leftControlsExtra}
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {rightControlsExtra}
+          <IconButton
+            color="primary"
+            onClick={() => {
+              if (isStreaming) {
+                onAbort()
+                return
+              }
+              onSend()
+            }}
+            disabled={isStreaming ? isAbortDisabled : isSubmitDisabled}
+            sx={{
+              width: inputActionButtonTokens.size,
+              height: inputActionButtonTokens.size,
+              border: 1,
+              borderColor: 'primary.main',
+              flexShrink: 0,
+              cursor:
+                isStreaming
+                  ? (isAbortDisabled ? 'not-allowed' : 'pointer')
+                  : (isSubmitDisabled ? 'not-allowed' : 'pointer'),
+            }}
+          >
+            {isStreaming ? <StopCircleIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}
+          </IconButton>
+        </Box>
+      </Box>
     </Paper>
   )
 }

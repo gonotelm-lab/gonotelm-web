@@ -12,3 +12,14 @@ body {
 a {
   color: inherit;
 }
+
+.chat-messages-scroll::-webkit-scrollbar-button,
+.chat-messages-scroll::-webkit-scrollbar-button:single-button,
+.chat-messages-scroll::-webkit-scrollbar-button:vertical:start:decrement,
+.chat-messages-scroll::-webkit-scrollbar-button:vertical:end:increment {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+}

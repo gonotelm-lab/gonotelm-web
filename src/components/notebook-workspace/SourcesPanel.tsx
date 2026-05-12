@@ -10,6 +10,7 @@ import {
   Divider,
   IconButton,
   Paper,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material'
@@ -19,9 +20,13 @@ import { SourceListRow } from './SourceListRow'
 import { subtleScrollbarSx } from './scrollbar'
 import type { SourceListItem } from './sourceTypes'
 
+const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
+
 interface SourcesPanelProps {
   collapsed: boolean
   isBusy: boolean
+  isHydrating: boolean
+  loadingSkeletonCount: number
   sourceListItems: SourceListItem[]
   removingMap: Record<string, boolean>
   allSourcesChecked: boolean
@@ -41,6 +46,8 @@ interface SourcesPanelProps {
 export function SourcesPanel({
   collapsed,
   isBusy,
+  isHydrating,
+  loadingSkeletonCount,
   sourceListItems,
   removingMap,
   allSourcesChecked,
@@ -57,6 +64,9 @@ export function SourcesPanel({
   checkedMap,
 }: SourcesPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
+  const showListLoadingSkeleton =
+    isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
 
   return (
     <>
@@ -145,25 +155,61 @@ export function SourcesPanel({
           spacing={0}
           sx={{ mt: 1.25, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}
         >
-          {sourceListItems.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              暂无来源
-            </Typography>
-          ) : (
-            sourceListItems.map((item) => (
-              <SourceListRow
-                key={item.id}
-                item={item}
-                checked={Boolean(checkedMap[item.id])}
-                removing={Boolean(removingMap[item.id])}
-                isBusy={isBusy}
-                onToggleItem={onToggleItem}
-                onDeleteItem={onDeleteItem}
-                onRetryItem={onRetryItem}
-                onPreviewItem={onPreviewItem}
-              />
-            ))
-          )}
+          {showListLoadingSkeleton
+            ? Array.from({ length: skeletonItemCount }).map((_, index) => (
+                <Box
+                  key={`source-skeleton-${index}`}
+                  sx={{ py: 1 }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
+                    >
+                      <Box
+                        sx={{
+                          width: 18,
+                          height: 18,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Skeleton variant="rounded" width={18} height={18} />
+                      </Box>
+                      <Skeleton
+                        variant="rounded"
+                        width={sourceSkeletonNameWidthPattern[index % sourceSkeletonNameWidthPattern.length]}
+                        height={14}
+                        sx={{ flexShrink: 0 }}
+                      />
+                    </Stack>
+                    <Box sx={{ width: 36, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <Skeleton variant="rounded" width={16} height={16} />
+                    </Box>
+                  </Stack>
+                </Box>
+              ))
+            : sourceListItems.length > 0
+              ? sourceListItems.map((item) => (
+                  <SourceListRow
+                    key={item.id}
+                    item={item}
+                    checked={Boolean(checkedMap[item.id])}
+                    removing={Boolean(removingMap[item.id])}
+                    isBusy={isBusy}
+                    onToggleItem={onToggleItem}
+                    onDeleteItem={onDeleteItem}
+                    onRetryItem={onRetryItem}
+                    onPreviewItem={onPreviewItem}
+                  />
+                ))
+              : null}
         </Stack>
         </Paper>
       </Box>

@@ -43,9 +43,11 @@ export function SourceSelectionController({
   onSelectedSourceIdsChange,
 }: SourceSelectionControllerProps) {
   const previousStatusMapRef = useRef<Record<string, SourceStatus | undefined>>({})
+  const skipPersistOnceRef = useRef(false)
 
   useEffect(() => {
     previousStatusMapRef.current = {}
+    skipPersistOnceRef.current = true
     if (!notebookId) {
       onSelectedSourceIdsChange({})
       return
@@ -57,6 +59,10 @@ export function SourceSelectionController({
 
   useEffect(() => {
     if (!notebookId) return
+    if (skipPersistOnceRef.current) {
+      skipPersistOnceRef.current = false
+      return
+    }
     const storageKey = buildSourceSelectionStorageKey(notebookId)
     const persisted = Object.fromEntries(
       Object.entries(selectedSourceIds).filter(([, checked]) => Boolean(checked)),
@@ -69,7 +75,7 @@ export function SourceSelectionController({
   }, [notebookId, selectedSourceIds])
 
   useEffect(() => {
-    if (isHydratingSources) return
+    if (isHydratingSources || sourceListItems.length === 0) return
 
     const selectableIdSet = new Set(selectableSourceItems.map((item) => item.id))
     onSelectedSourceIdsChange((prev) => {
@@ -89,7 +95,7 @@ export function SourceSelectionController({
       }
       return next
     })
-  }, [isHydratingSources, onSelectedSourceIdsChange, selectableSourceItems])
+  }, [isHydratingSources, onSelectedSourceIdsChange, selectableSourceItems, sourceListItems.length])
 
   useEffect(() => {
     const nextStatusMap: Record<string, SourceStatus | undefined> = {}

@@ -104,17 +104,26 @@ export interface ChatMessageContent {
   text?: ChatMessageContentText
 }
 
+export interface ChatMessageCitationItem {
+  source_id: string
+  doc_ids?: string[]
+}
+
+export type ChatMessageCitation = ChatMessageCitationItem[]
+
 export interface ChatMessageListItem {
   id: string
   chat_id: string
   role: ChatMessageRole
   content?: ChatMessageContent
+  citation?: ChatMessageCitation
 }
 
 export interface ChatCreateMessageRequest {
   notebook_id: string
   prompt: string
   source_ids?: string[]
+  enable_thinking?: boolean
 }
 
 export interface ChatCreateMessageResponse {
@@ -138,10 +147,28 @@ export type MessageStreamPhaseType = 'retrieving' | 'thinking' | 'answer'
 export type MessageStreamPhaseStatus = 'typing' | 'finished'
 export type ChatMessageStreamFinishReason = 'stop' | 'length' | 'content_filter' | string
 
+export interface ChatMessageStreamCitationDocPosition {
+  start: number
+  end: number
+}
+
+export interface ChatMessageStreamCitationDoc {
+  id?: string
+  position?: ChatMessageStreamCitationDocPosition
+}
+
+export interface ChatMessageStreamCitationItem {
+  source_id?: string
+  docs?: ChatMessageStreamCitationDoc[]
+}
+
+export type ChatMessageStreamCitation = ChatMessageStreamCitationItem[]
+
 export interface ChatMessageStreamPhase {
   type: MessageStreamPhaseType
   status: MessageStreamPhaseStatus
   content?: string
+  citation?: ChatMessageStreamCitation
 }
 
 export interface ChatMessageStreamEvent {

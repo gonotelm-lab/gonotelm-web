@@ -566,6 +566,8 @@ export function NotebookWorkspacePage() {
           <SourcesPanel
             collapsed={isSourcesPanelCollapsed}
             isBusy={isBusy}
+            isHydrating={isHydratingSources}
+            loadingSkeletonCount={notebookQuery.data?.source_count ?? 0}
             sourceListItems={sourceListItems}
             removingMap={removingSourceIds}
             allSourcesChecked={allSourcesChecked}
