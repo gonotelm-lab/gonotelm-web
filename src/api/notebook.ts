@@ -2,6 +2,7 @@ import { request } from '../lib/http'
 import type {
   CreateNotebookRequest,
   CreateNotebookResponse,
+  GetNotebookChatResponse,
   ListNotebookSourcesResponse,
   ListNotebooksResponse,
   Notebook,
@@ -16,6 +17,12 @@ export function createNotebook(payload: CreateNotebookRequest) {
 
 export function getNotebook(id: string) {
   return request<Notebook>(`/api/v1/notebook/${id}`)
+}
+
+export function getOrCreateNotebookChat(id: string) {
+  return request<GetNotebookChatResponse>(`/api/v1/notebook/${id}/chat`, {
+    method: 'POST',
+  })
 }
 
 interface UpdateNotebookNameRequest {

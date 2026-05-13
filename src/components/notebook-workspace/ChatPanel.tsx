@@ -21,6 +21,7 @@ import type {
   ChatMessageCitation,
   ChatMessageListItem,
   ChatMessageStreamCitation,
+  MessageStreamPhaseContentAction,
   MessageStreamPhaseType,
 } from '../../types/api'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
@@ -48,6 +49,7 @@ const scrollToBottomButtonTokens = {
 
 interface ChatPanelProps {
   notebookId: string
+  chatId: string
   selectedSourceIds: string[]
   sourcesPanelCollapsed: boolean
   insightsPanelCollapsed: boolean
@@ -63,6 +65,25 @@ const getErrorMessage = (error: unknown) => {
     return error.message
   }
   return '请求失败，请稍后重试。'
+}
+
+const getFinishReasonNotice = (finishReason?: string) => {
+  if (finishReason === 'length') {
+    return '回答达到长度上限，内容可能被截断，可继续追问。'
+  }
+  if (finishReason === 'content_filter') {
+    return '回答触发内容安全过滤，部分内容被拦截。'
+  }
+  return ''
+}
+
+const resolveStreamContentAction = (
+  action?: MessageStreamPhaseContentAction,
+): MessageStreamPhaseContentAction => {
+  if (action === 'override') {
+    return 'override'
+  }
+  return 'continue'
 }
 
 const sleep = (ms: number) =>
@@ -165,6 +186,7 @@ const mapChatItemToUiMessage = (message: ChatMessageListItem): ChatUiMessage => 
 
 export function ChatPanel({
   notebookId,
+  chatId,
   selectedSourceIds,
   sourcesPanelCollapsed,
   insightsPanelCollapsed,
@@ -176,6 +198,7 @@ export function ChatPanel({
   const [streamStatus, setStreamStatus] = useState('')
   const [streamPhaseType, setStreamPhaseType] = useState<MessageStreamPhaseType | null>(null)
   const [errorText, setErrorText] = useState('')
+  const [finishReasonNotice, setFinishReasonNotice] = useState('')
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null)
@@ -206,12 +229,12 @@ export function ChatPanel({
   })
 
   const messagesQuery = useInfiniteQuery({
-    queryKey: ['chat-messages', notebookId],
-    enabled: Boolean(notebookId),
+    queryKey: ['chat-messages', chatId],
+    enabled: Boolean(chatId),
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listChatMessages({
-        chat_id: notebookId,
+        id: chatId,
         cursor: typeof pageParam === 'number' ? pageParam : 0,
         limit: chatMessagesPageLimit,
       }),
@@ -388,6 +411,7 @@ export function ChatPanel({
     setStreamStatus('')
     setStreamPhaseType(null)
     setErrorText('')
+    setFinishReasonNotice('')
     setActiveTaskId(null)
     setActiveAssistantMessageId(null)
     setCopiedUserMessageId(null)
@@ -446,6 +470,34 @@ export function ChatPanel({
         prev.map((message) =>
           message.id === assistantMessageId
             ? { ...message, text: `${message.text}${contentChunk}` }
+            : message,
+        ),
+      )
+
+      if (shouldStickToBottom) {
+        window.requestAnimationFrame(() => {
+          const currentContainer = messageListRef.current
+          if (!currentContainer) return
+          currentContainer.scrollTop = currentContainer.scrollHeight
+        })
+      }
+    },
+    [],
+  )
+
+  const overrideAssistantContent = useCallback(
+    (assistantMessageId: string, content: string) => {
+      const container = messageListRef.current
+      const shouldStickToBottom = Boolean(
+        container &&
+          container.scrollHeight - container.scrollTop - container.clientHeight <
+            streamAutoScrollThresholdPx,
+      )
+
+      setLiveMessages((prev) =>
+        prev.map((message) =>
+          message.id === assistantMessageId
+            ? { ...message, text: content }
             : message,
         ),
       )
@@ -559,7 +611,7 @@ export function ChatPanel({
           streamAbortControllerRef.current = controller
 
           await streamChatEvents({
-            chat_id: notebookId,
+            id: chatId,
             task_id: taskId,
             last_stream_id: lastStreamId || undefined,
             signal: controller.signal,
@@ -587,7 +639,11 @@ export function ChatPanel({
                 clearStreamStatusSchedule()
                 setStreamPhaseType('answer')
                 setStreamStatus('')
-                if (phase.content) {
+                const contentAction = resolveStreamContentAction(phase.action)
+                if (contentAction === 'override') {
+                  clearPendingAssistantChunkBuffer()
+                  overrideAssistantContent(assistantMessageId, phase.content ?? '')
+                } else if (phase.content) {
                   queueAssistantChunk(assistantMessageId, phase.content)
                 }
               }
@@ -595,6 +651,10 @@ export function ChatPanel({
               if (event.finished) {
                 flushPendingAssistantChunk()
                 finished = true
+                const notice = getFinishReasonNotice(event.finish_reason)
+                if (notice) {
+                  setFinishReasonNotice(notice)
+                }
                 clearStreamStatusSchedule()
                 setStreamPhaseType('answer')
                 setStreamStatus('')
@@ -655,7 +715,8 @@ export function ChatPanel({
       clearPendingAssistantChunkBuffer,
       clearStreamStatusSchedule,
       flushPendingAssistantChunk,
-      notebookId,
+      chatId,
+      overrideAssistantContent,
       queueAssistantChunk,
       queueStreamStatus,
       refreshHistoryAfterStream,
@@ -663,13 +724,14 @@ export function ChatPanel({
   )
 
   const handleSendMessage = useCallback(async () => {
-    if (!notebookId) return
+    if (!chatId) return
     if (isStreaming || createMessageMutation.isPending) return
 
     const prompt = composerValue.trimEnd()
     if (!prompt.trim()) return
 
     setErrorText('')
+    setFinishReasonNotice('')
     setComposerValue('')
     shouldAutoScrollToBottomRef.current = true
 
@@ -687,7 +749,7 @@ export function ChatPanel({
 
     try {
       const created = await createMessageMutation.mutateAsync({
-        notebook_id: notebookId,
+        id: chatId,
         prompt,
         source_ids: selectedSourceIds,
         enable_thinking: enableThinking,
@@ -707,8 +769,8 @@ export function ChatPanel({
   }, [
     composerValue,
     createMessageMutation,
+    chatId,
     isStreaming,
-    notebookId,
     runStreamSession,
     scrollToBottom,
     selectedSourceIds,
@@ -716,16 +778,17 @@ export function ChatPanel({
   ])
 
   const handleAbortStream = useCallback(async () => {
-    if (!notebookId || !activeTaskId) return
+    if (!chatId || !activeTaskId) return
     if (abortStreamMutation.isPending) return
 
     setErrorText('')
+    setFinishReasonNotice('')
     setStreamStatus('正在终止...')
     abortRequestedRef.current = true
 
     try {
       await abortStreamMutation.mutateAsync({
-        chat_id: notebookId,
+        id: chatId,
         task_id: activeTaskId,
       })
     } catch (error) {
@@ -733,7 +796,7 @@ export function ChatPanel({
     } finally {
       streamAbortControllerRef.current?.abort()
     }
-  }, [abortStreamMutation, activeTaskId, notebookId])
+  }, [abortStreamMutation, activeTaskId, chatId])
 
   const handleCopyUserMessage = useCallback(
     async (messageId: string, text: string) => {
@@ -810,7 +873,7 @@ export function ChatPanel({
     !composerValue.trim() ||
     isStreaming ||
     createMessageMutation.isPending ||
-    !notebookId
+    !chatId
   const showStreamStatus = Boolean(
     isStreaming &&
     streamStatus &&
@@ -905,6 +968,14 @@ export function ChatPanel({
         >
           {errorText}
         </Typography>
+      ) : finishReasonNotice ? (
+        <Typography
+          variant="caption"
+          color="warning.main"
+          sx={{ mt: 1, pr: chatPanelRightContentPadding }}
+        >
+          {finishReasonNotice}
+        </Typography>
       ) : null}
 
       <Box sx={{ position: 'relative', pr: chatPanelRightContentPadding }}>
@@ -936,7 +1007,7 @@ export function ChatPanel({
         <ChatComposer
           value={composerValue}
           isStreaming={isStreaming}
-          isInputDisabled={!notebookId || isStreaming}
+          isInputDisabled={!chatId || isStreaming}
           isSubmitDisabled={submitDisabled}
           isAbortDisabled={abortStreamMutation.isPending || !activeTaskId}
           enableThinking={enableThinking}

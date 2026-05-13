@@ -9,7 +9,12 @@ import {
   uploadFileSource,
   uploadToObjectStorage,
 } from '../api/source'
-import { getNotebook, listNotebookSources, updateNotebookName } from '../api/notebook'
+import {
+  getNotebook,
+  getOrCreateNotebookChat,
+  listNotebookSources,
+  updateNotebookName,
+} from '../api/notebook'
 import { fileMd5 } from '../lib/md5'
 import { resolveUploadMimeType } from '../lib/sourceMime'
 import { useSourcePolling } from '../hooks/useSourcePolling'
@@ -111,6 +116,14 @@ export function NotebookWorkspacePage() {
     queryKey: ['notebook', id],
     queryFn: () => getNotebook(id),
     enabled: !!id,
+  })
+  const notebookChatQuery = useQuery({
+    queryKey: ['notebook-chat', id],
+    queryFn: () => getOrCreateNotebookChat(id),
+    enabled: Boolean(id),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   useEffect(() => {
@@ -586,6 +599,7 @@ export function NotebookWorkspacePage() {
 
           <ChatPanel
             notebookId={id}
+            chatId={notebookChatQuery.data?.chat_id ?? ''}
             selectedSourceIds={selectedSourceIdList}
             sourcesPanelCollapsed={isSourcesPanelCollapsed}
             insightsPanelCollapsed={isInsightsPanelCollapsed}

@@ -56,6 +56,10 @@ export interface ListNotebooksResponse {
   has_more: boolean
 }
 
+export interface GetNotebookChatResponse {
+  chat_id: string
+}
+
 export interface ListNotebookSourcesResponse {
   sources: NotebookSource[]
   limit: number
@@ -120,7 +124,7 @@ export interface ChatMessageListItem {
 }
 
 export interface ChatCreateMessageRequest {
-  notebook_id: string
+  id: string
   prompt: string
   source_ids?: string[]
   enable_thinking?: boolean
@@ -132,7 +136,7 @@ export interface ChatCreateMessageResponse {
 }
 
 export interface ChatAbortStreamRequest {
-  chat_id: string
+  id: string
   task_id: string
 }
 
@@ -145,6 +149,7 @@ export interface ChatListMessagesResponse {
 
 export type MessageStreamPhaseType = 'retrieving' | 'thinking' | 'answer'
 export type MessageStreamPhaseStatus = 'typing' | 'finished'
+export type MessageStreamPhaseContentAction = 'continue' | 'override' | string
 export type ChatMessageStreamFinishReason = 'stop' | 'length' | 'content_filter' | string
 
 export interface ChatMessageStreamCitationDocPosition {
@@ -168,6 +173,7 @@ export interface ChatMessageStreamPhase {
   type: MessageStreamPhaseType
   status: MessageStreamPhaseStatus
   content?: string
+  action?: MessageStreamPhaseContentAction
   citation?: ChatMessageStreamCitation
 }
 

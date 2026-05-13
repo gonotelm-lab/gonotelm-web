@@ -12,13 +12,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 const defaultSseEventType = 'message'
 
 interface ListChatMessagesParams {
-  chat_id: string
+  id: string
   cursor?: number
   limit?: number
 }
 
 interface BuildChatStreamUrlParams {
-  chat_id: string
+  id: string
   task_id: string
   last_stream_id?: string
 }
@@ -101,11 +101,13 @@ const tryParseApiResult = async <T>(response: Response): Promise<ApiResult<T> | 
 }
 
 export function createChatMessage(payload: ChatCreateMessageRequest) {
-  const normalizedPayload: ChatCreateMessageRequest = {
-    ...payload,
+  const normalizedPayload = {
     prompt: payload.prompt.trimEnd(),
+    source_ids: payload.source_ids,
+    enable_thinking: payload.enable_thinking,
   }
-  return request<ChatCreateMessageResponse>('/api/v1/chat/message/create', {
+  const chatId = encodeURIComponent(payload.id)
+  return request<ChatCreateMessageResponse>(`/api/v1/chat/${chatId}/message/create`, {
     method: 'POST',
     body: JSON.stringify(normalizedPayload),
   })
@@ -113,33 +115,37 @@ export function createChatMessage(payload: ChatCreateMessageRequest) {
 
 export function listChatMessages(params: ListChatMessagesParams) {
   const query = new URLSearchParams()
-  query.set('chat_id', params.chat_id)
   if (typeof params.cursor === 'number') {
     query.set('cursor', String(params.cursor))
   }
   if (typeof params.limit === 'number') {
     query.set('limit', String(params.limit))
   }
-
-  return request<ChatListMessagesResponse>(`/api/v1/chat/message/list?${query.toString()}`)
+  const chatId = encodeURIComponent(params.id)
+  const queryString = query.toString()
+  const url = queryString
+    ? `/api/v1/chat/${chatId}/message/list?${queryString}`
+    : `/api/v1/chat/${chatId}/message/list`
+  return request<ChatListMessagesResponse>(url)
 }
 
 export function abortChatStream(payload: ChatAbortStreamRequest) {
-  return request<null>('/api/v1/chat/stream/abort', {
+  const chatId = encodeURIComponent(payload.id)
+  return request<null>(`/api/v1/chat/${chatId}/stream/abort`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ task_id: payload.task_id }),
   })
 }
 
 export function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
   const query = new URLSearchParams()
-  query.set('chat_id', params.chat_id)
   query.set('task_id', params.task_id)
   if (params.last_stream_id) {
     query.set('last_stream_id', params.last_stream_id)
   }
 
-  return `${API_BASE_URL}/api/v1/chat/stream?${query.toString()}`
+  const chatId = encodeURIComponent(params.id)
+  return `${API_BASE_URL}/api/v1/chat/${chatId}/stream?${query.toString()}`
 }
 
 export async function streamChatEvents(options: StreamChatEventsOptions) {
