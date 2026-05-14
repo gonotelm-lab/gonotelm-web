@@ -31,6 +31,25 @@ import type { SourceListItem } from '../components/notebook-workspace/sourceType
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
 const sourceRemoveAnimationMs = 300
+const textSourceDisplayNameMaxChars = 20
+const markdownPreviewCacheTtlMs = 5 * 60 * 1_000
+const workspacePanelWidthCollapsed = '0%'
+const workspacePanelWidthExpanded = '23%'
+const workspacePanelTransitionMs = 280
+const workspacePanelFadeTransitionMs = 220
+const workspacePanelTransitionCurve = 'cubic-bezier(0.22, 1, 0.36, 1)'
+const workspacePanelGridTransition = `grid-template-columns ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
+const workspacePanelWidthTransition = `width ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
+const workspacePanelContentTransition = `transform ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}, opacity ${workspacePanelFadeTransitionMs}ms ease`
+const previewDialogTransitionDuration = { enter: 180, exit: 120 }
+const previewDialogContentHeight = {
+  min: { xs: 300, md: 460 },
+  max: { xs: '65vh', md: 460 },
+}
+const previewDialogTextFontSize = 13.5
+const filePreviewStackGap = 1.25
+const filePreviewFrameMinHeight = 460
+const filePreviewLinkFontSize = 12
 const previewableFileIconTypeSet = new Set<SourceListItem['iconType']>([
   'markdown',
   'pdf',
@@ -255,7 +274,7 @@ export function NotebookWorkspacePage() {
       }
       return response.text()
     },
-    staleTime: 5 * 60 * 1_000,
+    staleTime: markdownPreviewCacheTtlMs,
   })
   const markdownPreviewText =
     markdownTextFromSource || markdownPreviewFallbackQuery.data || ''
@@ -315,7 +334,7 @@ export function NotebookWorkspacePage() {
         id: created.id,
         kind,
         status: 'preparing',
-        displayName: kind === 'text' ? truncateUTF8(normalized, 20) : normalized,
+        displayName: kind === 'text' ? truncateUTF8(normalized, textSourceDisplayNameMaxChars) : normalized,
         textContent: kind === 'text' ? normalized : undefined,
         urlContent: kind === 'url' ? normalized : undefined,
       })
@@ -562,14 +581,14 @@ export function NotebookWorkspacePage() {
             overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
-              md: `${isSourcesPanelCollapsed ? '0%' : '23%'} minmax(0, 1fr) ${isInsightsPanelCollapsed ? '0%' : '23%'}`,
-              xl: `${isSourcesPanelCollapsed ? '0%' : '23%'} minmax(0, 1fr) ${isInsightsPanelCollapsed ? '0%' : '23%'}`,
+              md: `${isSourcesPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded} minmax(0, 1fr) ${isInsightsPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded}`,
+              xl: `${isSourcesPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded} minmax(0, 1fr) ${isInsightsPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded}`,
             },
             gridTemplateRows: {
               xs: 'repeat(3, minmax(0, 1fr))',
               md: 'minmax(0, 1fr)',
             },
-            transition: 'grid-template-columns 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: workspacePanelGridTransition,
             '& > *': {
               minWidth: 0,
               minHeight: 0,
@@ -613,7 +632,7 @@ export function NotebookWorkspacePage() {
               height: '100%',
               minWidth: 0,
               overflow: 'hidden',
-              transition: 'width 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: workspacePanelWidthTransition,
             }}
           >
             <Box
@@ -622,8 +641,7 @@ export function NotebookWorkspacePage() {
                 height: '100%',
                 opacity: { xs: 1, md: isInsightsPanelCollapsed ? 0 : 1 },
                 transform: { xs: 'translateX(0)', md: isInsightsPanelCollapsed ? 'translateX(100%)' : 'translateX(0)' },
-                transition:
-                  'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease',
+                transition: workspacePanelContentTransition,
                 pointerEvents: { xs: 'auto', md: isInsightsPanelCollapsed ? 'none' : 'auto' },
               }}
             >
@@ -636,7 +654,7 @@ export function NotebookWorkspacePage() {
       <Dialog
         open={isPreviewDialogOpen}
         onClose={handleClosePreviewDialog}
-        transitionDuration={{ enter: 180, exit: 120 }}
+        transitionDuration={previewDialogTransitionDuration}
         slots={{ transition: Fade }}
         slotProps={{
           transition: {
@@ -654,8 +672,8 @@ export function NotebookWorkspacePage() {
         <DialogContent
           dividers
           sx={{
-            minHeight: { xs: 300, md: 460 },
-            maxHeight: { xs: '65vh', md: 460 },
+            minHeight: previewDialogContentHeight.min,
+            maxHeight: previewDialogContentHeight.max,
             overflowY: 'auto',
           }}
         >
@@ -665,47 +683,47 @@ export function NotebookWorkspacePage() {
                 <MarkdownRenderer content={markdownPreviewText} />
               </Box>
             ) : markdownPreviewFallbackQuery.isFetching ? (
-              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
                 Markdown 内容加载中...
               </Typography>
             ) : markdownPreviewFallbackQuery.isError ? (
-              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
                 Markdown 内容加载失败，请稍后重试。
               </Typography>
             ) : (
-              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
                 Markdown 内容尚未准备完成，暂不可预览。
               </Typography>
             )
           ) : null}
 
           {activePreviewItem?.kind === 'text' ? (
-            <Typography sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 13.5 }}>
+            <Typography sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: previewDialogTextFontSize }}>
               {activePreviewItem.textContent?.trim() || '暂无可预览文本内容。'}
             </Typography>
           ) : null}
 
           {activePreviewItem?.kind === 'file' && activePreviewItem.iconType !== 'markdown' ? (
             activePreviewItem.fileUrl ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: filePreviewStackGap }}>
                 <Box
                   component="iframe"
                   src={activePreviewItem.fileUrl}
                   title="source-file-preview"
-                  sx={{ width: '100%', minHeight: 460, border: 0, borderRadius: 1 }}
+                  sx={{ width: '100%', minHeight: filePreviewFrameMinHeight, border: 0, borderRadius: 1 }}
                 />
                 <Link
                   href={activePreviewItem.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   underline="hover"
-                  sx={{ fontSize: 12 }}
+                  sx={{ fontSize: filePreviewLinkFontSize }}
                 >
                   在新标签页打开文件
                 </Link>
               </Box>
             ) : (
-              <Typography sx={{ fontSize: 13.5 }} color="text.secondary">
+              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
                 文件尚未就绪，暂不可预览。
               </Typography>
             )

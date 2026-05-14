@@ -96,6 +96,13 @@ export interface PollSourceStatusResponse {
   status: SourceStatus
 }
 
+export interface GetSourceDocResponse {
+  source_id: string
+  doc_id: string
+  source_title: string
+  content: string
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface ChatMessageContentText {

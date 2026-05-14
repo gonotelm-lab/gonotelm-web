@@ -1,20 +1,44 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useRef, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import {
   Box,
+  CircularProgress,
   IconButton,
   Paper,
   Popover,
   Tooltip,
   Typography,
 } from '@mui/material'
+import { useQueryClient } from '@tanstack/react-query'
+import { buildSourceDocQueryOptions } from '../../../api/source'
+import type { GetSourceDocResponse } from '../../../types/api'
 import { AssistantMarkdown } from './AssistantMarkdown'
+import { MarkdownRenderer } from '../MarkdownRenderer'
 import type { ChatUiCitationDetail, ChatUiMessage } from './types'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
+const assistantMessagePaddingY = 0.15
+const userBubbleBorderRadius = '16px 16px 6px 16px'
+
+const citationCardTokens = {
+  paperBorderRadius: 1.25,
+  paperBoxShadow: '0 8px 24px rgba(15,23,42,0.14)',
+  maxWidth: 380,
+  padding: 1.3,
+  titleMarginBottom: 0.5,
+  sourceTitleMarginTop: 0.4,
+  contentMarginTop: 0.7,
+  contentMaxHeight: 240,
+  contentBorderRadius: 0.8,
+  contentPaddingX: 0.8,
+  contentPaddingY: 0.7,
+  loadingGap: 0.8,
+  loadingPaddingY: 0.4,
+  loadingSpinnerSize: 14,
+}
 
 const messageLayoutTokens = {
   assistantMarginRight: 1,
@@ -55,15 +79,15 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   copied,
   onCopyUserMessage,
 }: ChatMessageItemProps) {
+  const queryClient = useQueryClient()
   const [citationAnchorPosition, setCitationAnchorPosition] = useState<{
     left: number
     top: number
   } | null>(null)
-  const [activeCitationRef, setActiveCitationRef] = useState<{
-    sourceIndex: string
-    docIndex: string
-  } | null>(null)
-  const [activeCitationDetail, setActiveCitationDetail] = useState<ChatUiCitationDetail | null>(null)
+  const [activeCitationDoc, setActiveCitationDoc] = useState<GetSourceDocResponse | null>(null)
+  const [isCitationLoading, setIsCitationLoading] = useState(false)
+  const [citationLoadError, setCitationLoadError] = useState('')
+  const citationFetchSeqRef = useRef(0)
   const isUserMessage = message.role === 'user'
   const showStreamingPlaceholder =
     isStreaming && isActiveAssistantMessage && !message.text
@@ -79,22 +103,57 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     return detailMap
   }, [message.citationDetails])
 
+  const fetchCitationDoc = useCallback(async (sourceId: string, docId: string, fetchSeq: number) => {
+    try {
+      const sourceDoc = await queryClient.fetchQuery(buildSourceDocQueryOptions(sourceId, docId))
+      if (citationFetchSeqRef.current !== fetchSeq) {
+        return
+      }
+      setActiveCitationDoc(sourceDoc)
+      setCitationLoadError('')
+    } catch {
+      if (citationFetchSeqRef.current !== fetchSeq) {
+        return
+      }
+      setCitationLoadError('加载引用内容失败，请稍后重试。')
+    } finally {
+      if (citationFetchSeqRef.current === fetchSeq) {
+        setIsCitationLoading(false)
+      }
+    }
+  }, [queryClient])
+
   const handleCitationClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>, sourceIndex: string, docIndex: string) => {
       setCitationAnchorPosition({
         left: event.clientX + citationCardOffsetPx,
         top: event.clientY,
       })
-      setActiveCitationRef({ sourceIndex, docIndex })
-      setActiveCitationDetail(citationDetailMap.get(`${sourceIndex}#${docIndex}`) ?? null)
+      const citationDetail = citationDetailMap.get(`${sourceIndex}#${docIndex}`) ?? null
+      setActiveCitationDoc(null)
+      setCitationLoadError('')
+
+      citationFetchSeqRef.current += 1
+      const fetchSeq = citationFetchSeqRef.current
+
+      if (!citationDetail?.sourceId || !citationDetail?.docId) {
+        setIsCitationLoading(false)
+        setCitationLoadError('未命中引用映射。')
+        return
+      }
+
+      setIsCitationLoading(true)
+      void fetchCitationDoc(citationDetail.sourceId, citationDetail.docId, fetchSeq)
     },
-    [citationDetailMap],
+    [citationDetailMap, fetchCitationDoc],
   )
 
   const handleCloseCitationCard = useCallback(() => {
+    citationFetchSeqRef.current += 1
     setCitationAnchorPosition(null)
-    setActiveCitationRef(null)
-    setActiveCitationDetail(null)
+    setActiveCitationDoc(null)
+    setCitationLoadError('')
+    setIsCitationLoading(false)
   }, [])
 
   if (!isUserMessage) {
@@ -102,7 +161,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
       <Box
         sx={{
           maxWidth: '100%',
-          py: 0.15,
+          py: assistantMessagePaddingY,
           mr: messageLayoutTokens.assistantMarginRight,
           ml: messageLayoutTokens.assistantMarginLeft,
         }}
@@ -142,7 +201,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         ) : null}
 
         <Popover
-          open={Boolean(citationAnchorPosition && activeCitationRef)}
+          open={Boolean(citationAnchorPosition)}
           anchorReference="anchorPosition"
           anchorPosition={citationAnchorPosition ?? undefined}
           onClose={handleCloseCitationCard}
@@ -150,26 +209,54 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           slotProps={{
             paper: {
               sx: {
-                borderRadius: 1.25,
+                borderRadius: citationCardTokens.paperBorderRadius,
                 border: '1px solid',
                 borderColor: 'divider',
-                boxShadow: '0 8px 24px rgba(15,23,42,0.14)',
+                boxShadow: citationCardTokens.paperBoxShadow,
               },
             },
           }}
         >
-          <Box sx={{ maxWidth: 320, p: 1.3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
+          <Box sx={{ maxWidth: citationCardTokens.maxWidth, p: citationCardTokens.padding }}>
+            <Typography variant="subtitle2" sx={{ mb: citationCardTokens.titleMarginBottom, fontWeight: 700 }}>
               引用信息
             </Typography>
-            <Typography variant="body2">{`source_idx: ${activeCitationRef?.sourceIndex ?? '-'}`}</Typography>
-            <Typography variant="body2">{`doc_idx: ${activeCitationRef?.docIndex ?? '-'}`}</Typography>
-            <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-              {`source_id: ${activeCitationDetail?.sourceId ?? '未命中映射'}`}
+            <Typography variant="body2" sx={{ mt: citationCardTokens.sourceTitleMarginTop, fontWeight: 600 }}>
+              {`来源标题: ${activeCitationDoc?.source_title || '-'}`}
             </Typography>
-            <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-              {`doc_id: ${activeCitationDetail?.docId ?? '未命中映射'}`}
-            </Typography>
+            <Box
+              sx={{
+                mt: citationCardTokens.contentMarginTop,
+                maxHeight: citationCardTokens.contentMaxHeight,
+                overflowY: 'auto',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: citationCardTokens.contentBorderRadius,
+                px: citationCardTokens.contentPaddingX,
+                py: citationCardTokens.contentPaddingY,
+                bgcolor: 'background.default',
+              }}
+            >
+              {isCitationLoading ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: citationCardTokens.loadingGap,
+                    py: citationCardTokens.loadingPaddingY,
+                  }}
+                >
+                  <CircularProgress size={citationCardTokens.loadingSpinnerSize} />
+                  <Typography variant="body2">正在加载引用内容...</Typography>
+                </Box>
+              ) : citationLoadError ? (
+                <Typography variant="body2" color="error.main">
+                  {citationLoadError}
+                </Typography>
+              ) : (
+                <MarkdownRenderer content={activeCitationDoc?.content || '暂无内容'} />
+              )}
+            </Box>
           </Box>
         </Popover>
       </Box>
@@ -205,7 +292,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           mr: messageLayoutTokens.userBubbleMarginRight,
           px: messageLayoutTokens.userBubblePaddingX,
           py: messageLayoutTokens.userBubblePaddingY,
-          borderRadius: '16px 16px 6px 16px',
+          borderRadius: userBubbleBorderRadius,
           borderColor: 'primary.main',
           bgcolor: 'primary.main',
           color: 'primary.contrastText',

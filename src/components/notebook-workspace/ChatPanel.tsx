@@ -38,13 +38,25 @@ const streamStatusMinVisibleMs = 900
 const streamChunkFlushIntervalMs = 28
 const streamChunkImmediateFlushSize = 96
 const streamAutoScrollThresholdPx = 42
+const streamReconnectMaxRetries = 1
+const smoothScrollDeltaEpsilonPx = 1
+const copyFeedbackVisibleMs = 1500
 const chatPanelLeftPadding = 3
 const chatPanelRightContentPadding = 2.75
 const chatPanelRightContentPaddingPx = chatPanelRightContentPadding * 8
+const chatPanelVerticalPadding = 2
+const chatHeaderStackSpacing = 0.5
 const scrollToBottomButtonTokens = {
   size: 32,
   rightPx: 7.8,
   marginBottom: 1.15,
+  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
+  zIndex: 2,
+}
+const sidePanelToggleButtonTokens = {
+  horizontalOffset: -18,
+  topOffset: 18,
+  zIndex: 1,
 }
 
 interface ChatPanelProps {
@@ -291,7 +303,7 @@ export function ChatPanel({
     const startTop = container.scrollTop
     const targetTop = Math.max(container.scrollHeight - container.clientHeight, 0)
     const delta = targetTop - startTop
-    if (Math.abs(delta) < 1) {
+    if (Math.abs(delta) < smoothScrollDeltaEpsilonPx) {
       setShowScrollToBottomButton(false)
       return
     }
@@ -666,7 +678,7 @@ export function ChatPanel({
             break
           }
 
-          if (reconnectCount >= 1) {
+          if (reconnectCount >= streamReconnectMaxRetries) {
             setErrorText('流式连接中断，请稍后重试。')
             break
           }
@@ -681,7 +693,7 @@ export function ChatPanel({
           if (abortRequestedRef.current) {
             break
           }
-          if (reconnectCount >= 1) {
+          if (reconnectCount >= streamReconnectMaxRetries) {
             setErrorText(getErrorMessage(error))
             break
           }
@@ -812,7 +824,7 @@ export function ChatPanel({
         copyFeedbackTimerRef.current = window.setTimeout(() => {
           setCopiedUserMessageId((prev) => (prev === messageId ? null : prev))
           copyFeedbackTimerRef.current = null
-        }, 1500)
+        }, copyFeedbackVisibleMs)
       } catch {
         setErrorText('复制失败，请手动复制。')
       }
@@ -889,7 +901,7 @@ export function ChatPanel({
       sx={{
         pl: chatPanelLeftPadding,
         pr: 0,
-        py: 2,
+        py: chatPanelVerticalPadding,
         height: '100%',
         minHeight: 0,
         position: 'relative',
@@ -906,12 +918,12 @@ export function ChatPanel({
           onClick={onExpandSourcesPanel}
           sx={{
             position: 'absolute',
-            left: -18,
-            top: 18,
+            left: sidePanelToggleButtonTokens.horizontalOffset,
+            top: sidePanelToggleButtonTokens.topOffset,
             bgcolor: 'background.paper',
             border: 1,
             borderColor: 'divider',
-            zIndex: 1,
+            zIndex: sidePanelToggleButtonTokens.zIndex,
             '&:hover': { bgcolor: 'background.default' },
           }}
         >
@@ -926,20 +938,20 @@ export function ChatPanel({
           onClick={onExpandInsightsPanel}
           sx={{
             position: 'absolute',
-            right: -18,
-            top: 18,
+            right: sidePanelToggleButtonTokens.horizontalOffset,
+            top: sidePanelToggleButtonTokens.topOffset,
             display: { xs: 'none', md: 'inline-flex' },
             bgcolor: 'background.paper',
             border: 1,
             borderColor: 'divider',
-            zIndex: 1,
+            zIndex: sidePanelToggleButtonTokens.zIndex,
             '&:hover': { bgcolor: 'background.default' },
           }}
         >
           <KeyboardDoubleArrowLeftIcon fontSize="small" />
         </IconButton>
       )}
-      <Stack spacing={0.5} sx={{ pr: chatPanelRightContentPadding }}>
+      <Stack spacing={chatHeaderStackSpacing} sx={{ pr: chatPanelRightContentPadding }}>
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           对话
         </Typography>
@@ -993,8 +1005,8 @@ export function ChatPanel({
               border: 1,
               borderColor: 'divider',
               bgcolor: 'background.paper',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
-              zIndex: 2,
+              boxShadow: scrollToBottomButtonTokens.boxShadow,
+              zIndex: scrollToBottomButtonTokens.zIndex,
               '&:hover': {
                 bgcolor: 'background.default',
               },

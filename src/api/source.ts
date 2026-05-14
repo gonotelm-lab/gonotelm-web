@@ -2,10 +2,28 @@ import { request } from '../lib/http'
 import type {
   CreateSourceRequest,
   CreateSourceResponse,
+  GetSourceDocResponse,
   PollSourceStatusResponse,
   UploadFileSourceRequest,
   UploadFileSourceResponse,
 } from '../types/api'
+
+export const sourceDocCacheTtlMs = 5 * 60 * 1000
+export const sourceDocQueryKey = (sourceId: string, docId: string) =>
+  ['source-doc', sourceId, docId] as const
+
+export const buildSourceDocQueryOptions = (sourceId: string, docId: string) => ({
+  queryKey: sourceDocQueryKey(sourceId, docId),
+  queryFn: () =>
+    request<GetSourceDocResponse>(
+      `/api/v1/source/${encodeURIComponent(sourceId)}/doc/${encodeURIComponent(docId)}`,
+      {
+        method: 'GET',
+      },
+    ),
+  staleTime: sourceDocCacheTtlMs,
+  gcTime: sourceDocCacheTtlMs,
+})
 
 export function createSource(payload: CreateSourceRequest) {
   return request<CreateSourceResponse>('/api/v1/source', {

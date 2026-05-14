@@ -13,6 +13,26 @@ const loadingIndicatorRowMinHeight = 18
 const loadingIndicatorSize = 13
 const streamStatusRowMarginBottom = 0.55
 const streamStatusIconSize = 16
+const messageListLayoutTokens = {
+  marginTop: 2,
+  paddingX: 0.75,
+}
+const streamStatusRowTokens = {
+  marginRight: 1,
+  marginLeft: 0.75,
+  gap: 0.5,
+  textFontSize: 14.3,
+  textLetterSpacing: 0.1,
+  color: 'rgba(96,96,96,0.86)',
+}
+const streamStatusFlowTokens = {
+  gradient:
+    'linear-gradient(90deg, rgba(96,96,96,0.9) 0%, rgba(96,96,96,0.9) 10%, rgba(108,108,108,0.9) 20%, rgba(120,120,120,0.9) 30%, rgba(140,140,140,0.92) 40%, rgba(196,196,196,0.96) 50%, rgba(140,140,140,0.92) 60%, rgba(120,120,120,0.9) 70%, rgba(108,108,108,0.9) 80%, rgba(96,96,96,0.9) 90%, rgba(96,96,96,0.9) 100%)',
+  backgroundSize: '240% 100%',
+  animationDurationSec: 3.1,
+  backgroundStartPosition: '160% 0',
+  backgroundEndPosition: '-160% 0',
+}
 
 interface ChatMessagesListProps {
   messageListRef: RefObject<HTMLDivElement | null>
@@ -46,11 +66,11 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   const streamStatusIcon =
     streamPhaseType === 'retrieving' ? (
       <ManageSearchRoundedIcon
-        sx={{ fontSize: streamStatusIconSize, color: 'rgba(96,96,96,0.86)', flexShrink: 0 }}
+        sx={{ fontSize: streamStatusIconSize, color: streamStatusRowTokens.color, flexShrink: 0 }}
       />
     ) : streamPhaseType === 'thinking' ? (
       <PsychologyAltRoundedIcon
-        sx={{ fontSize: streamStatusIconSize, color: 'rgba(96,96,96,0.86)', flexShrink: 0 }}
+        sx={{ fontSize: streamStatusIconSize, color: streamStatusRowTokens.color, flexShrink: 0 }}
       />
     ) : null
 
@@ -61,12 +81,12 @@ export const ChatMessagesList = memo(function ChatMessagesList({
       spacing={0}
       onScroll={onScrollTopCheck}
       sx={{
-        mt: 2,
+        mt: messageListLayoutTokens.marginTop,
         flex: 1,
         minHeight: 0,
         overflowY: 'auto',
         overflowAnchor: 'none',
-        px: 0.75,
+        px: messageListLayoutTokens.paddingX,
         ...subtleScrollbarSx,
         scrollbarWidth: 'auto',
         scrollbarColor: 'auto',
@@ -102,34 +122,33 @@ export const ChatMessagesList = memo(function ChatMessagesList({
             <Box
               sx={{
                 mb: streamStatusRowMarginBottom,
-                mr: 1,
-                ml: 0.75,
+                mr: streamStatusRowTokens.marginRight,
+                ml: streamStatusRowTokens.marginLeft,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5,
+                gap: streamStatusRowTokens.gap,
               }}
             >
               {streamStatusIcon}
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: 14.3,
+                  fontSize: streamStatusRowTokens.textFontSize,
                   fontWeight: 600,
-                  color: 'rgba(96,96,96,0.86)',
-                  letterSpacing: 0.1,
+                  color: streamStatusRowTokens.color,
+                  letterSpacing: streamStatusRowTokens.textLetterSpacing,
                   ...(showStreamFlowAnimation
                     ? {
                         color: 'transparent',
-                        background:
-                          'linear-gradient(90deg, rgba(96,96,96,0.9) 0%, rgba(96,96,96,0.9) 10%, rgba(108,108,108,0.9) 20%, rgba(120,120,120,0.9) 30%, rgba(140,140,140,0.92) 40%, rgba(196,196,196,0.96) 50%, rgba(140,140,140,0.92) 60%, rgba(120,120,120,0.9) 70%, rgba(108,108,108,0.9) 80%, rgba(96,96,96,0.9) 90%, rgba(96,96,96,0.9) 100%)',
-                        backgroundSize: '240% 100%',
+                        background: streamStatusFlowTokens.gradient,
+                        backgroundSize: streamStatusFlowTokens.backgroundSize,
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
-                        animation: 'stream-status-text-flow 3.1s linear infinite',
+                        animation: `stream-status-text-flow ${streamStatusFlowTokens.animationDurationSec}s linear infinite`,
                         '@keyframes stream-status-text-flow': {
-                          from: { backgroundPosition: '160% 0' },
-                          to: { backgroundPosition: '-160% 0' },
+                          from: { backgroundPosition: streamStatusFlowTokens.backgroundStartPosition },
+                          to: { backgroundPosition: streamStatusFlowTokens.backgroundEndPosition },
                         },
                       }
                     : null),

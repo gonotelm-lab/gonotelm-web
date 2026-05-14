@@ -2,6 +2,8 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { Box } from '@mui/material'
 import { ChatInputBox } from './ChatInputBox'
 
+const composerMarginTop = 2
+
 interface ChatComposerProps {
   value: string
   isStreaming: boolean
@@ -36,7 +38,7 @@ export function ChatComposer({
   onAbort,
 }: ChatComposerProps) {
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: composerMarginTop }}>
       <ChatInputBox
         value={value}
         onValueChange={onValueChange}

@@ -44,6 +44,21 @@ const inputTextTokens = {
 const inputActionButtonTokens = {
   size: 30,
 }
+const inputTextareaScrollbarTokens = {
+  width: 5,
+  height: 5,
+  thumbRadius: 999,
+  hoverThumbColor: 'rgba(120, 120, 120, 0.16)',
+}
+const thinkingButtonTokens = {
+  controlsGap: 0.55,
+  iconSize: 15,
+  borderRadius: 999,
+  fontSize: 12.8,
+  minHeight: 29,
+  paddingX: 1.25,
+}
+const rightControlRowGap = 0.5
 
 export function ChatInputBox({
   value,
@@ -102,21 +117,21 @@ export function ChatInputBox({
             scrollbarColor: 'transparent transparent',
           },
           '& textarea::-webkit-scrollbar': {
-            width: 5,
-            height: 5,
+            width: inputTextareaScrollbarTokens.width,
+            height: inputTextareaScrollbarTokens.height,
           },
           '& textarea::-webkit-scrollbar-track': {
             background: 'transparent',
           },
           '& textarea::-webkit-scrollbar-thumb': {
-            borderRadius: 999,
+            borderRadius: inputTextareaScrollbarTokens.thumbRadius,
             backgroundColor: 'transparent',
           },
           '& textarea:hover': {
-            scrollbarColor: 'rgba(120, 120, 120, 0.16) transparent',
+            scrollbarColor: `${inputTextareaScrollbarTokens.hoverThumbColor} transparent`,
           },
           '& textarea:hover::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(120, 120, 120, 0.16)',
+            backgroundColor: inputTextareaScrollbarTokens.hoverThumbColor,
           },
         }}
       />
@@ -129,7 +144,7 @@ export function ChatInputBox({
           justifyContent: 'space-between',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.55 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: thinkingButtonTokens.controlsGap }}>
           <Button
             size="small"
             variant={enableThinking ? 'contained' : 'outlined'}
@@ -138,14 +153,14 @@ export function ChatInputBox({
               onThinkingToggle(!enableThinking)
             }}
             disabled={isThinkingToggleDisabled}
-            startIcon={<AutoAwesomeIcon sx={{ fontSize: 15 }} />}
+            startIcon={<AutoAwesomeIcon sx={{ fontSize: thinkingButtonTokens.iconSize }} />}
             sx={{
-              borderRadius: 999,
+              borderRadius: thinkingButtonTokens.borderRadius,
               textTransform: 'none',
-              fontSize: 12.8,
+              fontSize: thinkingButtonTokens.fontSize,
               fontWeight: 600,
-              minHeight: 29,
-              px: 1.25,
+              minHeight: thinkingButtonTokens.minHeight,
+              px: thinkingButtonTokens.paddingX,
               color: enableThinking ? 'primary.contrastText' : 'text.secondary',
               borderColor: enableThinking ? 'primary.main' : 'divider',
               '&:hover': {
@@ -157,7 +172,7 @@ export function ChatInputBox({
           </Button>
           {leftControlsExtra}
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: rightControlRowGap }}>
           {rightControlsExtra}
           <IconButton
             color="primary"
