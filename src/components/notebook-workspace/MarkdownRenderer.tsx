@@ -9,6 +9,7 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { MarkdownCode } from './chat-panel/MarkdownCode'
+import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
 interface MarkdownRendererProps {
   content: string
@@ -58,7 +59,7 @@ const markdownSanitizeSchema = {
     ...defaultSchema.attributes,
     a: [
       ...(defaultSchema.attributes?.a ?? []),
-      ['href', /^#cite-[a-zA-Z0-9_%\-]+~[a-zA-Z0-9_%\-]+$/],
+      ['href', /^#cite-[a-zA-Z0-9_%-]+~[a-zA-Z0-9_%-]+$/],
     ],
     sup: [...(defaultSchema.attributes?.sup ?? [])],
   },
@@ -111,9 +112,16 @@ export function MarkdownRenderer({
   renderCitationAsSuperscript = false,
   onCitationClick,
 }: MarkdownRendererProps) {
+  const normalizedContent = useMemo(
+    () => normalizeMarkdownDelimiters(content),
+    [content],
+  )
   const renderedContent = useMemo(
-    () => (renderCitationAsSuperscript ? transformCitationSuperscript(content) : content),
-    [content, renderCitationAsSuperscript],
+    () =>
+      (renderCitationAsSuperscript
+        ? transformCitationSuperscript(normalizedContent)
+        : normalizedContent),
+    [normalizedContent, renderCitationAsSuperscript],
   )
 
   return (
@@ -173,7 +181,7 @@ export function MarkdownRenderer({
           fontWeight: 700,
         },
         '& strong': {
-          fontWeight: 700,
+          fontWeight: 800,
         },
         '& a': { color: 'primary.main', textDecoration: 'none' },
         '& a:hover': { textDecoration: 'underline' },
@@ -226,7 +234,7 @@ export function MarkdownRenderer({
         remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], rehypeKatex]}
         components={{
-          a: ({ node: _node, href, ...props }) => {
+          a: ({ href, ...props }) => {
             const citationHref = parseCitationHref(href)
             if (citationHref) {
               return (
