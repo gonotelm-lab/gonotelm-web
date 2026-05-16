@@ -17,14 +17,12 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { getSourceParsedContent, loadParsedContentFromUrl } from '../../api/source'
-import { ApiError } from '../../lib/http'
-import { AddSourceDialog } from './AddSourceDialog'
-import { MarkdownRenderer } from './MarkdownRenderer'
-import { panelTitleSx, panelTitleVariant } from './panelStyles'
-import { SourceListRow } from './SourceListRow'
-import { subtleScrollbarSx } from './scrollbar'
-import type { SourceListItem } from './sourceTypes'
+import { getSourceParsedContent, loadParsedContentFromUrl } from '@/api/source'
+import { ApiError } from '@/lib/http'
+import { AddSourceDialog } from './components/AddSourceDialog'
+import { SourceListRow } from './components/SourceListRow'
+import { MarkdownRenderer, panelTitleSx, panelTitleVariant, subtleScrollbarSx } from '../../shared'
+import type { SourceListItem } from './types/sourceTypes'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
 const sourcePreviewEmptyNotice = '当前来源暂无可展示的解析内容。'

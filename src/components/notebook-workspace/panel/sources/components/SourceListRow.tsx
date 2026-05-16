@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import AddLinkIcon from '@mui/icons-material/AddLink'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
@@ -30,7 +30,7 @@ import {
   Typography,
 } from '@mui/material'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
-import type { SourceListItem } from './sourceTypes'
+import type { SourceListItem } from '../types/sourceTypes'
 
 const sourceTitleMaxChars = 64
 
@@ -80,13 +80,6 @@ export function SourceListRow({
     alignItems: 'center',
   }
   const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
-
-  useEffect(() => {
-    if (!editDialogOpen) {
-      setTitleDraft(item.title)
-      setTitleErrorText('')
-    }
-  }, [editDialogOpen, item.title])
 
   const handleToggleRow = () => {
     if (editDialogOpen) return

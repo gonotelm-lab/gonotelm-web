@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { MessageStreamPhaseType } from '../../../types/api'
+import type { MessageStreamPhaseType } from '@/types/api'
 import { streamStatusMinVisibleMs } from './chatConversationCommon'
 
 interface UseStreamStatusSchedulerParams {

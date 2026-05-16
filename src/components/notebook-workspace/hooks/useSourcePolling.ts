@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { pollSourceStatus } from '../api/source'
-import type { SourceStatus } from '../types/api'
-import type { SourceCard } from '../store/workspace'
+import { pollSourceStatus } from '@/api/source'
+import type { SourceCard } from '@/store/workspace'
+import type { SourceStatus } from '@/types/api'
 
 const terminalStatusSet = new Set<SourceStatus>(['ready', 'failed'])
 const sourceStatusPollBaseIntervalMs = 1_000
@@ -57,7 +57,7 @@ export function useSourcePolling({
       const pendingSources = sourcesRef.current.filter(
         (source) =>
           !isTerminalStatus(source.status) &&
-          !Boolean(removingSourceIdsRef.current[source.id]),
+          !removingSourceIdsRef.current[source.id],
       )
       if (pendingSources.length === 0) {
         attempt = 0

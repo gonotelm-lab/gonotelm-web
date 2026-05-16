@@ -1,7 +1,6 @@
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import { Box, Divider, IconButton, Paper, Stack, Typography } from '@mui/material'
-import { panelTitleSx, panelTitleVariant } from './panelStyles'
-import { subtleScrollbarSx } from './scrollbar'
+import { panelTitleSx, panelTitleVariant, subtleScrollbarSx } from '../../shared/ui'
 
 interface StudioPanelProps {
   onCollapse: () => void

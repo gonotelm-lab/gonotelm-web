@@ -8,7 +8,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { MarkdownCode } from './chat-panel/MarkdownCode'
+import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
 import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
 interface MarkdownRendererProps {

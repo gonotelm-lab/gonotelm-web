@@ -1,4 +1,4 @@
-import type { ChatListMessagesResponse } from '../../../types/api'
+import type { ChatListMessagesResponse } from '@/types/api'
 import { mapChatItemToUiMessage } from './chatConversationCommon'
 import type { ChatUiMessage } from './types'
 

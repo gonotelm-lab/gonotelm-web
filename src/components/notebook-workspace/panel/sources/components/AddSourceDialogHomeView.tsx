@@ -73,7 +73,7 @@ export function AddSourceDialogHomeView({
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
               拖放或点击选择文件，即可上传
             </Typography>
-            
+
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25 }}>
               支持：pdf、txt、markdown、docx、epub
             </Typography>

@@ -6,9 +6,9 @@ import {
   ChatMessagesList,
   ChatPanelHeader,
   ChatSettingsDialog,
-} from './chat-panel/components'
-import { type ChatAnswerLengthOption, type ChatStyleOption } from './chat-panel/constants'
-import { useChatConversation } from './chat-panel/hooks'
+} from './components'
+import { type ChatAnswerLengthOption, type ChatStyleOption } from './constants'
+import { useChatConversation } from './hooks'
 
 const chatPanelLeftPadding = 3
 const chatPanelRightContentPadding = 2.75

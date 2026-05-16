@@ -15,8 +15,8 @@ import {
   deleteChatContext,
   listChatMessages,
   streamChatEvents,
-} from '../../../api/chat'
-import type { MessageStreamPhaseType } from '../../../types/api'
+} from '@/api/chat'
+import type { MessageStreamPhaseType } from '@/types/api'
 import {
   chatMessagesPageLimit,
   getErrorMessage,

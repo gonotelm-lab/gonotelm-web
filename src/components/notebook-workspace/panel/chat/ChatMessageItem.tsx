@@ -12,10 +12,10 @@ import {
   Typography,
 } from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query'
-import { buildSourceDocQueryOptions } from '../../../api/source'
-import type { GetSourceDocResponse } from '../../../types/api'
+import { buildSourceDocQueryOptions } from '@/api/source'
+import type { GetSourceDocResponse } from '@/types/api'
 import { AssistantMarkdown } from './AssistantMarkdown'
-import { MarkdownRenderer } from '../MarkdownRenderer'
+import { MarkdownRenderer } from '../../shared/markdown'
 import type { ChatUiCitationDetail, ChatUiMessage } from './types'
 
 const actionIconSize = 16

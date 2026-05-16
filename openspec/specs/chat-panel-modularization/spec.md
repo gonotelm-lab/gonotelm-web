@@ -1,7 +1,7 @@
 # chat-panel-modularization Specification
 
 ## Purpose
-将聊天面板重构为可维护的模块化结构，在保持用户可见行为不变的前提下降低单文件耦合与后续迭代风险。
+将聊天面板重构为可维护的模块化结构，在保持用户可见行为不变的前提下降低单文件耦合与后续迭代风险。当前实现代码位于 **`src/components/notebook-workspace/panel/chat/`**（由 `panel/chat/ChatPanel.tsx` 编排），按 `components`、`hooks`、`constants` 等子模块分层。
 ## Requirements
 ### Requirement: ChatPanel SHALL use modular component boundaries
 `ChatPanel` SHALL 作为编排容器，核心职责（设置弹窗渲染、流式会话处理、滚动/复制等交互逻辑）必须拆分到独立子组件或 hooks 中，以降低单文件耦合度。

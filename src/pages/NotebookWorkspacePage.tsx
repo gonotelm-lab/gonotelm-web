@@ -18,15 +18,17 @@ import {
 } from '../api/notebook'
 import { fileMd5 } from '../lib/md5'
 import { resolveUploadMimeType } from '../lib/sourceMime'
-import { useSourcePolling } from '../hooks/useSourcePolling'
+import { useSourcePolling } from '../components/notebook-workspace/hooks/useSourcePolling'
 import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
-import { ChatPanel } from '../components/notebook-workspace/ChatPanel'
-import { SourceSelectionController } from '../components/notebook-workspace/SourceSelectionController'
-import { StudioPanel } from '../components/notebook-workspace/StudioPanel'
-import { SourcesPanel } from '../components/notebook-workspace/SourcesPanel'
-import { WorkspaceHeader } from '../components/notebook-workspace/WorkspaceHeader'
-import type { SourceListItem } from '../components/notebook-workspace/sourceTypes'
+import {
+  ChatPanel,
+  SourceSelectionController,
+  SourcesPanel,
+  StudioPanel,
+  WorkspaceHeader,
+  type SourceListItem,
+} from '../components/notebook-workspace'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
@@ -104,11 +106,53 @@ export function NotebookWorkspacePage() {
   const insightsPanelCollapsedRef = useRef(isInsightsPanelCollapsed)
   const stopPanelResizeRef = useRef<(() => void) | null>(null)
 
-  useEffect(() => {
-    resetWorkspace()
+  const resetWorkspaceUiState = useCallback(() => {
     setRemovingSourceIds({})
     setIsHydratingSources(true)
-  }, [id, resetWorkspace])
+  }, [])
+
+  const beginHydratingSources = useCallback(() => {
+    setIsHydratingSources(true)
+  }, [])
+
+  const applyPanelSizingState = useCallback(
+    ({
+      nextSourcesCollapsed,
+      nextInsightsCollapsed,
+      nextSourcesWidth,
+      nextInsightsWidth,
+    }: {
+      nextSourcesCollapsed: boolean
+      nextInsightsCollapsed: boolean
+      nextSourcesWidth: number
+      nextInsightsWidth: number
+    }) => {
+      if (nextSourcesCollapsed !== isSourcesPanelCollapsed) {
+        setIsSourcesPanelCollapsed(nextSourcesCollapsed)
+      }
+      if (nextInsightsCollapsed !== isInsightsPanelCollapsed) {
+        setIsInsightsPanelCollapsed(nextInsightsCollapsed)
+      }
+      if (!nextSourcesCollapsed && nextSourcesWidth !== sourcesPanelWidthPx) {
+        setSourcesPanelWidthPx(nextSourcesWidth)
+      }
+      if (!nextInsightsCollapsed && nextInsightsWidth !== insightsPanelWidthPx) {
+        setInsightsPanelWidthPx(nextInsightsWidth)
+      }
+    },
+    [
+      insightsPanelWidthPx,
+      isInsightsPanelCollapsed,
+      isSourcesPanelCollapsed,
+      sourcesPanelWidthPx,
+    ],
+  )
+
+  useEffect(() => {
+    resetWorkspace()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    resetWorkspaceUiState()
+  }, [id, resetWorkspace, resetWorkspaceUiState])
 
   useEffect(() => {
     return () => {
@@ -176,7 +220,8 @@ export function NotebookWorkspacePage() {
     if (!id || !notebook) return
 
     let cancelled = false
-    setIsHydratingSources(true)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    beginHydratingSources()
     const hydrateNotebookSources = async () => {
       if (notebook.source_count <= 0) {
         setSources([])
@@ -226,7 +271,7 @@ export function NotebookWorkspacePage() {
     return () => {
       cancelled = true
     }
-  }, [id, notebookQuery.data, setSources])
+  }, [beginHydratingSources, id, notebookQuery.data, setSources])
 
   const createSourceMutation = useMutation({
     mutationFn: createSource,
@@ -600,19 +645,15 @@ export function NotebookWorkspacePage() {
       }
     }
 
-    if (nextSourcesCollapsed !== isSourcesPanelCollapsed) {
-      setIsSourcesPanelCollapsed(nextSourcesCollapsed)
-    }
-    if (nextInsightsCollapsed !== isInsightsPanelCollapsed) {
-      setIsInsightsPanelCollapsed(nextInsightsCollapsed)
-    }
-    if (!nextSourcesCollapsed && nextSourcesWidth !== sourcesPanelWidthPx) {
-      setSourcesPanelWidthPx(nextSourcesWidth)
-    }
-    if (!nextInsightsCollapsed && nextInsightsWidth !== insightsPanelWidthPx) {
-      setInsightsPanelWidthPx(nextInsightsWidth)
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    applyPanelSizingState({
+      nextSourcesCollapsed,
+      nextInsightsCollapsed,
+      nextSourcesWidth,
+      nextInsightsWidth,
+    })
   }, [
+    applyPanelSizingState,
     getLeftPanelWidthBounds,
     getRightPanelWidthBounds,
     insightsPanelWidthPx,

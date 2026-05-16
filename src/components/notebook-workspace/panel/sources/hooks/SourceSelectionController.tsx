@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { SourceStatus } from '../../types/api'
-import type { SourceListItem } from './sourceTypes'
+import type { SourceStatus } from '@/types/api'
+import type { SourceListItem } from '../types/sourceTypes'
 
 const sourceSelectionStorageKeyPrefix = 'notebook-source-selection'
 
@@ -118,20 +118,17 @@ export function SourceSelectionController({
       )
       .map((item) => item.id)
 
-    previousStatusMapRef.current = nextStatusMap
-    if (autoCheckedIds.length === 0) return
-
-    onSelectedSourceIdsChange((prev) => {
-      let changed = false
-      const next = { ...prev }
-      autoCheckedIds.forEach((sourceId) => {
-        if (!next[sourceId]) {
-          next[sourceId] = true
-          changed = true
-        }
+    if (autoCheckedIds.length > 0) {
+      onSelectedSourceIdsChange((prev) => {
+        const next = { ...prev }
+        autoCheckedIds.forEach((id) => {
+          next[id] = true
+        })
+        return next
       })
-      return changed ? next : prev
-    })
+    }
+
+    previousStatusMapRef.current = nextStatusMap
   }, [onSelectedSourceIdsChange, sourceListItems])
 
   return null

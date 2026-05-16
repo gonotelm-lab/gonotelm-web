@@ -1,0 +1,6 @@
+export { SourcesPanel } from './SourcesPanel'
+export { SourceSelectionController } from './hooks/SourceSelectionController'
+export { AddSourceDialog } from './components/AddSourceDialog'
+export { AddSourceDialogHomeView } from './components/AddSourceDialogHomeView'
+export { AddSourceDialogEditorView } from './components/AddSourceDialogEditorView'
+export type { SourceListItem, SourceIconType } from './types/sourceTypes'

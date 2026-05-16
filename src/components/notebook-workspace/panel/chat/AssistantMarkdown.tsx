@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { MarkdownRenderer } from '../MarkdownRenderer'
+import { MarkdownRenderer } from '../../shared/markdown'
 
 interface AssistantMarkdownProps {
   content: string

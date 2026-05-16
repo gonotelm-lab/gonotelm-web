@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ChatListMessagesResponse, ChatMessageListItem } from '../../../types/api'
+import type { ChatListMessagesResponse, ChatMessageListItem } from '@/types/api'
 import type { ChatUiMessage } from './types'
 import {
   buildLiveMessagesAfterAbortRefresh,

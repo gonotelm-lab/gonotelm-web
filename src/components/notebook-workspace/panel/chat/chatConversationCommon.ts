@@ -1,10 +1,10 @@
-import { ApiError } from '../../../lib/http'
+import { ApiError } from '@/lib/http'
 import type {
   ChatMessageCitation,
   ChatMessageListItem,
   ChatMessageStreamCitation,
   MessageStreamPhaseContentAction,
-} from '../../../types/api'
+} from '@/types/api'
 import type { ChatUiCitationDetail, ChatUiMessage } from './types'
 
 export const chatMessagesPageLimit = 20

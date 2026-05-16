@@ -1,4 +1,4 @@
-import type { SourceKind, SourceStatus } from '../../types/api'
+import type { SourceKind, SourceStatus } from '@/types/api'
 
 export type SourceIconType =
   | 'text'

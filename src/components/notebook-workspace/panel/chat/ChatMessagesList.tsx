@@ -3,10 +3,10 @@ import type { RefObject } from 'react'
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded'
 import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
-import { subtleScrollbarSx } from '../scrollbar'
+import { subtleScrollbarSx } from '../../shared/ui'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatUiMessage } from './types'
-import type { MessageStreamPhaseType } from '../../../types/api'
+import type { MessageStreamPhaseType } from '@/types/api'
 
 const messageItemSpacing = 2.75
 const loadingIndicatorRowMinHeight = 18
