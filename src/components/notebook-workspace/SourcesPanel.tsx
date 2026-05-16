@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Divider,
   IconButton,
   Paper,
@@ -14,13 +17,37 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { getSourceParsedContent, loadParsedContentFromUrl } from '../../api/source'
+import { ApiError } from '../../lib/http'
 import { AddSourceDialog } from './AddSourceDialog'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { SourceListRow } from './SourceListRow'
 import { subtleScrollbarSx } from './scrollbar'
 import type { SourceListItem } from './sourceTypes'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
+const sourcePreviewEmptyNotice = '当前来源暂无可展示的解析内容。'
+const sourcePreviewLoadingText = '正在加载预览内容...'
+
+interface SourcePreviewState {
+  sourceId: string
+  sourceName: string
+  loading: boolean
+  markdown: string
+  notice: string
+  error: string
+}
+
+const getSourcePreviewErrorMessage = (error: unknown) => {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return '预览加载失败，请稍后重试。'
+}
 
 interface SourcesPanelProps {
   collapsed: boolean
@@ -39,7 +66,6 @@ interface SourcesPanelProps {
   onToggleItem: (id: string, checked: boolean) => void
   onDeleteItem: (id: string) => Promise<void>
   onRetryItem: (id: string) => Promise<void>
-  onPreviewItem: (id: string) => void
   checkedMap: Record<string, boolean>
 }
 
@@ -60,13 +86,96 @@ export function SourcesPanel({
   onToggleItem,
   onDeleteItem,
   onRetryItem,
-  onPreviewItem,
   checkedMap,
 }: SourcesPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [previewState, setPreviewState] = useState<SourcePreviewState | null>(null)
+  const previewRequestSeqRef = useRef(0)
   const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
   const showListLoadingSkeleton =
     isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
+  const hasPreviewOpen = Boolean(previewState)
+
+  const closeSourcePreview = () => {
+    previewRequestSeqRef.current += 1
+    setPreviewState(null)
+  }
+
+  const openSourcePreview = async (item: SourceListItem) => {
+    const requestSeq = previewRequestSeqRef.current + 1
+    previewRequestSeqRef.current = requestSeq
+
+    const sourceId = item.id
+    const sourceName = item.name
+    setPreviewState({
+      sourceId,
+      sourceName,
+      loading: true,
+      markdown: '',
+      notice: '',
+      error: '',
+    })
+
+    try {
+      const parsedContent = await getSourceParsedContent(sourceId)
+      if (previewRequestSeqRef.current !== requestSeq) {
+        return
+      }
+
+      if (!parsedContent) {
+        setPreviewState({
+          sourceId,
+          sourceName,
+          loading: false,
+          markdown: '',
+          notice: sourcePreviewEmptyNotice,
+          error: '',
+        })
+        return
+      }
+
+      let markdown = parsedContent.content?.trim() ?? ''
+      if (!markdown && parsedContent.url) {
+        markdown = (await loadParsedContentFromUrl(parsedContent.url)).trim()
+        if (previewRequestSeqRef.current !== requestSeq) {
+          return
+        }
+      }
+
+      if (!markdown) {
+        setPreviewState({
+          sourceId,
+          sourceName,
+          loading: false,
+          markdown: '',
+          notice: sourcePreviewEmptyNotice,
+          error: '',
+        })
+        return
+      }
+
+      setPreviewState({
+        sourceId,
+        sourceName,
+        loading: false,
+        markdown,
+        notice: '',
+        error: '',
+      })
+    } catch (error) {
+      if (previewRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      setPreviewState({
+        sourceId,
+        sourceName,
+        loading: false,
+        markdown: '',
+        notice: '',
+        error: getSourcePreviewErrorMessage(error),
+      })
+    }
+  }
 
   return (
     <>
@@ -97,6 +206,7 @@ export function SourcesPanel({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            position: 'relative',
             opacity: collapsed ? 0 : 1,
             transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
             transition:
@@ -206,11 +316,56 @@ export function SourcesPanel({
                     onToggleItem={onToggleItem}
                     onDeleteItem={onDeleteItem}
                     onRetryItem={onRetryItem}
-                    onPreviewItem={onPreviewItem}
+                    onPreviewItem={openSourcePreview}
+                    previewLoading={Boolean(previewState?.loading && previewState.sourceId === item.id)}
                   />
                 ))
               : null}
         </Stack>
+        {hasPreviewOpen && previewState ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 4,
+              bgcolor: 'background.paper',
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant={panelTitleVariant} sx={panelTitleSx}>
+                预览 · {previewState.sourceName}
+              </Typography>
+              <IconButton
+                size="small"
+                color="default"
+                aria-label="收起预览"
+                onClick={closeSourcePreview}
+              >
+                <UnfoldLessIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+            <Divider sx={{ my: 1.25 }} />
+            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}>
+              {previewState.loading ? (
+                <Stack sx={{ height: '100%', justifyContent: 'center', alignItems: 'center' }} spacing={1}>
+                  <CircularProgress size={22} />
+                  <Typography variant="body2" color="text.secondary">
+                    {sourcePreviewLoadingText}
+                  </Typography>
+                </Stack>
+              ) : previewState.error ? (
+                <Alert severity="error">{previewState.error}</Alert>
+              ) : previewState.notice ? (
+                <Alert severity="info">{previewState.notice}</Alert>
+              ) : (
+                <MarkdownRenderer content={previewState.markdown} />
+              )}
+            </Box>
+          </Box>
+        ) : null}
         </Paper>
       </Box>
     </>

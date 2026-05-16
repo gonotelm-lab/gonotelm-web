@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box, Dialog, DialogContent, DialogTitle, Fade, Link, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import {
   createSource,
   deleteSource,
@@ -22,7 +22,6 @@ import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import { ChatPanel } from '../components/notebook-workspace/ChatPanel'
 import { InsightsPanel } from '../components/notebook-workspace/InsightsPanel'
-import { MarkdownRenderer } from '../components/notebook-workspace/MarkdownRenderer'
 import { SourceSelectionController } from '../components/notebook-workspace/SourceSelectionController'
 import { SourcesPanel } from '../components/notebook-workspace/SourcesPanel'
 import { WorkspaceHeader } from '../components/notebook-workspace/WorkspaceHeader'
@@ -32,29 +31,18 @@ const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
 const sourceRemoveAnimationMs = 300
 const textSourceDisplayNameMaxChars = 20
-const markdownPreviewCacheTtlMs = 5 * 60 * 1_000
-const workspacePanelWidthCollapsed = '0%'
-const workspacePanelWidthExpanded = '23%'
+const workspacePanelDefaultWidthPx = 320
+const workspacePanelMinWidthPx = 220
+const workspacePanelAutoCollapseWidthPx = 170
+const workspacePanelMaxWidthRatio = 0.5
+const workspaceCenterMinWidthPx = 420
+const workspaceResizeHandleWidthPx = 10
 const workspacePanelTransitionMs = 280
 const workspacePanelFadeTransitionMs = 220
 const workspacePanelTransitionCurve = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const workspacePanelGridTransition = `grid-template-columns ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
 const workspacePanelWidthTransition = `width ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
 const workspacePanelContentTransition = `transform ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}, opacity ${workspacePanelFadeTransitionMs}ms ease`
-const previewDialogTransitionDuration = { enter: 180, exit: 120 }
-const previewDialogContentHeight = {
-  min: { xs: 300, md: 460 },
-  max: { xs: '65vh', md: 460 },
-}
-const previewDialogTextFontSize = 13.5
-const filePreviewStackGap = 1.25
-const filePreviewFrameMinHeight = 460
-const filePreviewLinkFontSize = 12
-const previewableFileIconTypeSet = new Set<SourceListItem['iconType']>([
-  'markdown',
-  'pdf',
-  'txt',
-])
 
 const isProcessingStatus = (status?: SourceStatus) =>
   !!status && processingStatusSet.has(status)
@@ -83,44 +71,81 @@ const truncateUTF8 = (text: string, maxChars: number) => {
   return chars.slice(0, maxChars).join('')
 }
 
-const canPreviewSourceItem = (item: SourceListItem) =>
-  item.kind === 'text' ||
-  (item.kind === 'file' && previewableFileIconTypeSet.has(item.iconType))
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max)
 
 export function NotebookWorkspacePage() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
+  const [sourcesPanelWidthPx, setSourcesPanelWidthPx] = useState(workspacePanelDefaultWidthPx)
+  const [insightsPanelWidthPx, setInsightsPanelWidthPx] = useState(workspacePanelDefaultWidthPx)
+  const [workspaceContainerWidthPx, setWorkspaceContainerWidthPx] = useState(0)
+  const [activeResizeSide, setActiveResizeSide] = useState<'left' | 'right' | null>(null)
   const [selectedSourceIds, setSelectedSourceIds] = useState<Record<string, boolean>>({})
   const [removingSourceIds, setRemovingSourceIds] = useState<Record<string, boolean>>({})
   const [isHydratingSources, setIsHydratingSources] = useState(false)
-  const [previewingSourceId, setPreviewingSourceId] = useState<string | null>(null)
-  const [previewDialogItem, setPreviewDialogItem] = useState<SourceListItem | null>(null)
   const [notebookNameDraft, setNotebookNameDraft] = useState('')
   const [isNotebookNameEditing, setIsNotebookNameEditing] = useState(false)
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
-  const patchSource = useWorkspaceStore((s) => s.patchSource)
   const removeSource = useWorkspaceStore((s) => s.removeSource)
   const setSources = useWorkspaceStore((s) => s.setSources)
   const setSourceStatus = useWorkspaceStore((s) => s.setSourceStatus)
   const resetWorkspace = useWorkspaceStore((s) => s.reset)
   const removeSourceTimersRef = useRef<number[]>([])
+  const workspacePanelsRef = useRef<HTMLDivElement | null>(null)
+  const sourcesPanelWidthRef = useRef(sourcesPanelWidthPx)
+  const insightsPanelWidthRef = useRef(insightsPanelWidthPx)
+  const sourcesPanelCollapsedRef = useRef(isSourcesPanelCollapsed)
+  const insightsPanelCollapsedRef = useRef(isInsightsPanelCollapsed)
+  const stopPanelResizeRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     resetWorkspace()
     setRemovingSourceIds({})
     setIsHydratingSources(true)
-    setPreviewingSourceId(null)
-    setPreviewDialogItem(null)
   }, [id, resetWorkspace])
 
   useEffect(() => {
     return () => {
       removeSourceTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
       removeSourceTimersRef.current = []
+      stopPanelResizeRef.current?.()
+      stopPanelResizeRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    sourcesPanelWidthRef.current = sourcesPanelWidthPx
+  }, [sourcesPanelWidthPx])
+
+  useEffect(() => {
+    insightsPanelWidthRef.current = insightsPanelWidthPx
+  }, [insightsPanelWidthPx])
+
+  useEffect(() => {
+    sourcesPanelCollapsedRef.current = isSourcesPanelCollapsed
+  }, [isSourcesPanelCollapsed])
+
+  useEffect(() => {
+    insightsPanelCollapsedRef.current = isInsightsPanelCollapsed
+  }, [isInsightsPanelCollapsed])
+
+  useEffect(() => {
+    const container = workspacePanelsRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const nextWidth = Math.round(entries[0]?.contentRect.width ?? 0)
+      setWorkspaceContainerWidthPx((prev) => (prev === nextWidth ? prev : nextWidth))
+    })
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
     }
   }, [])
 
@@ -246,40 +271,6 @@ export function NotebookWorkspacePage() {
     }))
   }, [sources])
 
-  const previewingSourceItem = useMemo(
-    () => sourceListItems.find((item) => item.id === previewingSourceId) ?? null,
-    [previewingSourceId, sourceListItems],
-  )
-  const activePreviewItem = previewingSourceItem ?? previewDialogItem
-  const isPreviewDialogOpen = Boolean(previewingSourceId)
-  const isPreviewingMarkdown = activePreviewItem?.iconType === 'markdown'
-  const markdownTextFromSource =
-    isPreviewingMarkdown ? activePreviewItem?.textContent ?? '' : ''
-  const markdownPreviewFileUrl =
-    isPreviewingMarkdown && activePreviewItem?.fileUrl
-      ? activePreviewItem.fileUrl
-      : ''
-  const markdownPreviewFallbackQuery = useQuery({
-    queryKey: ['source-markdown-preview', activePreviewItem?.id ?? '', markdownPreviewFileUrl],
-    enabled: Boolean(
-      isPreviewDialogOpen &&
-        isPreviewingMarkdown &&
-        !markdownTextFromSource.trim() &&
-        markdownPreviewFileUrl,
-    ),
-    queryFn: async () => {
-      const response = await fetch(markdownPreviewFileUrl, { credentials: 'omit' })
-      if (!response.ok) {
-        throw new Error(`request failed: ${response.status}`)
-      }
-      return response.text()
-    },
-    staleTime: markdownPreviewCacheTtlMs,
-  })
-  const markdownPreviewText =
-    markdownTextFromSource || markdownPreviewFallbackQuery.data || ''
-  const hasMarkdownPreviewText = Boolean(markdownPreviewText.trim())
-
   const selectableSourceItems = useMemo(
     () =>
       sourceListItems.filter((item) => !isProcessingStatus(item.status)),
@@ -401,7 +392,6 @@ export function NotebookWorkspacePage() {
       }))
       const timerId = window.setTimeout(() => {
         removeSource(sourceId)
-        setPreviewingSourceId((prev) => (prev === sourceId ? null : prev))
         setSelectedSourceIds((prev) => {
           if (!prev[sourceId]) return prev
           const next = { ...prev }
@@ -440,63 +430,6 @@ export function NotebookWorkspacePage() {
     } catch (err) {
       console.warn('retry source preparation failed', sourceId, err)
     }
-  }
-
-  const handlePreviewSource = (sourceId: string) => {
-    const targetSource = sourceListItems.find((item) => item.id === sourceId)
-    if (!targetSource) return
-    if (!canPreviewSourceItem(targetSource)) return
-    setPreviewDialogItem(targetSource)
-    if (targetSource.kind !== 'file' || targetSource.fileUrl) {
-      setPreviewingSourceId(sourceId)
-      return
-    }
-    if (!id) {
-      setPreviewingSourceId(sourceId)
-      return
-    }
-
-    void (async () => {
-      try {
-        let offset = 0
-        while (true) {
-          const page = await listNotebookSources(id, {
-            limit: notebookSourcesPageLimit,
-            offset,
-          })
-          const matched = page.sources.find((source) => source.id === sourceId)
-          if (matched) {
-            patchSource(sourceId, {
-              status: matched.status,
-              displayName: matched.display_name,
-              textContent: matched.text?.text,
-              urlContent: matched.url?.url,
-              fileUrl: matched.file?.url,
-            })
-            break
-          }
-          if (!page.has_more || page.sources.length === 0) {
-            break
-          }
-          offset += page.sources.length
-        }
-      } catch (error) {
-        console.warn('refresh source before preview failed', sourceId, error)
-      } finally {
-        setPreviewingSourceId(sourceId)
-      }
-    })()
-  }
-
-  const handleClosePreviewDialog = () => {
-    if (previewingSourceItem) {
-      setPreviewDialogItem(previewingSourceItem)
-    }
-    setPreviewingSourceId(null)
-  }
-
-  const handlePreviewDialogExited = () => {
-    setPreviewDialogItem(null)
   }
 
   const handleNotebookNameFocus = () => {
@@ -550,6 +483,281 @@ export function NotebookWorkspacePage() {
     ? notebookNameDraft
     : notebookQuery.data?.name ?? ''
 
+  const getLeftPanelWidthBounds = useCallback(
+    (containerWidth: number, rightPanelWidth: number, rightPanelCollapsed: boolean) => {
+      const maxByRatio = Math.floor(containerWidth * workspacePanelMaxWidthRatio)
+      const rightVisibleWidth = rightPanelCollapsed ? 0 : rightPanelWidth
+      const rightHandleWidth = rightPanelCollapsed ? 0 : workspaceResizeHandleWidthPx
+      const maxByCenter =
+        containerWidth -
+        workspaceCenterMinWidthPx -
+        rightVisibleWidth -
+        rightHandleWidth -
+        workspaceResizeHandleWidthPx
+      const maxWidth = Math.max(0, Math.min(maxByRatio, maxByCenter))
+      const minWidth = Math.min(workspacePanelMinWidthPx, maxWidth)
+      return { minWidth, maxWidth }
+    },
+    [],
+  )
+
+  const getRightPanelWidthBounds = useCallback(
+    (containerWidth: number, leftPanelWidth: number, leftPanelCollapsed: boolean) => {
+      const maxByRatio = Math.floor(containerWidth * workspacePanelMaxWidthRatio)
+      const leftVisibleWidth = leftPanelCollapsed ? 0 : leftPanelWidth
+      const leftHandleWidth = leftPanelCollapsed ? 0 : workspaceResizeHandleWidthPx
+      const maxByCenter =
+        containerWidth -
+        workspaceCenterMinWidthPx -
+        leftVisibleWidth -
+        leftHandleWidth -
+        workspaceResizeHandleWidthPx
+      const maxWidth = Math.max(0, Math.min(maxByRatio, maxByCenter))
+      const minWidth = Math.min(workspacePanelMinWidthPx, maxWidth)
+      return { minWidth, maxWidth }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (workspaceContainerWidthPx <= 0) {
+      return
+    }
+
+    let nextSourcesCollapsed = isSourcesPanelCollapsed
+    let nextInsightsCollapsed = isInsightsPanelCollapsed
+    let nextSourcesWidth = Math.round(sourcesPanelWidthPx)
+    let nextInsightsWidth = Math.round(insightsPanelWidthPx)
+
+    for (let i = 0; i < 2; i += 1) {
+      if (!nextSourcesCollapsed) {
+        const leftBounds = getLeftPanelWidthBounds(
+          workspaceContainerWidthPx,
+          nextInsightsWidth,
+          nextInsightsCollapsed,
+        )
+        if (leftBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+          nextSourcesCollapsed = true
+        } else {
+          nextSourcesWidth = Math.round(
+            clampNumber(nextSourcesWidth, leftBounds.minWidth, leftBounds.maxWidth),
+          )
+        }
+      }
+
+      if (!nextInsightsCollapsed) {
+        const rightBounds = getRightPanelWidthBounds(
+          workspaceContainerWidthPx,
+          nextSourcesWidth,
+          nextSourcesCollapsed,
+        )
+        if (rightBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+          nextInsightsCollapsed = true
+        } else {
+          nextInsightsWidth = Math.round(
+            clampNumber(nextInsightsWidth, rightBounds.minWidth, rightBounds.maxWidth),
+          )
+        }
+      }
+    }
+
+    if (nextSourcesCollapsed !== isSourcesPanelCollapsed) {
+      setIsSourcesPanelCollapsed(nextSourcesCollapsed)
+    }
+    if (nextInsightsCollapsed !== isInsightsPanelCollapsed) {
+      setIsInsightsPanelCollapsed(nextInsightsCollapsed)
+    }
+    if (!nextSourcesCollapsed && nextSourcesWidth !== sourcesPanelWidthPx) {
+      setSourcesPanelWidthPx(nextSourcesWidth)
+    }
+    if (!nextInsightsCollapsed && nextInsightsWidth !== insightsPanelWidthPx) {
+      setInsightsPanelWidthPx(nextInsightsWidth)
+    }
+  }, [
+    getLeftPanelWidthBounds,
+    getRightPanelWidthBounds,
+    insightsPanelWidthPx,
+    isInsightsPanelCollapsed,
+    isSourcesPanelCollapsed,
+    sourcesPanelWidthPx,
+    workspaceContainerWidthPx,
+  ])
+
+  const startResizePanel = useCallback(
+    (side: 'left' | 'right') => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return
+      const container = workspacePanelsRef.current
+      if (!container) return
+
+      event.preventDefault()
+      setActiveResizeSide(side)
+
+      const previousUserSelect = document.body.style.userSelect
+      const previousCursor = document.body.style.cursor
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'col-resize'
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        const rect = container.getBoundingClientRect()
+        const containerWidth = rect.width
+        if (containerWidth <= 0) return
+
+        if (side === 'left') {
+          const rawLeftWidth = moveEvent.clientX - rect.left
+          if (rawLeftWidth <= workspacePanelAutoCollapseWidthPx) {
+            if (!sourcesPanelCollapsedRef.current) {
+              setIsSourcesPanelCollapsed(true)
+              sourcesPanelCollapsedRef.current = true
+            }
+            return
+          }
+
+          const leftBounds = getLeftPanelWidthBounds(
+            containerWidth,
+            insightsPanelWidthRef.current,
+            insightsPanelCollapsedRef.current,
+          )
+          if (leftBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+            if (!sourcesPanelCollapsedRef.current) {
+              setIsSourcesPanelCollapsed(true)
+              sourcesPanelCollapsedRef.current = true
+            }
+            return
+          }
+
+          const nextLeftWidth = Math.round(
+            clampNumber(rawLeftWidth, leftBounds.minWidth, leftBounds.maxWidth),
+          )
+
+          if (sourcesPanelCollapsedRef.current) {
+            setIsSourcesPanelCollapsed(false)
+            sourcesPanelCollapsedRef.current = false
+          }
+          setSourcesPanelWidthPx(nextLeftWidth)
+          sourcesPanelWidthRef.current = nextLeftWidth
+          return
+        }
+
+        const rawRightWidth = rect.right - moveEvent.clientX
+        if (rawRightWidth <= workspacePanelAutoCollapseWidthPx) {
+          if (!insightsPanelCollapsedRef.current) {
+            setIsInsightsPanelCollapsed(true)
+            insightsPanelCollapsedRef.current = true
+          }
+          return
+        }
+
+        const rightBounds = getRightPanelWidthBounds(
+          containerWidth,
+          sourcesPanelWidthRef.current,
+          sourcesPanelCollapsedRef.current,
+        )
+        if (rightBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+          if (!insightsPanelCollapsedRef.current) {
+            setIsInsightsPanelCollapsed(true)
+            insightsPanelCollapsedRef.current = true
+          }
+          return
+        }
+        const nextRightWidth = Math.round(
+          clampNumber(rawRightWidth, rightBounds.minWidth, rightBounds.maxWidth),
+        )
+
+        if (insightsPanelCollapsedRef.current) {
+          setIsInsightsPanelCollapsed(false)
+          insightsPanelCollapsedRef.current = false
+        }
+        setInsightsPanelWidthPx(nextRightWidth)
+        insightsPanelWidthRef.current = nextRightWidth
+      }
+
+      const stopResize = () => {
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', stopResize)
+        window.removeEventListener('pointercancel', stopResize)
+        document.body.style.userSelect = previousUserSelect
+        document.body.style.cursor = previousCursor
+        setActiveResizeSide(null)
+        if (stopPanelResizeRef.current === stopResize) {
+          stopPanelResizeRef.current = null
+        }
+      }
+
+      stopPanelResizeRef.current = stopResize
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', stopResize)
+      window.addEventListener('pointercancel', stopResize)
+    },
+    [getLeftPanelWidthBounds, getRightPanelWidthBounds],
+  )
+
+  const handleExpandSourcesPanel = useCallback(() => {
+    const containerWidth =
+      workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
+    if (containerWidth <= 0) {
+      setIsSourcesPanelCollapsed(false)
+      setSourcesPanelWidthPx(workspacePanelDefaultWidthPx)
+      return
+    }
+
+    const leftBounds = getLeftPanelWidthBounds(
+      containerWidth,
+      insightsPanelWidthRef.current,
+      insightsPanelCollapsedRef.current,
+    )
+    if (leftBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+      return
+    }
+
+    const nextWidth = Math.round(
+      clampNumber(
+        Math.max(sourcesPanelWidthRef.current, workspacePanelDefaultWidthPx),
+        leftBounds.minWidth,
+        leftBounds.maxWidth,
+      ),
+    )
+    setIsSourcesPanelCollapsed(false)
+    setSourcesPanelWidthPx(nextWidth)
+  }, [getLeftPanelWidthBounds, workspaceContainerWidthPx])
+
+  const handleExpandInsightsPanel = useCallback(() => {
+    const containerWidth =
+      workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
+    if (containerWidth <= 0) {
+      setIsInsightsPanelCollapsed(false)
+      setInsightsPanelWidthPx(workspacePanelDefaultWidthPx)
+      return
+    }
+
+    const rightBounds = getRightPanelWidthBounds(
+      containerWidth,
+      sourcesPanelWidthRef.current,
+      sourcesPanelCollapsedRef.current,
+    )
+    if (rightBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
+      return
+    }
+
+    const nextWidth = Math.round(
+      clampNumber(
+        Math.max(insightsPanelWidthRef.current, workspacePanelDefaultWidthPx),
+        rightBounds.minWidth,
+        rightBounds.maxWidth,
+      ),
+    )
+    setIsInsightsPanelCollapsed(false)
+    setInsightsPanelWidthPx(nextWidth)
+  }, [getRightPanelWidthBounds, workspaceContainerWidthPx])
+
+  const sourcesPanelGridColumn = isSourcesPanelCollapsed ? '0px' : `${sourcesPanelWidthPx}px`
+  const insightsPanelGridColumn = isInsightsPanelCollapsed ? '0px' : `${insightsPanelWidthPx}px`
+  const leftResizeHandleGridColumn = isSourcesPanelCollapsed
+    ? '0px'
+    : `${workspaceResizeHandleWidthPx}px`
+  const rightResizeHandleGridColumn = isInsightsPanelCollapsed
+    ? '0px'
+    : `${workspaceResizeHandleWidthPx}px`
+
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SourceSelectionController
@@ -573,16 +781,17 @@ export function NotebookWorkspacePage() {
 
       <Box sx={{ width: '100%', flex: 1, minHeight: 0, px: 1, py: 1, overflow: 'hidden' }}>
         <Box
+          ref={workspacePanelsRef}
           sx={{
             display: 'grid',
-            gap: 1,
+            gap: { xs: 1, md: 0 },
             height: '100%',
             minHeight: 0,
             overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
-              md: `${isSourcesPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded} minmax(0, 1fr) ${isInsightsPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded}`,
-              xl: `${isSourcesPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded} minmax(0, 1fr) ${isInsightsPanelCollapsed ? workspacePanelWidthCollapsed : workspacePanelWidthExpanded}`,
+              md: `${sourcesPanelGridColumn} ${leftResizeHandleGridColumn} minmax(${workspaceCenterMinWidthPx}px, 1fr) ${rightResizeHandleGridColumn} ${insightsPanelGridColumn}`,
+              xl: `${sourcesPanelGridColumn} ${leftResizeHandleGridColumn} minmax(${workspaceCenterMinWidthPx}px, 1fr) ${rightResizeHandleGridColumn} ${insightsPanelGridColumn}`,
             },
             gridTemplateRows: {
               xs: 'repeat(3, minmax(0, 1fr))',
@@ -612,8 +821,37 @@ export function NotebookWorkspacePage() {
             onToggleItem={toggleSourceItemChecked}
             onDeleteItem={handleDeleteSource}
             onRetryItem={handleRetrySource}
-            onPreviewItem={handlePreviewSource}
             checkedMap={selectedSourceIds}
+          />
+
+          <Box
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="调整来源面板宽度"
+            onPointerDown={startResizePanel('left')}
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              cursor: isSourcesPanelCollapsed ? 'default' : 'col-resize',
+              touchAction: 'none',
+              pointerEvents: isSourcesPanelCollapsed ? 'none' : 'auto',
+              opacity: isSourcesPanelCollapsed ? 0 : 1,
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: '50%',
+                top: 0,
+                bottom: 0,
+                width: 2,
+                borderRadius: 999,
+                transform: 'translateX(-50%)',
+                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'divider',
+                transition: 'background-color 160ms ease',
+              },
+              '&:hover::before': {
+                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'text.disabled',
+              },
+            }}
           />
 
           <ChatPanel
@@ -622,8 +860,38 @@ export function NotebookWorkspacePage() {
             selectedSourceIds={selectedSourceIdList}
             sourcesPanelCollapsed={isSourcesPanelCollapsed}
             insightsPanelCollapsed={isInsightsPanelCollapsed}
-            onExpandSourcesPanel={() => setIsSourcesPanelCollapsed(false)}
-            onExpandInsightsPanel={() => setIsInsightsPanelCollapsed(false)}
+            onExpandSourcesPanel={handleExpandSourcesPanel}
+            onExpandInsightsPanel={handleExpandInsightsPanel}
+          />
+
+          <Box
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="调整右侧面板宽度"
+            onPointerDown={startResizePanel('right')}
+            sx={{
+              display: { xs: 'none', md: 'block' },
+              cursor: isInsightsPanelCollapsed ? 'default' : 'col-resize',
+              touchAction: 'none',
+              pointerEvents: isInsightsPanelCollapsed ? 'none' : 'auto',
+              opacity: isInsightsPanelCollapsed ? 0 : 1,
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: '50%',
+                top: 0,
+                bottom: 0,
+                width: 2,
+                borderRadius: 999,
+                transform: 'translateX(-50%)',
+                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'divider',
+                transition: 'background-color 160ms ease',
+              },
+              '&:hover::before': {
+                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'text.disabled',
+              },
+            }}
           />
 
           <Box
@@ -650,86 +918,6 @@ export function NotebookWorkspacePage() {
           </Box>
         </Box>
       </Box>
-
-      <Dialog
-        open={isPreviewDialogOpen}
-        onClose={handleClosePreviewDialog}
-        transitionDuration={previewDialogTransitionDuration}
-        slots={{ transition: Fade }}
-        slotProps={{
-          transition: {
-            onExited: handlePreviewDialogExited,
-            easing: {
-              enter: 'cubic-bezier(0.22, 1, 0.36, 1)',
-              exit: 'cubic-bezier(0.22, 1, 0.36, 1)',
-            },
-          },
-        }}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle>{activePreviewItem?.name ?? '来源预览'}</DialogTitle>
-        <DialogContent
-          dividers
-          sx={{
-            minHeight: previewDialogContentHeight.min,
-            maxHeight: previewDialogContentHeight.max,
-            overflowY: 'auto',
-          }}
-        >
-          {isPreviewingMarkdown ? (
-            hasMarkdownPreviewText ? (
-              <Box sx={{ wordBreak: 'break-word' }}>
-                <MarkdownRenderer content={markdownPreviewText} />
-              </Box>
-            ) : markdownPreviewFallbackQuery.isFetching ? (
-              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
-                Markdown 内容加载中...
-              </Typography>
-            ) : markdownPreviewFallbackQuery.isError ? (
-              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
-                Markdown 内容加载失败，请稍后重试。
-              </Typography>
-            ) : (
-              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
-                Markdown 内容尚未准备完成，暂不可预览。
-              </Typography>
-            )
-          ) : null}
-
-          {activePreviewItem?.kind === 'text' ? (
-            <Typography sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: previewDialogTextFontSize }}>
-              {activePreviewItem.textContent?.trim() || '暂无可预览文本内容。'}
-            </Typography>
-          ) : null}
-
-          {activePreviewItem?.kind === 'file' && activePreviewItem.iconType !== 'markdown' ? (
-            activePreviewItem.fileUrl ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: filePreviewStackGap }}>
-                <Box
-                  component="iframe"
-                  src={activePreviewItem.fileUrl}
-                  title="source-file-preview"
-                  sx={{ width: '100%', minHeight: filePreviewFrameMinHeight, border: 0, borderRadius: 1 }}
-                />
-                <Link
-                  href={activePreviewItem.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  underline="hover"
-                  sx={{ fontSize: filePreviewLinkFontSize }}
-                >
-                  在新标签页打开文件
-                </Link>
-              </Box>
-            ) : (
-              <Typography sx={{ fontSize: previewDialogTextFontSize }} color="text.secondary">
-                文件尚未就绪，暂不可预览。
-              </Typography>
-            )
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </Box>
   )
 }

@@ -1,13 +1,16 @@
-import { request } from '../lib/http'
+import { ApiError, request } from '../lib/http'
 import type {
+  ApiResult,
   CreateSourceRequest,
   CreateSourceResponse,
   GetSourceDocResponse,
+  GetSourceParsedContentResponse,
   PollSourceStatusResponse,
   UploadFileSourceRequest,
   UploadFileSourceResponse,
 } from '../types/api'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 export const sourceDocCacheTtlMs = 5 * 60 * 1000
 export const sourceDocQueryKey = (sourceId: string, docId: string) =>
   ['source-doc', sourceId, docId] as const
@@ -55,6 +58,56 @@ export function deleteSource(sourceId: string) {
   return request<null>(`/api/v1/source/${sourceId}`, {
     method: 'DELETE',
   })
+}
+
+export async function getSourceParsedContent(sourceId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/source/${encodeURIComponent(sourceId)}/parsed/content`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  )
+
+  if (response.status === 204) {
+    return null
+  }
+
+  let body: ApiResult<GetSourceParsedContentResponse> | null = null
+  try {
+    body = (await response.json()) as ApiResult<GetSourceParsedContentResponse>
+  } catch {
+    // keep body null, handled below
+  }
+
+  if (!response.ok) {
+    throw new ApiError(
+      body?.msg ?? `HTTP request failed: ${response.status}`,
+      body?.code ?? -1,
+      response.status,
+    )
+  }
+
+  if (!body) {
+    throw new ApiError('Empty response body', -1, response.status)
+  }
+
+  if (body.code !== 0) {
+    throw new ApiError(body.msg, body.code, response.status)
+  }
+
+  return body.data
+}
+
+export async function loadParsedContentFromUrl(url: string) {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new ApiError(`解析内容读取失败，HTTP ${response.status}`, -1, response.status)
+  }
+
+  return response.text()
 }
 
 export async function uploadToObjectStorage(

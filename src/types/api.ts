@@ -103,6 +103,11 @@ export interface GetSourceDocResponse {
   content: string
 }
 
+export interface GetSourceParsedContentResponse {
+  content?: string
+  url?: string
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface ChatMessageContentText {

@@ -25,12 +25,6 @@ import {
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import type { SourceListItem } from './sourceTypes'
 
-const previewableFileIconTypeSet = new Set<SourceListItem['iconType']>([
-  'markdown',
-  'pdf',
-  'txt',
-])
-
 interface SourceListRowProps {
   item: SourceListItem
   checked: boolean
@@ -39,7 +33,8 @@ interface SourceListRowProps {
   onToggleItem: (id: string, checked: boolean) => void
   onDeleteItem: (id: string) => Promise<void>
   onRetryItem: (id: string) => Promise<void>
-  onPreviewItem: (id: string) => void
+  onPreviewItem: (item: SourceListItem) => Promise<void> | void
+  previewLoading: boolean
 }
 
 export function SourceListRow({
@@ -51,16 +46,15 @@ export function SourceListRow({
   onDeleteItem,
   onRetryItem,
   onPreviewItem,
+  previewLoading,
 }: SourceListRowProps) {
   const isProcessing = item.status === 'uploading' || item.status === 'preparing'
   const isFailed = item.status === 'failed'
+  const isReady = item.status === 'ready'
   const isAwaitingReady =
     item.status === 'inited' || item.status === 'uploading' || item.status === 'preparing'
   const rowSelectable = !isProcessing && !removing
-  const canPreview =
-    item.kind === 'text' ||
-    (item.kind === 'file' && previewableFileIconTypeSet.has(item.iconType))
-  const isFileDownloadOnly = item.kind === 'file' && !canPreview
+  const isFileSource = item.kind === 'file'
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
 
   const actionMenuOpen = Boolean(actionAnchorEl)
@@ -96,11 +90,6 @@ export function SourceListRow({
     void onRetryItem(item.id)
   }
 
-  const handlePreviewSource = () => {
-    closeActionMenu()
-    onPreviewItem(item.id)
-  }
-
   const handleDownloadSource = () => {
     closeActionMenu()
     if (!item.fileUrl) return
@@ -111,6 +100,11 @@ export function SourceListRow({
     closeActionMenu()
     if (!item.urlContent) return
     window.open(item.urlContent, '_blank', 'noopener,noreferrer')
+  }
+
+  const handlePreviewSource = () => {
+    closeActionMenu()
+    void onPreviewItem(item)
   }
 
   const sourceTypeIcon =
@@ -221,6 +215,14 @@ export function SourceListRow({
         onClose={closeActionMenu}
         onClick={(e) => e.stopPropagation()}
       >
+        <MenuItem
+          disabled={!isReady || isBusy || removing || previewLoading}
+          onClick={handlePreviewSource}
+          sx={actionMenuItemSx}
+        >
+          <PreviewIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+          <Typography sx={actionMenuTextSx}>预览</Typography>
+        </MenuItem>
         {item.kind === 'url' ? (
           <MenuItem
             disabled={!item.urlContent}
@@ -231,16 +233,7 @@ export function SourceListRow({
             <Typography sx={actionMenuTextSx}>打开链接</Typography>
           </MenuItem>
         ) : null}
-        {canPreview ? (
-          <MenuItem
-            onClick={handlePreviewSource}
-            sx={actionMenuItemSx}
-          >
-            <PreviewIcon sx={{ fontSize: 16 }} />
-            <Typography sx={actionMenuTextSx}>预览</Typography>
-          </MenuItem>
-        ) : null}
-        {isFileDownloadOnly ? (
+        {isFileSource ? (
           <MenuItem
             disabled={!item.fileUrl}
             onClick={handleDownloadSource}
