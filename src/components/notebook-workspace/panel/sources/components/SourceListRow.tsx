@@ -217,9 +217,9 @@ export function SourceListRow({
       <Stack
         direction="row"
         spacing={0.75}
-        sx={{ justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}
+        sx={{ minWidth: 0, alignItems: 'center', position: 'relative', zIndex: 1 }}
       >
-        <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center' }}>
+        <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}>
           <Box sx={{ position: 'relative', width: 18, height: 18 }}>
             <Box
               className="source-type-icon"
@@ -260,7 +260,7 @@ export function SourceListRow({
             {item.name}
           </Typography>
         </Stack>
-        <Box sx={{ width: 36, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box sx={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
           {isProcessing ? (
             <CircularProgress size={16} thickness={5} />
           ) : (

@@ -242,11 +242,11 @@ export function SourcesPanel({
 
         <Divider sx={{ my: 2 }} />
 
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pr: 0.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+        <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', pr: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
             所有来源
           </Typography>
-          <Box sx={{ width: 36, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
             <Checkbox
               size="small"
               checked={allSourcesChecked}
@@ -274,7 +274,7 @@ export function SourcesPanel({
                   <Stack
                     direction="row"
                     spacing={0.75}
-                    sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+                    sx={{ minWidth: 0, alignItems: 'center' }}
                   >
                     <Stack
                       direction="row"
@@ -299,7 +299,14 @@ export function SourcesPanel({
                         sx={{ flexShrink: 0 }}
                       />
                     </Stack>
-                    <Box sx={{ width: 36, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
                       <Skeleton variant="rounded" width={16} height={16} />
                     </Box>
                   </Stack>
