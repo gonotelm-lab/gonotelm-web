@@ -5,9 +5,10 @@ export interface SourceCard {
   id: string
   kind: SourceKind
   status?: SourceStatus
-  displayName?: string
+  title?: string
   textContent?: string
   urlContent?: string
+  fileFormat?: string
   fileUrl?: string
 }
 

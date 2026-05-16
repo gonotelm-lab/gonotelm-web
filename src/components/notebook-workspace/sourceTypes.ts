@@ -12,10 +12,12 @@ export type SourceIconType =
 export interface SourceListItem {
   id: string
   kind: SourceKind
+  title: string
   name: string
   iconType: SourceIconType
   status?: SourceStatus
   textContent?: string
   urlContent?: string
+  fileFormat?: string
   fileUrl?: string
 }

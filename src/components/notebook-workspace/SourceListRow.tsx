@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AddLinkIcon from '@mui/icons-material/AddLink'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DescriptionIcon from '@mui/icons-material/Description'
 import DownloadIcon from '@mui/icons-material/Download'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import NotesIcon from '@mui/icons-material/Notes'
@@ -13,17 +14,25 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PreviewIcon from '@mui/icons-material/Preview'
 import ReplayIcon from '@mui/icons-material/Replay'
 import {
+  Button,
   Box,
   Checkbox,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import type { SourceListItem } from './sourceTypes'
+
+const sourceTitleMaxChars = 64
 
 interface SourceListRowProps {
   item: SourceListItem
@@ -33,6 +42,7 @@ interface SourceListRowProps {
   onToggleItem: (id: string, checked: boolean) => void
   onDeleteItem: (id: string) => Promise<void>
   onRetryItem: (id: string) => Promise<void>
+  onRenameItem: (id: string, title: string) => Promise<void>
   onPreviewItem: (item: SourceListItem) => Promise<void> | void
   previewLoading: boolean
 }
@@ -45,6 +55,7 @@ export function SourceListRow({
   onToggleItem,
   onDeleteItem,
   onRetryItem,
+  onRenameItem,
   onPreviewItem,
   previewLoading,
 }: SourceListRowProps) {
@@ -56,6 +67,10 @@ export function SourceListRow({
   const rowSelectable = !isProcessing && !removing
   const isFileSource = item.kind === 'file'
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(item.title)
+  const [titleErrorText, setTitleErrorText] = useState('')
+  const [isUpdatingTitle, setIsUpdatingTitle] = useState(false)
 
   const actionMenuOpen = Boolean(actionAnchorEl)
   const actionMenuItemSx = {
@@ -66,7 +81,15 @@ export function SourceListRow({
   }
   const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
 
+  useEffect(() => {
+    if (!editDialogOpen) {
+      setTitleDraft(item.title)
+      setTitleErrorText('')
+    }
+  }, [editDialogOpen, item.title])
+
   const handleToggleRow = () => {
+    if (editDialogOpen) return
     if (!rowSelectable) return
     onToggleItem(item.id, !checked)
   }
@@ -105,6 +128,55 @@ export function SourceListRow({
   const handlePreviewSource = () => {
     closeActionMenu()
     void onPreviewItem(item)
+  }
+
+  const handleOpenEditDialog = () => {
+    closeActionMenu()
+    if (removing || isUpdatingTitle) {
+      return
+    }
+    setTitleDraft(item.title)
+    setTitleErrorText('')
+    setEditDialogOpen(true)
+  }
+
+  const handleCloseEditDialog = () => {
+    if (isUpdatingTitle) {
+      return
+    }
+    setTitleDraft(item.title)
+    setTitleErrorText('')
+    setEditDialogOpen(false)
+  }
+
+  const handleCommitEditTitle = () => {
+    if (isUpdatingTitle) {
+      return
+    }
+
+    const nextTitle = titleDraft.trim()
+    if (!nextTitle) {
+      setTitleErrorText('标题不能为空')
+      return
+    }
+
+    if (nextTitle === item.title) {
+      setEditDialogOpen(false)
+      return
+    }
+
+    setIsUpdatingTitle(true)
+    setTitleErrorText('')
+    void onRenameItem(item.id, nextTitle)
+      .then(() => {
+        setEditDialogOpen(false)
+      })
+      .catch(() => {
+        setTitleErrorText('更新标题失败，请稍后重试')
+      })
+      .finally(() => {
+        setIsUpdatingTitle(false)
+      })
   }
 
   const sourceTypeIcon =
@@ -187,7 +259,11 @@ export function SourceListRow({
               <MoreHorizIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Box>
-          <Typography variant="body2" noWrap sx={{ fontSize: 13.5 }}>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontSize: 13.5 }}
+          >
             {item.name}
           </Typography>
         </Stack>
@@ -254,6 +330,14 @@ export function SourceListRow({
           </MenuItem>
         ) : null}
         <MenuItem
+          disabled={removing || isUpdatingTitle}
+          onClick={handleOpenEditDialog}
+          sx={actionMenuItemSx}
+        >
+          <EditOutlinedIcon sx={{ fontSize: 16 }} />
+          <Typography sx={actionMenuTextSx}>编辑</Typography>
+        </MenuItem>
+        <MenuItem
           disabled={isBusy || removing}
           onClick={handleDeleteSource}
           sx={actionMenuItemSx}
@@ -262,6 +346,56 @@ export function SourceListRow({
           <Typography sx={actionMenuTextSx}>删除</Typography>
         </MenuItem>
       </Menu>
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleCloseEditDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>编辑来源标题</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            margin="dense"
+            label="标题"
+            value={titleDraft}
+            onChange={(event) => {
+              setTitleDraft(event.target.value.slice(0, sourceTitleMaxChars))
+              if (titleErrorText) {
+                setTitleErrorText('')
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                handleCommitEditTitle()
+              }
+            }}
+            disabled={isUpdatingTitle}
+            error={Boolean(titleErrorText)}
+            helperText={titleErrorText || undefined}
+            slotProps={{
+              htmlInput: {
+                maxLength: sourceTitleMaxChars,
+              },
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDialog} disabled={isUpdatingTitle}>
+            取消
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCommitEditTitle}
+            disabled={isUpdatingTitle}
+          >
+            {isUpdatingTitle ? '保存中...' : '保存'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

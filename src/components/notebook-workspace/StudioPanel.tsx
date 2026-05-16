@@ -3,11 +3,11 @@ import { Box, Divider, IconButton, Paper, Stack, Typography } from '@mui/materia
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
 import { subtleScrollbarSx } from './scrollbar'
 
-interface InsightsPanelProps {
+interface StudioPanelProps {
   onCollapse: () => void
 }
 
-export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
+export function StudioPanel({ onCollapse }: StudioPanelProps) {
   return (
     <Paper
       variant="outlined"
@@ -15,7 +15,7 @@ export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
     >
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
-          Insights
+          Studio Panel
         </Typography>
         <IconButton
           size="small"
@@ -56,7 +56,7 @@ export function InsightsPanel({ onCollapse }: InsightsPanelProps) {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            Insight 区域占位中，后续再接入内容。
+            Studio 区域占位中，后续再接入内容。
           </Typography>
         </Box>
       </Box>

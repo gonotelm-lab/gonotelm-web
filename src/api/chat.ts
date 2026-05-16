@@ -137,6 +137,12 @@ export function abortChatStream(payload: ChatAbortStreamRequest) {
   })
 }
 
+export function deleteChatContext(chatId: string) {
+  return request<null>(`/api/v1/chat/${encodeURIComponent(chatId)}/context`, {
+    method: 'DELETE',
+  })
+}
+
 export function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
   const query = new URLSearchParams()
   query.set('task_id', params.task_id)

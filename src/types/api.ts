@@ -26,7 +26,7 @@ export interface NotebookSource {
   id: string
   kind: SourceKind
   status: SourceStatus
-  display_name: string
+  title: string
   text?: {
     text: string
   }

@@ -66,6 +66,7 @@ interface SourcesPanelProps {
   onToggleItem: (id: string, checked: boolean) => void
   onDeleteItem: (id: string) => Promise<void>
   onRetryItem: (id: string) => Promise<void>
+  onRenameItem: (id: string, title: string) => Promise<void>
   checkedMap: Record<string, boolean>
 }
 
@@ -86,6 +87,7 @@ export function SourcesPanel({
   onToggleItem,
   onDeleteItem,
   onRetryItem,
+  onRenameItem,
   checkedMap,
 }: SourcesPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -316,6 +318,7 @@ export function SourcesPanel({
                     onToggleItem={onToggleItem}
                     onDeleteItem={onDeleteItem}
                     onRetryItem={onRetryItem}
+                    onRenameItem={onRenameItem}
                     onPreviewItem={openSourcePreview}
                     previewLoading={Boolean(previewState?.loading && previewState.sourceId === item.id)}
                   />

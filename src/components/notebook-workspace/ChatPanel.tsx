@@ -2,17 +2,28 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import {
+  Button,
   Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   IconButton,
   Paper,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
 import { useInfiniteQuery, useMutation } from '@tanstack/react-query'
 import {
   abortChatStream,
   createChatMessage,
+  deleteChatContext,
   listChatMessages,
   streamChatEvents,
 } from '../../api/chat'
@@ -57,6 +68,50 @@ const sidePanelToggleButtonTokens = {
   horizontalOffset: -18,
   topOffset: 18,
   zIndex: 1,
+}
+
+type ChatStyleOption = 'default' | 'analyst' | 'guide' | 'custom'
+type ChatAnswerLengthOption = 'default' | 'longer' | 'shorter'
+
+const chatStyleOptionList: { value: ChatStyleOption; label: string }[] = [
+  { value: 'default', label: '默认' },
+  { value: 'analyst', label: '分析师' },
+  { value: 'guide', label: '向导' },
+  { value: 'custom', label: '自定义' },
+]
+
+const chatAnswerLengthOptionList: { value: ChatAnswerLengthOption; label: string }[] = [
+  { value: 'default', label: '默认' },
+  { value: 'longer', label: '更长' },
+  { value: 'shorter', label: '更短' },
+]
+
+const settingsToggleButtonSx = {
+  minWidth: 72,
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: 999,
+  margin: 0,
+  px: 1.25,
+  py: 0.35,
+  textTransform: 'none',
+  fontSize: 12.5,
+  '&.MuiToggleButtonGroup-grouped': {
+    borderRadius: '999px !important',
+    margin: 0,
+  },
+  '&.MuiToggleButtonGroup-grouped:not(:first-of-type)': {
+    borderLeft: '1px solid',
+    borderColor: 'divider',
+  },
+  '&.Mui-selected': {
+    bgcolor: 'primary.main',
+    color: 'primary.contrastText',
+    borderColor: 'primary.main',
+    '&:hover': {
+      bgcolor: 'primary.dark',
+    },
+  },
 }
 
 interface ChatPanelProps {
@@ -216,6 +271,10 @@ export function ChatPanel({
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null)
   const [enableThinking, setEnableThinking] = useState(false)
   const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false)
+  const [isClearingContext, setIsClearingContext] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [chatStyle, setChatStyle] = useState<ChatStyleOption>('default')
+  const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>('default')
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
   const streamAbortControllerRef = useRef<AbortController | null>(null)
@@ -418,6 +477,7 @@ export function ChatPanel({
     stopScrollToBottomAnimation()
     clearStreamStatusSchedule()
     lastStreamStatusAtRef.current = 0
+    setSettingsDialogOpen(false)
     setComposerValue('')
     setLiveMessages([])
     setStreamStatus('')
@@ -428,6 +488,7 @@ export function ChatPanel({
     setActiveAssistantMessageId(null)
     setCopiedUserMessageId(null)
     setShowScrollToBottomButton(false)
+    setIsClearingContext(false)
     clearPendingAssistantChunkBuffer()
     if (copyFeedbackTimerRef.current !== null) {
       window.clearTimeout(copyFeedbackTimerRef.current)
@@ -881,6 +942,48 @@ export function ChatPanel({
     void handleSendMessage()
   }
 
+  const handleOpenSettingsDialog = useCallback(() => {
+    setSettingsDialogOpen(true)
+  }, [])
+
+  const handleCloseSettingsDialog = useCallback(() => {
+    setSettingsDialogOpen(false)
+  }, [])
+
+  const handleSaveSettings = useCallback(() => {
+    setSettingsDialogOpen(false)
+  }, [])
+
+  const handleClearCurrentContext = useCallback(() => {
+    const clearContext = async () => {
+      if (isStreaming || isClearingContext) {
+        setErrorText('正在生成回复时不可清空上下文，请稍后再试。')
+        return
+      }
+      if (!chatId) {
+        setErrorText('当前会话不可用，无法清空上下文。')
+        return
+      }
+
+      try {
+        setIsClearingContext(true)
+        await deleteChatContext(chatId)
+      } catch (error) {
+        setErrorText(getErrorMessage(error))
+      } finally {
+        setIsClearingContext(false)
+      }
+    }
+
+    setErrorText('')
+    setFinishReasonNotice('')
+    void clearContext()
+  }, [
+    chatId,
+    isClearingContext,
+    isStreaming,
+  ])
+
   const submitDisabled =
     !composerValue.trim() ||
     isStreaming ||
@@ -951,10 +1054,55 @@ export function ChatPanel({
           <KeyboardDoubleArrowLeftIcon fontSize="small" />
         </IconButton>
       )}
-      <Stack spacing={chatHeaderStackSpacing} sx={{ pr: chatPanelRightContentPadding }}>
+      <Stack
+        direction="row"
+        spacing={chatHeaderStackSpacing}
+        sx={{
+          pr: chatPanelRightContentPadding,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           对话
         </Typography>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshRoundedIcon className="chat-refresh-icon" sx={{ fontSize: 15 }} />}
+            onClick={handleClearCurrentContext}
+            disabled={!chatId || isClearingContext || isStreaming}
+            sx={{
+              minWidth: 0,
+              height: 28,
+              px: 1,
+              py: 0.25,
+              borderRadius: 999,
+              textTransform: 'none',
+              fontSize: 12.5,
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              '& .chat-refresh-icon': {
+                transformOrigin: 'center',
+                animation: isClearingContext ? 'chat-refresh-spin 0.9s linear infinite' : 'none',
+              },
+              '@keyframes chat-refresh-spin': {
+                from: { transform: 'rotate(0deg)' },
+                to: { transform: 'rotate(360deg)' },
+              },
+            }}
+          >
+            刷新
+          </Button>
+          <IconButton
+            size="small"
+            aria-label="打开对话设置"
+            onClick={handleOpenSettingsDialog}
+          >
+            <TuneRoundedIcon fontSize="small" />
+          </IconButton>
+        </Stack>
       </Stack>
 
       <ChatMessagesList
@@ -1035,6 +1183,82 @@ export function ChatPanel({
           }}
         />
       </Box>
+
+      <Dialog
+        open={settingsDialogOpen}
+        onClose={handleCloseSettingsDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>对话设置</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2.25}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                对话风格
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                控制回答语气与组织方式。
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                value={chatStyle}
+                onChange={(_, nextValue: ChatStyleOption | null) => {
+                  if (nextValue) {
+                    setChatStyle(nextValue)
+                  }
+                }}
+                sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              >
+                {chatStyleOptionList.map((option) => (
+                  <ToggleButton
+                    key={option.value}
+                    value={option.value}
+                    sx={settingsToggleButtonSx}
+                  >
+                    {option.label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                回答长度
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                控制回答的详略程度。
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                value={answerLength}
+                onChange={(_, nextValue: ChatAnswerLengthOption | null) => {
+                  if (nextValue) {
+                    setAnswerLength(nextValue)
+                  }
+                }}
+                sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              >
+                {chatAnswerLengthOptionList.map((option) => (
+                  <ToggleButton
+                    key={option.value}
+                    value={option.value}
+                    sx={settingsToggleButtonSx}
+                  >
+                    {option.label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSettingsDialog}>取消</Button>
+          <Button variant="contained" onClick={handleSaveSettings}>
+            保存
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   )
 }

@@ -6,6 +6,7 @@ import {
   createSource,
   deleteSource,
   retrySourcePreparation,
+  updateSourceTitle,
   uploadFileSource,
   uploadToObjectStorage,
 } from '../api/source'
@@ -21,8 +22,8 @@ import { useSourcePolling } from '../hooks/useSourcePolling'
 import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import { ChatPanel } from '../components/notebook-workspace/ChatPanel'
-import { InsightsPanel } from '../components/notebook-workspace/InsightsPanel'
 import { SourceSelectionController } from '../components/notebook-workspace/SourceSelectionController'
+import { StudioPanel } from '../components/notebook-workspace/StudioPanel'
 import { SourcesPanel } from '../components/notebook-workspace/SourcesPanel'
 import { WorkspaceHeader } from '../components/notebook-workspace/WorkspaceHeader'
 import type { SourceListItem } from '../components/notebook-workspace/sourceTypes'
@@ -30,7 +31,7 @@ import type { SourceListItem } from '../components/notebook-workspace/sourceType
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
 const sourceRemoveAnimationMs = 300
-const textSourceDisplayNameMaxChars = 20
+const textSourceTitleMaxChars = 20
 const workspacePanelDefaultWidthPx = 320
 const workspacePanelMinWidthPx = 220
 const workspacePanelAutoCollapseWidthPx = 170
@@ -49,17 +50,16 @@ const isProcessingStatus = (status?: SourceStatus) =>
 
 const detectSourceIconType = (
   kind: SourceKind,
-  displayName: string,
+  fileFormat?: string,
 ) => {
   if (kind === 'text') return 'text'
   if (kind === 'url') return 'url'
 
-  if (/\.pdf$/i.test(displayName)) return 'pdf'
-  if (/\.epub$/i.test(displayName)) return 'epub'
-  if (/\.txt$/i.test(displayName)) return 'txt'
-  if (/\.md$/i.test(displayName) || /\.markdown$/i.test(displayName)) {
-    return 'markdown'
-  }
+  const normalizedFormat = fileFormat?.trim().toLowerCase() ?? ''
+  if (normalizedFormat === 'application/pdf') return 'pdf'
+  if (normalizedFormat === 'application/epub+zip') return 'epub'
+  if (normalizedFormat.startsWith('text/plain')) return 'txt'
+  if (normalizedFormat.startsWith('text/markdown')) return 'markdown'
   return 'docx'
 }
 
@@ -91,6 +91,7 @@ export function NotebookWorkspacePage() {
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
+  const patchSource = useWorkspaceStore((s) => s.patchSource)
   const removeSource = useWorkspaceStore((s) => s.removeSource)
   const setSources = useWorkspaceStore((s) => s.setSources)
   const setSourceStatus = useWorkspaceStore((s) => s.setSourceStatus)
@@ -198,9 +199,10 @@ export function NotebookWorkspacePage() {
             id: source.id,
             kind: source.kind,
             status: source.status,
-            displayName: source.display_name,
+            title: source.title,
             textContent: source.text?.text,
             urlContent: source.url?.url,
+            fileFormat: source.file?.format,
             fileUrl: source.file?.url,
           })),
         ]
@@ -239,6 +241,10 @@ export function NotebookWorkspacePage() {
   const retrySourceMutation = useMutation({
     mutationFn: (sourceId: string) => retrySourcePreparation(sourceId),
   })
+  const updateSourceTitleMutation = useMutation({
+    mutationFn: ({ sourceId, title }: { sourceId: string; title: string }) =>
+      updateSourceTitle(sourceId, { title }),
+  })
   const updateNotebookNameMutation = useMutation({
     mutationFn: ({ notebookId, name }: { notebookId: string; name: string }) =>
       updateNotebookName(notebookId, { name }),
@@ -262,11 +268,13 @@ export function NotebookWorkspacePage() {
     return sources.map((source) => ({
       id: source.id,
       kind: source.kind,
-      name: source.displayName?.trim() ? source.displayName : source.id,
-      iconType: detectSourceIconType(source.kind, source.displayName ?? ''),
+      title: source.title ?? '',
+      name: source.title?.trim() ? source.title : source.id,
+      iconType: detectSourceIconType(source.kind, source.fileFormat),
       status: source.status,
       textContent: source.textContent,
       urlContent: source.urlContent,
+      fileFormat: source.fileFormat,
       fileUrl: source.fileUrl,
     }))
   }, [sources])
@@ -325,7 +333,7 @@ export function NotebookWorkspacePage() {
         id: created.id,
         kind,
         status: 'preparing',
-        displayName: kind === 'text' ? truncateUTF8(normalized, textSourceDisplayNameMaxChars) : normalized,
+        title: kind === 'text' ? truncateUTF8(normalized, textSourceTitleMaxChars) : normalized,
         textContent: kind === 'text' ? normalized : undefined,
         urlContent: kind === 'url' ? normalized : undefined,
       })
@@ -344,18 +352,20 @@ export function NotebookWorkspacePage() {
         kind: 'file',
       })
       createdSourceId = created.id
+      const uploadMimeType = resolveUploadMimeType(file)
       addSource({
         id: created.id,
         kind: 'file',
         status: 'uploading',
-        displayName: file.name,
+        title: file.name,
+        fileFormat: uploadMimeType,
       })
 
       const md5 = await fileMd5(file)
       const uploadConfig = await uploadSourceMutation.mutateAsync({
         sourceId: created.id,
         payload: {
-          mime_type: resolveUploadMimeType(file),
+          mime_type: uploadMimeType,
           filename: file.name,
           size: file.size,
           md5,
@@ -429,6 +439,35 @@ export function NotebookWorkspacePage() {
       setSourceStatus(sourceId, 'preparing')
     } catch (err) {
       console.warn('retry source preparation failed', sourceId, err)
+    }
+  }
+
+  const handleRenameSourceTitle = async (sourceId: string, nextTitle: string) => {
+    const normalizedTitle = nextTitle.trim()
+    if (!normalizedTitle) {
+      return
+    }
+
+    const source = sources.find((item) => item.id === sourceId)
+    if (!source) {
+      return
+    }
+
+    const prevTitle = source.title ?? ''
+    if (prevTitle === normalizedTitle) {
+      return
+    }
+
+    patchSource(sourceId, { title: normalizedTitle })
+    try {
+      await updateSourceTitleMutation.mutateAsync({
+        sourceId,
+        title: normalizedTitle,
+      })
+    } catch (error) {
+      patchSource(sourceId, { title: prevTitle })
+      console.warn('update source title failed', sourceId, error)
+      throw error
     }
   }
 
@@ -821,6 +860,7 @@ export function NotebookWorkspacePage() {
             onToggleItem={toggleSourceItemChecked}
             onDeleteItem={handleDeleteSource}
             onRetryItem={handleRetrySource}
+            onRenameItem={handleRenameSourceTitle}
             checkedMap={selectedSourceIds}
           />
 
@@ -913,7 +953,7 @@ export function NotebookWorkspacePage() {
                 pointerEvents: { xs: 'auto', md: isInsightsPanelCollapsed ? 'none' : 'auto' },
               }}
             >
-              <InsightsPanel onCollapse={() => setIsInsightsPanelCollapsed(true)} />
+              <StudioPanel onCollapse={() => setIsInsightsPanelCollapsed(true)} />
             </Box>
           </Box>
         </Box>

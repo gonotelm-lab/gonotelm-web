@@ -60,6 +60,17 @@ export function deleteSource(sourceId: string) {
   })
 }
 
+interface UpdateSourceTitleRequest {
+  title: string
+}
+
+export function updateSourceTitle(sourceId: string, payload: UpdateSourceTitleRequest) {
+  return request<null>(`/api/v1/source/${sourceId}/title`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function getSourceParsedContent(sourceId: string) {
   const response = await fetch(
     `${API_BASE_URL}/api/v1/source/${encodeURIComponent(sourceId)}/parsed/content`,
