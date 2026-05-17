@@ -2,7 +2,7 @@ import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
-import { Button, IconButton, Stack, Typography } from '@mui/material'
+import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { panelTitleSx, panelTitleVariant } from '../../shared/ui'
 
 const chatHeaderStackSpacing = 0.5
@@ -94,34 +94,38 @@ export function ChatPanelHeader({
           对话
         </Typography>
         <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<RefreshRoundedIcon className="chat-refresh-icon" sx={{ fontSize: 15 }} />}
-            onClick={onClearCurrentContext}
-            disabled={!hasChatId || isClearingContext || isStreaming}
-            sx={{
-              minWidth: 0,
-              height: 28,
-              px: 1,
-              py: 0.25,
-              borderRadius: 999,
-              textTransform: 'none',
-              fontSize: 12.5,
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-              '& .chat-refresh-icon': {
-                transformOrigin: 'center',
-                animation: isClearingContext ? 'chat-refresh-spin 0.9s linear infinite' : 'none',
-              },
-              '@keyframes chat-refresh-spin': {
-                from: { transform: 'rotate(0deg)' },
-                to: { transform: 'rotate(360deg)' },
-              },
-            }}
-          >
-            刷新
-          </Button>
+          <Tooltip title="刷新会话上下文">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<RefreshRoundedIcon className="chat-refresh-icon" sx={{ fontSize: 15 }} />}
+                onClick={onClearCurrentContext}
+                disabled={!hasChatId || isClearingContext || isStreaming}
+                sx={{
+                  minWidth: 0,
+                  height: 28,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 999,
+                  textTransform: 'none',
+                  fontSize: 12.5,
+                  lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
+                  '& .chat-refresh-icon': {
+                    transformOrigin: 'center',
+                    animation: isClearingContext ? 'chat-refresh-spin 0.9s linear infinite' : 'none',
+                  },
+                  '@keyframes chat-refresh-spin': {
+                    from: { transform: 'rotate(0deg)' },
+                    to: { transform: 'rotate(360deg)' },
+                  },
+                }}
+              >
+                刷新
+              </Button>
+            </span>
+          </Tooltip>
           <IconButton size="small" aria-label="打开对话设置" onClick={onOpenSettingsDialog}>
             <TuneRoundedIcon fontSize="small" />
           </IconButton>

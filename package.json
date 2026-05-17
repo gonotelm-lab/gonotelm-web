@@ -7,10 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "npm run test:unit",
+    "test": "vitest run",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:ci": "npm run test:unit",
+    "test:ci": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {

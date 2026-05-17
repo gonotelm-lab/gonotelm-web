@@ -5,6 +5,7 @@ import type {
   GetNotebookChatResponse,
   ListNotebookSourcesResponse,
   ListNotebooksResponse,
+  ListNotebooksSortBy,
   Notebook,
 } from '../types/api'
 
@@ -42,6 +43,7 @@ export function updateNotebookName(
 interface ListNotebooksParams {
   limit?: number
   offset?: number
+  sortBy?: ListNotebooksSortBy
 }
 
 export function listNotebooks(params: ListNotebooksParams = {}) {
@@ -51,6 +53,9 @@ export function listNotebooks(params: ListNotebooksParams = {}) {
   }
   if (typeof params.offset === 'number') {
     query.set('offset', String(params.offset))
+  }
+  if (typeof params.sortBy === 'string') {
+    query.set('sort_by', params.sortBy)
   }
 
   const suffix = query.toString()

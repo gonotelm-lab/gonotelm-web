@@ -15,11 +15,17 @@ interface UseStreamStatusSchedulerResult {
   resetLastStreamStatusAt: () => void
 }
 
+/**
+ * Schedules stream status updates with a minimum visible duration.
+ * This prevents rapid phase transitions from flickering status text
+ * while still applying the latest pending phase as soon as allowed.
+ */
 export function useStreamStatusScheduler({
   setStreamPhaseType,
   setStreamStatus,
 }: UseStreamStatusSchedulerParams): UseStreamStatusSchedulerResult {
   const streamStatusSwitchTimerRef = useRef<number | null>(null)
+  // Keep only the latest pending status so rapid phase updates collapse instead of flickering in sequence.
   const pendingStreamStatusRef = useRef<{ phase: MessageStreamPhaseType; text: string } | null>(null)
   const lastStreamStatusAtRef = useRef(0)
 
@@ -40,10 +46,15 @@ export function useStreamStatusScheduler({
     [setStreamPhaseType, setStreamStatus],
   )
 
+  /**
+   * Applies stream status now or queues it for delayed switch,
+   * depending on whether the current status has been visible long enough.
+   */
   const queueStreamStatus = useCallback(
     (phase: MessageStreamPhaseType, text: string) => {
       const now = performance.now()
       const elapsed = now - lastStreamStatusAtRef.current
+      // Enforce a minimum visible window so status text does not flash too quickly.
       const canApplyNow =
         lastStreamStatusAtRef.current === 0 ||
         elapsed >= streamStatusMinVisibleMs
@@ -58,6 +69,7 @@ export function useStreamStatusScheduler({
         return
       }
 
+      // Delay switch just enough to satisfy min-visible constraint, then apply latest pending state.
       const waitMs = Math.max(streamStatusMinVisibleMs - elapsed, 0)
       streamStatusSwitchTimerRef.current = window.setTimeout(() => {
         streamStatusSwitchTimerRef.current = null

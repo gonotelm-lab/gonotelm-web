@@ -179,6 +179,15 @@ export function NotebookWorkspacePage() {
     insightsPanelCollapsedRef.current = isInsightsPanelCollapsed
   }, [isInsightsPanelCollapsed])
 
+  const handleSourceReady = useCallback(() => {
+    if (!id) return
+    // source 进入 ready 后，notebook 可能自动更新（如 source_count/描述），这里主动刷新一次。
+    void queryClient.invalidateQueries({
+      queryKey: ['notebook', id],
+      exact: true,
+    })
+  }, [id, queryClient])
+
   useEffect(() => {
     const container = workspacePanelsRef.current
     if (!container) return
@@ -199,6 +208,7 @@ export function NotebookWorkspacePage() {
     sources,
     removingSourceIds,
     setSourceStatus,
+    onSourceReady: handleSourceReady,
   })
 
   const notebookQuery = useQuery({

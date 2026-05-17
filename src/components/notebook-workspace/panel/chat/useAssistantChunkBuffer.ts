@@ -19,10 +19,16 @@ interface UseAssistantChunkBufferResult {
   ) => void
 }
 
+/**
+ * Buffers incremental assistant stream chunks before committing to React state.
+ * This reduces render churn, preserves near-bottom auto-scroll behavior,
+ * and merges citation updates without duplicating markers.
+ */
 export function useAssistantChunkBuffer({
   messageListRef,
   setLiveMessages,
 }: UseAssistantChunkBufferParams): UseAssistantChunkBufferResult {
+  // Buffer chunks to reduce rerender frequency while preserving streaming responsiveness.
   const pendingAssistantChunkRef = useRef('')
   const pendingAssistantChunkMessageIdRef = useRef<string | null>(null)
   const pendingAssistantChunkFlushTimerRef = useRef<number | null>(null)
@@ -30,6 +36,7 @@ export function useAssistantChunkBuffer({
   const appendAssistantChunk = useCallback(
     (assistantMessageId: string, contentChunk: string) => {
       const container = messageListRef.current
+      // Only auto-stick when user is already near bottom; avoid hijacking manual scroll review.
       const shouldStickToBottom = Boolean(
         container &&
           container.scrollHeight - container.scrollTop - container.clientHeight <
@@ -83,6 +90,10 @@ export function useAssistantChunkBuffer({
     [messageListRef, setLiveMessages],
   )
 
+  /**
+   * Flushes buffered text into the target assistant message immediately
+   * and cancels any pending delayed flush timer.
+   */
   const flushPendingAssistantChunk = useCallback(() => {
     if (pendingAssistantChunkFlushTimerRef.current !== null) {
       window.clearTimeout(pendingAssistantChunkFlushTimerRef.current)
@@ -108,6 +119,11 @@ export function useAssistantChunkBuffer({
     pendingAssistantChunkMessageIdRef.current = null
   }, [])
 
+  /**
+   * Queues stream chunks by message id, with size/time thresholds:
+   * - immediate flush for large buffer
+   * - delayed flush for sparse chunk arrivals
+   */
   const queueAssistantChunk = useCallback(
     (assistantMessageId: string, chunk: string) => {
       if (!chunk) {
@@ -115,6 +131,7 @@ export function useAssistantChunkBuffer({
       }
 
       if (pendingAssistantChunkMessageIdRef.current !== assistantMessageId) {
+        // Flush old message buffer before switching target message id to avoid cross-message contamination.
         flushPendingAssistantChunk()
         pendingAssistantChunkMessageIdRef.current = assistantMessageId
         pendingAssistantChunkRef.current = ''
@@ -130,6 +147,7 @@ export function useAssistantChunkBuffer({
         return
       }
 
+      // Time-based flush keeps low-frequency streams from waiting on size threshold only.
       pendingAssistantChunkFlushTimerRef.current = window.setTimeout(() => {
         pendingAssistantChunkFlushTimerRef.current = null
         flushPendingAssistantChunk()
@@ -150,6 +168,7 @@ export function useAssistantChunkBuffer({
             return message
           }
 
+          // Merge by marker so incremental citation events do not create duplicate badges.
           const mergedCitationDetails = mergeDistinctCitationDetails(
             message.citationDetails,
             citationDetails,

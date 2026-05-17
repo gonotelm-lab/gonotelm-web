@@ -49,6 +49,11 @@ interface ChatMessagesListProps {
   onCopyUserMessage: (id: string, text: string) => void
 }
 
+/**
+ * Owns chat transcript rendering and stream-status presentation.
+ * It keeps loading indicators, per-message wrappers,
+ * and active-assistant status animation in one scrollable list surface.
+ */
 export const ChatMessagesList = memo(function ChatMessagesList({
   messageListRef,
   messages,
@@ -63,6 +68,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   onScrollTopCheck,
   onCopyUserMessage,
 }: ChatMessagesListProps) {
+  // Status icon intentionally mirrors backend stream phase to make retrieval/thinking states glanceable.
   const streamStatusIcon =
     streamPhaseType === 'retrieving' ? (
       <ManageSearchRoundedIcon
@@ -106,18 +112,13 @@ export const ChatMessagesList = memo(function ChatMessagesList({
         {isLoadingHistory || isFetchingMore ? <CircularProgress size={loadingIndicatorSize} /> : null}
       </Box>
 
-      {!isLoadingHistory && messages.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          还没有对话，输入你的第一个问题开始吧。
-        </Typography>
-      ) : null}
-
       {messages.map((message, index) => (
         <Box
           key={message.id}
           data-message-id={message.id}
           sx={{ mb: index === messages.length - 1 ? 0 : messageItemSpacing }}
         >
+          {/* Only the active assistant message should display live stream status to avoid duplicated indicators. */}
           {streamStatus && activeAssistantMessageId === message.id && message.role === 'assistant' ? (
             <Box
               sx={{
@@ -137,6 +138,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
                   fontWeight: 600,
                   color: streamStatusRowTokens.color,
                   letterSpacing: streamStatusRowTokens.textLetterSpacing,
+                  // Animated gradient is opt-in so we can disable motion without changing status semantics.
                   ...(showStreamFlowAnimation
                     ? {
                         color: 'transparent',

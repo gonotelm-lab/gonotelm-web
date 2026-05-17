@@ -46,11 +46,16 @@ const codeBlockLayoutTokens = {
   contentLineHeight: 1.55,
 }
 
+/**
+ * Copies rendered code text to clipboard with progressive fallback.
+ * Uses Clipboard API first, then textarea+execCommand for older contexts.
+ */
 const copyToClipboard = async (content: string) => {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(content)
     return
   }
+  // Fallback keeps copy usable in environments where Clipboard API is unavailable.
   const textarea = document.createElement('textarea')
   textarea.value = content
   textarea.setAttribute('readonly', 'true')
@@ -65,6 +70,11 @@ const copyToClipboard = async (content: string) => {
   }
 }
 
+/**
+ * Renders markdown code in two modes:
+ * - inline code chip for short snippets
+ * - syntax-highlighted code block with copy feedback interaction
+ */
 export function MarkdownCode({ inline, className, children }: MarkdownCodeProps) {
   const [copied, setCopied] = useState(false)
   const copiedTimerRef = useRef<number | null>(null)
@@ -73,6 +83,7 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
 
   useEffect(() => {
     return () => {
+      // Clear pending feedback timer to avoid state updates after component unmount.
       if (copiedTimerRef.current !== null) {
         window.clearTimeout(copiedTimerRef.current)
         copiedTimerRef.current = null
@@ -144,6 +155,7 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
                   try {
                     await copyToClipboard(codeText)
                     setCopied(true)
+                    // Reset the previous timer so rapid clicks always keep the latest feedback window.
                     if (copiedTimerRef.current !== null) {
                       window.clearTimeout(copiedTimerRef.current)
                     }

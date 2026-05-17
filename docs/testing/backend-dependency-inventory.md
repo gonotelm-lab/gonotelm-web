@@ -2,9 +2,9 @@
 
 ## 当前测试命令
 
-- `npm run test:unit`：Vitest 单元与组合测试。
-- `npm run test:unit:watch`：Vitest watch 模式。
-- `npm run test:ci`：CI 场景执行 mock 驱动测试。
+- `pnpm test:unit`：Vitest 单元与组合测试。
+- `pnpm test:unit:watch`：Vitest watch 模式。
+- `pnpm test:ci`：CI 场景执行 mock 驱动测试。
 
 ## 真实后端依赖点（按模块分组）
 

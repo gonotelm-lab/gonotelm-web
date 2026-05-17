@@ -20,11 +20,17 @@ interface UseChatScrollControlResult {
   resetScrollControl: () => void
 }
 
+/**
+ * Centralizes message-list scroll UX:
+ * immediate jump, eased animation, "scroll to bottom" button visibility,
+ * and guards that distinguish user scrolling from programmatic scrolling.
+ */
 export function useChatScrollControl({
   messageListRef,
 }: UseChatScrollControlParams): UseChatScrollControlResult {
   const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false)
   const scrollToBottomAnimationRafRef = useRef<number | null>(null)
+  // Shared flag lets scroll listeners ignore programmatic movement and avoid false "user scrolled" signals.
   const isProgrammaticScrollToBottomRef = useRef(false)
 
   const stopScrollToBottomAnimation = useCallback(() => {
@@ -41,6 +47,7 @@ export function useChatScrollControl({
       setShowScrollToBottomButton(false)
       return
     }
+    // Button appears only when user is meaningfully away from bottom.
     const distanceToBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight
     const nextVisible = distanceToBottom > showScrollToBottomButtonThresholdPx
@@ -54,6 +61,10 @@ export function useChatScrollControl({
     setShowScrollToBottomButton(false)
   }, [messageListRef])
 
+  /**
+   * Performs eased scrolling to bottom using requestAnimationFrame,
+   * then restores normal scroll-state tracking when animation completes.
+   */
   const smoothScrollToBottom = useCallback(() => {
     const container = messageListRef.current
     if (!container) return
@@ -77,6 +88,7 @@ export function useChatScrollControl({
       const progress = Math.min((now - startedAt) / scrollToBottomAnimationDurationMs, 1)
       container.scrollTop = startTop + delta * easeOutCubic(progress)
       if (progress < 1) {
+        // RAF chaining keeps animation synced with paint and prevents jank from timer drift.
         scrollToBottomAnimationRafRef.current = window.requestAnimationFrame(tick)
         return
       }

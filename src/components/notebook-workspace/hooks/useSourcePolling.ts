@@ -14,6 +14,7 @@ interface UseSourcePollingOptions {
   sources: SourceCard[]
   removingSourceIds: Record<string, boolean>
   setSourceStatus: (id: string, status: SourceStatus) => void
+  onSourceReady?: () => void
 }
 
 export function useSourcePolling({
@@ -21,6 +22,7 @@ export function useSourcePolling({
   sources,
   removingSourceIds,
   setSourceStatus,
+  onSourceReady,
 }: UseSourcePollingOptions) {
   const sourcesRef = useRef(sources)
   const removingSourceIdsRef = useRef(removingSourceIds)
@@ -65,11 +67,16 @@ export function useSourcePolling({
         return
       }
 
+      let hasSourceReady = false
+
       await Promise.all(
         pendingSources.map(async (source) => {
           try {
             const status = await pollSourceStatus(source.id)
             if (!cancelled) {
+              if (source.status !== 'ready' && status.status === 'ready') {
+                hasSourceReady = true
+              }
               setSourceStatus(source.id, status.status)
             }
           } catch (error) {
@@ -78,6 +85,9 @@ export function useSourcePolling({
           }
         }),
       )
+      if (!cancelled && hasSourceReady) {
+        onSourceReady?.()
+      }
       attempt += 1
       scheduleNext()
     }
@@ -90,5 +100,5 @@ export function useSourcePolling({
         window.clearTimeout(timeoutId)
       }
     }
-  }, [notebookId, setSourceStatus])
+  }, [notebookId, onSourceReady, setSourceStatus])
 }

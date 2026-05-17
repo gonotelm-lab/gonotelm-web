@@ -24,6 +24,7 @@ export function AddSourceDialogHomeView({
 }: AddSourceDialogHomeViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [fileError, setFileError] = useState<string>('')
+  const [dragActive, setDragActive] = useState(false)
 
   const validateFile = (file: File) => {
     const lowerName = file.name.toLowerCase()
@@ -38,6 +39,25 @@ export function AddSourceDialogHomeView({
     return ''
   }
 
+  const handleFilesSelected = (files: File[]) => {
+    if (files.length === 0 || disabled) return
+    if (files.length > maxSourceFilesPerBatch) {
+      setFileError(`一次最多选择 ${maxSourceFilesPerBatch} 个文件`)
+      return
+    }
+
+    for (const file of files) {
+      const errMsg = validateFile(file)
+      if (errMsg) {
+        setFileError(`${file.name}: ${errMsg}`)
+        return
+      }
+    }
+
+    setFileError('')
+    void onCreateFile(files)
+  }
+
   return (
     <>
       <Typography variant="body2" color="text.secondary">
@@ -49,7 +69,7 @@ export function AddSourceDialogHomeView({
           sx={{
             border: 1,
             borderStyle: 'dashed',
-            borderColor: 'divider',
+            borderColor: dragActive ? 'primary.main' : 'divider',
             borderRadius: 2,
             px: 2,
             flex: 1,
@@ -58,11 +78,40 @@ export function AddSourceDialogHomeView({
             placeItems: 'center',
             textAlign: 'center',
             cursor: disabled ? 'default' : 'pointer',
+            bgcolor: dragActive ? 'action.hover' : 'transparent',
+            transition: 'border-color 160ms ease, background-color 160ms ease',
           }}
           onClick={() => {
             if (!disabled) {
               fileInputRef.current?.click()
             }
+          }}
+          onDragEnter={(event) => {
+            if (disabled) return
+            event.preventDefault()
+            event.stopPropagation()
+            setDragActive(true)
+          }}
+          onDragOver={(event) => {
+            if (disabled) return
+            event.preventDefault()
+            event.stopPropagation()
+            if (!dragActive) {
+              setDragActive(true)
+            }
+          }}
+          onDragLeave={(event) => {
+            if (disabled) return
+            event.preventDefault()
+            event.stopPropagation()
+            setDragActive(false)
+          }}
+          onDrop={(event) => {
+            if (disabled) return
+            event.preventDefault()
+            event.stopPropagation()
+            setDragActive(false)
+            handleFilesSelected(Array.from(event.dataTransfer.files ?? []))
           }}
         >
           <Box>
@@ -101,24 +150,7 @@ export function AddSourceDialogHomeView({
             accept={acceptedFileTypes}
             onChange={(e) => {
               const files = Array.from(e.target.files ?? [])
-              if (files.length === 0) return
-              if (files.length > maxSourceFilesPerBatch) {
-                setFileError(`一次最多选择 ${maxSourceFilesPerBatch} 个文件`)
-                e.currentTarget.value = ''
-                return
-              }
-
-              for (const file of files) {
-                const errMsg = validateFile(file)
-                if (errMsg) {
-                  setFileError(`${file.name}: ${errMsg}`)
-                  e.currentTarget.value = ''
-                  return
-                }
-              }
-
-              setFileError('')
-              void onCreateFile(files)
+              handleFilesSelected(files)
               e.currentTarget.value = ''
             }}
           />

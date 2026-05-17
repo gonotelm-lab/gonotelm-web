@@ -21,6 +21,7 @@ const hasAssistantTextInHistory = (
     if (!normalizedHistoryText) {
       return false
     }
+    // Use equals/contains heuristics because backend persistence may trim or chunk assistant content differently.
     return (
       normalizedHistoryText === normalizedAssistantText ||
       normalizedHistoryText.endsWith(normalizedAssistantText) ||
@@ -29,13 +30,22 @@ const hasAssistantTextInHistory = (
   })
 }
 
+/**
+ * Normalizes paginated history payload into chronological UI messages.
+ * API returns latest-first, but chat list expects oldest-first order.
+ */
 export const mapHistoryPagesToUiMessages = (pages: ChatListMessagesResponse[]) =>
   pages
     .slice()
+    // API pages and message arrays are newest-first; UI list renders oldest-first for chat chronology.
     .reverse()
     .flatMap((page) => page.messages.slice().reverse())
     .map(mapChatItemToUiMessage)
 
+/**
+ * Preserves the latest local assistant draft after abort if it was not
+ * already persisted in refreshed server history.
+ */
 export const buildLiveMessagesAfterAbortRefresh = (
   previousLiveMessages: ChatUiMessage[],
   fetchedHistoryMessages: ChatUiMessage[],
@@ -48,6 +58,7 @@ export const buildLiveMessagesAfterAbortRefresh = (
   }
 
   if (hasAssistantTextInHistory(fetchedHistoryMessages, latestAssistantDraft.text)) {
+    // If server history already contains this content, do not keep a duplicate local draft bubble.
     return []
   }
 

@@ -10,6 +10,11 @@ import {
 } from '@mui/material'
 import { AddSourceDialogEditorView } from './AddSourceDialogEditorView'
 import { AddSourceDialogHomeView } from './AddSourceDialogHomeView'
+import {
+  clampTextSourceInput,
+  countTextSourceChars,
+  textSourceMaxChars,
+} from './textSourceLimit'
 
 type AddSourceView = 'home' | 'url' | 'text'
 
@@ -36,6 +41,7 @@ export function AddSourceDialog({
   const [submitting, setSubmitting] = useState(false)
 
   const disabled = isBusy || submitting
+  const textCharCount = useMemo(() => countTextSourceChars(textInput), [textInput])
   const hasSubmitValue = useMemo(() => {
     if (view === 'url') return urlInput.trim().length > 0
     if (view === 'text') return textInput.trim().length > 0
@@ -112,10 +118,14 @@ export function AddSourceDialog({
             disabled={disabled}
             urlInput={urlInput}
             textInput={textInput}
+            textMaxChars={textSourceMaxChars}
+            textCharCount={textCharCount}
             hasSubmitValue={hasSubmitValue}
             onBack={() => setView('home')}
             onUrlChange={setUrlInput}
-            onTextChange={setTextInput}
+            onTextChange={(value) => {
+              setTextInput(clampTextSourceInput(value))
+            }}
             onSubmit={handleSubmit}
           />
         )}

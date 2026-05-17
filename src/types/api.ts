@@ -13,6 +13,7 @@ export interface Notebook {
   name: string
   desc: string
   source_count: number
+  updated_at: number
 }
 
 export interface NotebookSummary {
@@ -20,7 +21,10 @@ export interface NotebookSummary {
   name: string
   desc: string
   source_count: number
+  updated_at: number
 }
+
+export type ListNotebooksSortBy = 'last_active' | 'create_time'
 
 export interface NotebookSource {
   id: string

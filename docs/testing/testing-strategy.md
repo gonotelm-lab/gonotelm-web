@@ -44,6 +44,6 @@
 
 ## 常用命令
 
-- `npm run test:unit`：运行 Vitest。
-- `npm run test:unit:watch`：本地 watch 迭代。
-- `npm run test:ci`：CI 推荐流程。
+- `pnpm test:unit`：运行 Vitest。
+- `pnpm test:unit:watch`：本地 watch 迭代。
+- `pnpm test:ci`：CI 推荐流程。

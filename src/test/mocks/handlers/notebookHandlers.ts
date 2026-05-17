@@ -16,12 +16,21 @@ const notebookSummaries = [
     id: 'notebook-1',
     name: 'Rust 入门',
     source_count: 2,
+    updated_at: Date.UTC(2025, 6, 17, 8),
   }),
   createNotebookSummaryFixture({
     id: 'notebook-2',
     name: 'Rust 并发',
     source_count: 1,
     desc: '并发原语与实践',
+    updated_at: Date.UTC(2025, 6, 18, 9),
+  }),
+  createNotebookSummaryFixture({
+    id: 'notebook-3',
+    name: 'Rust 生命周期',
+    source_count: 3,
+    desc: '借用检查与生命周期',
+    updated_at: Date.UTC(2025, 6, 16, 9),
   }),
 ]
 
@@ -44,12 +53,32 @@ const notebookSources = [
 ]
 
 export const notebookHandlers = [
-  http.get(`${apiBaseUrl}/api/v1/notebook/list`, async () => {
+  http.get(`${apiBaseUrl}/api/v1/notebook/list`, async ({ request }) => {
     const scenario = getMockScenario('notebook')
+    const sortBy = new URL(request.url).searchParams.get('sort_by')
+    const sortedNotebooks = [...notebookSummaries].sort((a, b) => {
+      if (sortBy === 'last_active') {
+        return b.updated_at - a.updated_at
+      }
+      return a.updated_at - b.updated_at
+    })
+
     return resolveScenarioResponse({
       scenario,
-      successData: createListNotebooksResponseFixture(notebookSummaries),
+      successData: createListNotebooksResponseFixture(sortedNotebooks),
       emptyData: createListNotebooksResponseFixture([]),
+    })
+  }),
+
+  http.post(`${apiBaseUrl}/api/v1/notebook`, async ({ request }) => {
+    const scenario = getMockScenario('notebook')
+    const body = (await request.json()) as { name?: string }
+    const normalizedName = body.name?.trim() ?? ''
+    const createdId = normalizedName ? 'notebook-created-with-name' : 'notebook-created-later'
+    return resolveScenarioResponse({
+      scenario,
+      successData: { id: createdId },
+      emptyData: { id: '' },
     })
   }),
 
@@ -66,6 +95,7 @@ export const notebookHandlers = [
         name: '',
         desc: '',
         source_count: 0,
+        updated_at: 0,
       }),
     })
   }),

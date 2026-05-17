@@ -13,6 +13,7 @@ export const createNotebookSummaryFixture = (
   name: 'Rust 入门',
   desc: 'Rust 教程笔记',
   source_count: 2,
+  updated_at: Date.UTC(2025, 6, 18),
   ...overrides,
 })
 
@@ -23,6 +24,7 @@ export const createNotebookFixture = (
   name: 'Rust 入门',
   desc: 'Rust 教程笔记',
   source_count: 2,
+  updated_at: Date.UTC(2025, 6, 18),
   ...overrides,
 })
 

@@ -8,6 +8,8 @@ interface AddSourceDialogEditorViewProps {
   disabled: boolean
   urlInput: string
   textInput: string
+  textMaxChars: number
+  textCharCount: number
   hasSubmitValue: boolean
   onBack: () => void
   onUrlChange: (value: string) => void
@@ -20,6 +22,8 @@ export function AddSourceDialogEditorView({
   disabled,
   urlInput,
   textInput,
+  textMaxChars,
+  textCharCount,
   hasSubmitValue,
   onBack,
   onUrlChange,
@@ -56,6 +60,12 @@ export function AddSourceDialogEditorView({
             placeholder="粘贴你要添加的文本内容..."
             value={textInput}
             onChange={(e) => onTextChange(e.target.value)}
+            helperText={`${textCharCount}/${textMaxChars}`}
+            slotProps={{
+              htmlInput: {
+                maxLength: textMaxChars,
+              },
+            }}
           />
         )}
       </Box>

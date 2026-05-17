@@ -77,6 +77,12 @@ interface RefreshHistoryAfterStreamOptions {
   preserveAssistantDraftOnAbort?: boolean
 }
 
+/**
+ * Coordinates the full chat conversation lifecycle for the panel:
+ * - merges persisted history with live stream drafts
+ * - manages send/stream/abort/reconnect state transitions
+ * - keeps message-list scrolling predictable during pagination and streaming
+ */
 export function useChatConversation({
   chatId,
   selectedSourceIds,
@@ -97,6 +103,7 @@ export function useChatConversation({
   const abortRequestedRef = useRef(false)
   const pendingScrollRestoreRef = useRef<{ prevHeight: number; prevTop: number } | null>(null)
   const shouldAutoScrollToBottomRef = useRef(true)
+  // Bump this token whenever a stream lifecycle resets, so stale async handlers can self-cancel.
   const streamRunTokenRef = useRef(0)
   const { copiedUserMessageId, onCopyUserMessage, clearCopyFeedback } = useCopyFeedback({
     setErrorText,
@@ -166,8 +173,14 @@ export function useChatConversation({
 
   const isStreaming = Boolean(activeTaskId)
 
+  /**
+   * Re-syncs UI with server history after a stream session settles.
+   * When the user aborts streaming, it can preserve the latest assistant draft
+   * if that draft has not been persisted in refreshed history yet.
+   */
   const refreshHistoryAfterStream = useCallback(
     async (options?: RefreshHistoryAfterStreamOptions) => {
+      // Re-sync from server as source of truth, while optionally keeping local assistant draft after abort.
       const result = await messagesQuery.refetch()
       if (result.error) {
         setErrorText(getErrorMessage(result.error))
@@ -187,6 +200,7 @@ export function useChatConversation({
 
   useEffect(() => {
     return () => {
+      // Unmount cleanup invalidates in-flight stream work and removes UI timers/buffers.
       streamRunTokenRef.current += 1
       streamAbortControllerRef.current?.abort()
       streamAbortControllerRef.current = null
@@ -239,8 +253,14 @@ export function useChatConversation({
     scrollToBottom,
   ])
 
+  /**
+   * Runs the streaming loop for one assistant response.
+   * It uses a monotonically increasing run token to invalidate stale async callbacks,
+   * retries transient disconnects, and finalizes history refresh once streaming ends.
+   */
   const runStreamSession = useCallback(
     async (taskId: string, assistantMessageId: string) => {
+      // Each run gets a unique token so reconnect loops/events from old runs cannot mutate current state.
       const runToken = ++streamRunTokenRef.current
       let lastStreamId = ''
       let reconnectCount = 0
@@ -251,6 +271,7 @@ export function useChatConversation({
       applyStreamStatusImmediately(null, '')
       abortRequestedRef.current = false
 
+      // Retry stream connection until success/abort/limit, but only while this run token is still current.
       while (runToken === streamRunTokenRef.current) {
         try {
           const controller = new AbortController()
@@ -285,6 +306,7 @@ export function useChatConversation({
                 clearStreamStatusSchedule()
                 setStreamPhaseType('answer')
                 setStreamStatus('')
+                // Stream can request full overwrite or incremental append depending on backend action semantics.
                 const contentAction = resolveStreamContentAction(phase.action)
                 if (contentAction === 'override') {
                   clearPendingAssistantChunkBuffer()
@@ -338,12 +360,14 @@ export function useChatConversation({
         }
       }
 
+      // A newer stream run took over; discard local buffer and exit without resetting shared UI state twice.
       if (runToken !== streamRunTokenRef.current) {
         clearPendingAssistantChunkBuffer()
         return
       }
 
       flushPendingAssistantChunk()
+      // Preserve partial assistant text after manual abort to avoid abrupt content disappearance.
       const preserveAssistantDraftOnAbort = abortRequestedRef.current
       setActiveTaskId(null)
       setActiveAssistantMessageId(null)
@@ -371,6 +395,10 @@ export function useChatConversation({
     ],
   )
 
+  /**
+   * Sends a user prompt optimistically, creates temporary local bubbles,
+   * then hands over to stream runner for incremental assistant updates.
+   */
   const handleSendMessage = useCallback(async () => {
     if (!chatId) return
     if (isStreaming || createMessageMutation.isPending) return
@@ -465,6 +493,7 @@ export function useChatConversation({
     }
 
     pendingScrollRestoreRef.current = {
+      // Keep viewport anchored when prepending older history pages at the top.
       prevHeight: container.scrollHeight,
       prevTop: container.scrollTop,
     }
@@ -493,6 +522,7 @@ export function useChatConversation({
 
   const onClearCurrentContext = useCallback(() => {
     const clearContext = async () => {
+      // Clearing context during generation can race with stream updates, so guard it explicitly.
       if (isStreaming || isClearingContext) {
         setErrorText('正在生成回复时不可清空上下文，请稍后再试。')
         return

@@ -72,6 +72,10 @@ interface ChatMessageItemProps {
   onCopyUserMessage: (id: string, text: string) => void
 }
 
+/**
+ * Renders one chat bubble (assistant or user) and encapsulates message-level interactions:
+ * copy action, citation popover loading, and streaming-aware assistant action visibility.
+ */
 export const ChatMessageItem = memo(function ChatMessageItem({
   message,
   isStreaming,
@@ -87,6 +91,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   const [activeCitationDoc, setActiveCitationDoc] = useState<GetSourceDocResponse | null>(null)
   const [isCitationLoading, setIsCitationLoading] = useState(false)
   const [citationLoadError, setCitationLoadError] = useState('')
+  // Sequence guard prevents out-of-order async citation responses from overriding the latest click.
   const citationFetchSeqRef = useRef(0)
   const isUserMessage = message.role === 'user'
   const showStreamingPlaceholder =
@@ -103,6 +108,10 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     return detailMap
   }, [message.citationDetails])
 
+  /**
+   * Fetches citation document content for the currently selected marker.
+   * Sequence id guards ensure late responses from previous clicks are ignored.
+   */
   const fetchCitationDoc = useCallback(async (sourceId: string, docId: string, fetchSeq: number) => {
     try {
       const sourceDoc = await queryClient.fetchQuery(buildSourceDocQueryOptions(sourceId, docId))
@@ -123,6 +132,10 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     }
   }, [queryClient])
 
+  /**
+   * Opens citation popover at click position and starts a new fetch generation
+   * so only the latest selected citation can update visible detail state.
+   */
   const handleCitationClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>, sourceIndex: string, docIndex: string) => {
       setCitationAnchorPosition({
@@ -133,6 +146,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
       setActiveCitationDoc(null)
       setCitationLoadError('')
 
+      // Every click starts a new request generation; older results become stale immediately.
       citationFetchSeqRef.current += 1
       const fetchSeq = citationFetchSeqRef.current
 
@@ -149,6 +163,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   )
 
   const handleCloseCitationCard = useCallback(() => {
+    // Closing the popover also invalidates in-flight fetches to avoid late state writes.
     citationFetchSeqRef.current += 1
     setCitationAnchorPosition(null)
     setActiveCitationDoc(null)
