@@ -79,6 +79,7 @@ export function SourceListRow({
     display: 'flex',
     alignItems: 'center',
   }
+  const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
   const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
 
   const handleToggleRow = () => {
@@ -289,7 +290,7 @@ export function SourceListRow({
           onClick={handlePreviewSource}
           sx={actionMenuItemSx}
         >
-          <PreviewIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+          <PreviewIcon sx={actionMenuIconSx} />
           <Typography sx={actionMenuTextSx}>预览</Typography>
         </MenuItem>
         {item.kind === 'url' ? (
@@ -298,7 +299,7 @@ export function SourceListRow({
             onClick={handleOpenSourceUrl}
             sx={actionMenuItemSx}
           >
-            <OpenInNewIcon sx={{ fontSize: 16, color: 'info.main' }} />
+            <OpenInNewIcon sx={actionMenuIconSx} />
             <Typography sx={actionMenuTextSx}>打开链接</Typography>
           </MenuItem>
         ) : null}
@@ -308,7 +309,7 @@ export function SourceListRow({
             onClick={handleDownloadSource}
             sx={actionMenuItemSx}
           >
-            <DownloadIcon sx={{ fontSize: 16 }} />
+            <DownloadIcon sx={actionMenuIconSx} />
             <Typography sx={actionMenuTextSx}>下载</Typography>
           </MenuItem>
         ) : null}
@@ -318,7 +319,7 @@ export function SourceListRow({
             onClick={handleRetrySource}
             sx={actionMenuItemSx}
           >
-            <ReplayIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+            <ReplayIcon sx={actionMenuIconSx} />
             <Typography sx={actionMenuTextSx}>重试</Typography>
           </MenuItem>
         ) : null}
@@ -327,7 +328,7 @@ export function SourceListRow({
           onClick={handleOpenEditDialog}
           sx={actionMenuItemSx}
         >
-          <EditOutlinedIcon sx={{ fontSize: 16 }} />
+          <EditOutlinedIcon sx={actionMenuIconSx} />
           <Typography sx={actionMenuTextSx}>编辑</Typography>
         </MenuItem>
         <MenuItem
@@ -335,7 +336,7 @@ export function SourceListRow({
           onClick={handleDeleteSource}
           sx={actionMenuItemSx}
         >
-          <DeleteIcon sx={{ fontSize: 16, color: 'error.main' }} />
+          <DeleteIcon sx={actionMenuIconSx} />
           <Typography sx={actionMenuTextSx}>删除</Typography>
         </MenuItem>
       </Menu>

@@ -114,6 +114,7 @@ export function HomePage() {
           >
             {notebookItems.map((notebook) => {
               const viewModel = toNotebookCardViewModel(notebook)
+              const notebookPath = `/notebook/${viewModel.id}`
               return (
                 <NotebookCard
                   key={viewModel.id}
@@ -121,7 +122,7 @@ export function HomePage() {
                   description={viewModel.description}
                   sourceCount={viewModel.sourceCount}
                   dateLabel={viewModel.dateLabel}
-                  onOpen={() => navigate(`/notebook/${viewModel.id}`)}
+                  onOpen={() => navigate(notebookPath)}
                 />
               )
             })}

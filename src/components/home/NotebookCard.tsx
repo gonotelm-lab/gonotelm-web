@@ -1,4 +1,12 @@
-import { Box, Card, CardActionArea, Stack, Typography } from '@mui/material'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import {
+  Box,
+  Card,
+  CardActionArea,
+  IconButton,
+  Stack,
+  Typography,
+} from '@mui/material'
 
 interface NotebookCardProps {
   title: string
@@ -26,59 +34,73 @@ export function NotebookCard({
       }}
     >
       <CardActionArea onClick={onOpen} sx={{ px: 1.75, py: 1.5, height: '100%' }}>
-        <Stack sx={{ minHeight: 136, justifyContent: 'space-between' }}>
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 1.5,
-                  bgcolor: '#d9edff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: 18,
-                }}
-              >
-                📘
-              </Box>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 700, lineHeight: 1.2 }}
-              >
-                {title}
-              </Typography>
-            </Stack>
-            <Typography
-              variant="caption"
+        <Stack
+          sx={{
+            minHeight: 136,
+            display: 'grid',
+            gridTemplateRows: 'auto minmax(0, 2.4em) minmax(0, 2.75em) auto',
+            rowGap: 1,
+            alignItems: 'start',
+          }}
+        >
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'start', minWidth: 0 }}>
+            <Box
               sx={{
-                color: 'text.secondary',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                pl: 1,
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+                bgcolor: '#d9edff',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 18,
+                flexShrink: 0,
               }}
             >
-              {sourceCount} sources
-            </Typography>
+              📘
+            </Box>
+            <IconButton
+              size="small"
+              aria-label="笔记本操作（占位）"
+              disabled
+              sx={{ mt: -0.25, mr: -0.75 }}
+            >
+              <MoreVertIcon sx={{ fontSize: 18 }} />
+            </IconButton>
           </Stack>
-
           <Typography
-            variant="body2"
-            color="text.secondary"
+            variant="subtitle1"
             sx={{
-              mt: 1.5,
+              fontWeight: 700,
+              lineHeight: 1.2,
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
             }}
           >
+            {title}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.35,
+            }}
+          >
             {description}
           </Typography>
-
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.25 }}>
-            {dateLabel}
-          </Typography>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+              {sourceCount} sources
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', pl: 1 }}>
+              {dateLabel}
+            </Typography>
+          </Stack>
         </Stack>
       </CardActionArea>
     </Card>
