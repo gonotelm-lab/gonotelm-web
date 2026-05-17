@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import { Box } from '@mui/material'
 import { ChatInputBox } from './ChatInputBox'
 
@@ -6,6 +6,7 @@ const composerMarginTop = 2
 
 interface ChatComposerProps {
   value: string
+  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
   isStreaming: boolean
   isInputDisabled: boolean
   isSubmitDisabled: boolean
@@ -23,6 +24,7 @@ interface ChatComposerProps {
 
 export function ChatComposer({
   value,
+  inputRef,
   isStreaming,
   isInputDisabled,
   isSubmitDisabled,
@@ -41,6 +43,7 @@ export function ChatComposer({
     <Box sx={{ mt: composerMarginTop }}>
       <ChatInputBox
         value={value}
+        inputRef={inputRef}
         onValueChange={onValueChange}
         onKeyDown={onKeyDown}
         isStreaming={isStreaming}

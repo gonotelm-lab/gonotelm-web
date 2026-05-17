@@ -1,11 +1,12 @@
 import { memo } from 'react'
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded'
 import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { subtleScrollbarSx } from '../../shared/ui'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatUiMessage } from './types'
+import { chatMessageContentTokens } from './layoutTokens'
 import type { MessageStreamPhaseType } from '@/types/api'
 
 const messageItemSpacing = 2.75
@@ -15,11 +16,13 @@ const streamStatusRowMarginBottom = 0.55
 const streamStatusIconSize = 16
 const messageListLayoutTokens = {
   marginTop: 2,
-  paddingX: 0.75,
+  innerPaddingX: chatMessageContentTokens.scrollInnerPaddingX,
+  notebookDividerMarginY: 2.5,
+  notebookDividerColor: 'transparent',
 }
 const streamStatusRowTokens = {
-  marginRight: 1,
-  marginLeft: 0.75,
+  marginRight: chatMessageContentTokens.sideMarginX,
+  marginLeft: chatMessageContentTokens.sideMarginX,
   gap: 0.5,
   textFontSize: 14.3,
   textLetterSpacing: 0.1,
@@ -36,6 +39,8 @@ const streamStatusFlowTokens = {
 
 interface ChatMessagesListProps {
   messageListRef: RefObject<HTMLDivElement | null>
+  enableThinking: boolean
+  notebookInfoHeader?: ReactNode
   messages: ChatUiMessage[]
   streamStatus: string
   streamPhaseType: MessageStreamPhaseType | null
@@ -56,6 +61,8 @@ interface ChatMessagesListProps {
  */
 export const ChatMessagesList = memo(function ChatMessagesList({
   messageListRef,
+  enableThinking,
+  notebookInfoHeader,
   messages,
   streamStatus,
   streamPhaseType,
@@ -92,7 +99,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
         minHeight: 0,
         overflowY: 'auto',
         overflowAnchor: 'none',
-        px: messageListLayoutTokens.paddingX,
+        px: 0,
         ...subtleScrollbarSx,
         scrollbarWidth: 'auto',
         scrollbarColor: 'auto',
@@ -101,74 +108,89 @@ export const ChatMessagesList = memo(function ChatMessagesList({
         },
       }}
     >
-      <Box
-        sx={{
-          minHeight: loadingIndicatorRowMinHeight,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        {isLoadingHistory || isFetchingMore ? <CircularProgress size={loadingIndicatorSize} /> : null}
-      </Box>
+      <Box sx={{ px: messageListLayoutTokens.innerPaddingX }}>
+        {notebookInfoHeader}
 
-      {messages.map((message, index) => (
+        {notebookInfoHeader ? (
+          <Box
+            sx={{
+              my: messageListLayoutTokens.notebookDividerMarginY,
+              borderTop: '1px solid',
+              borderColor: messageListLayoutTokens.notebookDividerColor,
+            }}
+          />
+        ) : null}
+
         <Box
-          key={message.id}
-          data-message-id={message.id}
-          sx={{ mb: index === messages.length - 1 ? 0 : messageItemSpacing }}
+          sx={{
+            minHeight: loadingIndicatorRowMinHeight,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
         >
-          {/* Only the active assistant message should display live stream status to avoid duplicated indicators. */}
-          {streamStatus && activeAssistantMessageId === message.id && message.role === 'assistant' ? (
-            <Box
-              sx={{
-                mb: streamStatusRowMarginBottom,
-                mr: streamStatusRowTokens.marginRight,
-                ml: streamStatusRowTokens.marginLeft,
-                display: 'flex',
-                alignItems: 'center',
-                gap: streamStatusRowTokens.gap,
-              }}
-            >
-              {streamStatusIcon}
-              <Typography
-                variant="body2"
+          {isLoadingHistory || isFetchingMore ? <CircularProgress size={loadingIndicatorSize} /> : null}
+        </Box>
+
+        {messages.map((message, index) => (
+          <Box
+            key={message.id}
+            data-message-id={message.id}
+            sx={{ mb: index === messages.length - 1 ? 0 : messageItemSpacing }}
+          >
+            {/* Only the active assistant message should display live stream status to avoid duplicated indicators. */}
+            {streamStatus && activeAssistantMessageId === message.id && message.role === 'assistant' ? (
+              <Box
                 sx={{
-                  fontSize: streamStatusRowTokens.textFontSize,
-                  fontWeight: 600,
-                  color: streamStatusRowTokens.color,
-                  letterSpacing: streamStatusRowTokens.textLetterSpacing,
-                  // Animated gradient is opt-in so we can disable motion without changing status semantics.
-                  ...(showStreamFlowAnimation
-                    ? {
-                        color: 'transparent',
-                        background: streamStatusFlowTokens.gradient,
-                        backgroundSize: streamStatusFlowTokens.backgroundSize,
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                        animation: `stream-status-text-flow ${streamStatusFlowTokens.animationDurationSec}s linear infinite`,
-                        '@keyframes stream-status-text-flow': {
-                          from: { backgroundPosition: streamStatusFlowTokens.backgroundStartPosition },
-                          to: { backgroundPosition: streamStatusFlowTokens.backgroundEndPosition },
-                        },
-                      }
-                    : null),
+                  mb: streamStatusRowMarginBottom,
+                  mr: streamStatusRowTokens.marginRight,
+                  ml: streamStatusRowTokens.marginLeft,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: streamStatusRowTokens.gap,
                 }}
               >
-                {streamStatus}
-              </Typography>
-            </Box>
-          ) : null}
-          <ChatMessageItem
-            message={message}
-            isStreaming={isStreaming}
-            isActiveAssistantMessage={activeAssistantMessageId === message.id}
-            copied={copiedUserMessageId === message.id}
-            onCopyUserMessage={onCopyUserMessage}
-          />
-        </Box>
-      ))}
+                {streamStatusIcon}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: streamStatusRowTokens.textFontSize,
+                    fontWeight: 600,
+                    color: streamStatusRowTokens.color,
+                    letterSpacing: streamStatusRowTokens.textLetterSpacing,
+                    // Animated gradient is opt-in so we can disable motion without changing status semantics.
+                    ...(showStreamFlowAnimation
+                      ? {
+                          color: 'transparent',
+                          background: streamStatusFlowTokens.gradient,
+                          backgroundSize: streamStatusFlowTokens.backgroundSize,
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          animation: `stream-status-text-flow ${streamStatusFlowTokens.animationDurationSec}s linear infinite`,
+                          '@keyframes stream-status-text-flow': {
+                            from: { backgroundPosition: streamStatusFlowTokens.backgroundStartPosition },
+                            to: { backgroundPosition: streamStatusFlowTokens.backgroundEndPosition },
+                          },
+                        }
+                      : null),
+                  }}
+                >
+                  {streamStatus}
+                </Typography>
+              </Box>
+            ) : null}
+            <ChatMessageItem
+              message={message}
+              enableThinking={enableThinking}
+              isStreaming={isStreaming}
+              isActiveAssistantMessage={activeAssistantMessageId === message.id}
+              copied={copiedUserMessageId === message.id}
+              onCopyUserMessage={onCopyUserMessage}
+            />
+          </Box>
+        ))}
+      </Box>
     </Stack>
   )
 })

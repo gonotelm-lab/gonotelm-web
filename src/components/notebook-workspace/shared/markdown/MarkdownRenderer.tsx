@@ -14,6 +14,7 @@ import { normalizeMarkdownDelimiters } from './markdownNormalization'
 interface MarkdownRendererProps {
   content: string
   renderCitationAsSuperscript?: boolean
+  justifyParagraphs?: boolean
   onCitationClick?: (
     event: MouseEvent<HTMLAnchorElement>,
     sourceIndex: string,
@@ -110,6 +111,7 @@ function parseCitationHref(href: string | undefined): { sourceIndex: string; doc
 export function MarkdownRenderer({
   content,
   renderCitationAsSuperscript = false,
+  justifyParagraphs = false,
   onCitationClick,
 }: MarkdownRendererProps) {
   const normalizedContent = useMemo(
@@ -141,10 +143,25 @@ export function MarkdownRenderer({
         '& h2': markdownHeadingStyles.h2,
         '& h3': markdownHeadingStyles.h3,
         '& h4': markdownHeadingStyles.h4,
-        '& p': { m: 0 },
+        '& p': {
+          m: 0,
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word',
+          ...(justifyParagraphs
+            ? {
+                textAlign: 'justify',
+                textJustify: 'inter-character',
+                textAlignLast: 'left',
+              }
+            : null),
+        },
         '& p + p': { mt: markdownSpacingTokens.paragraphGap },
         '& ul, & ol': { m: 0, pl: markdownSpacingTokens.listPaddingLeft },
-        '& li': { mt: markdownSpacingTokens.listItemTop },
+        '& li': {
+          mt: markdownSpacingTokens.listItemTop,
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word',
+        },
         '& li + li': { mt: markdownSpacingTokens.listItemGap },
         '& blockquote': {
           m: 0,

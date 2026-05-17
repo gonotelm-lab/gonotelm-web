@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { buildSourceDocQueryOptions } from '@/api/source'
 import type { GetSourceDocResponse } from '@/types/api'
 import { AssistantMarkdown } from './AssistantMarkdown'
+import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown'
 import type { ChatUiCitationDetail, ChatUiMessage } from './types'
 
@@ -41,12 +42,15 @@ const citationCardTokens = {
 }
 
 const messageLayoutTokens = {
-  assistantMarginRight: 1,
-  assistantMarginLeft: 0.75,
+  assistantMarginRight: chatMessageContentTokens.sideMarginX,
+  assistantMarginLeft: chatMessageContentTokens.sideMarginX,
   actionRowMarginTop: 0.8,
   actionRowMinHeight: 28,
+  assistantPendingMinHeight: 34,
+  assistantPendingDotsLetterSpacing: 2.2,
+  assistantPendingDotsFontSize: 21,
   userBubbleMaxWidth: '65%',
-  userBubbleMarginRight: 0.75,
+  userBubbleMarginRight: chatMessageContentTokens.sideMarginX,
   userBubblePaddingX: 1.25,
   userBubblePaddingY: 0.9,
   userTextFontSize: 14.5,
@@ -66,6 +70,7 @@ const buildActionButtonSx = (copied: boolean) => ({
 
 interface ChatMessageItemProps {
   message: ChatUiMessage
+  enableThinking: boolean
   isStreaming: boolean
   isActiveAssistantMessage: boolean
   copied: boolean
@@ -78,6 +83,7 @@ interface ChatMessageItemProps {
  */
 export const ChatMessageItem = memo(function ChatMessageItem({
   message,
+  enableThinking,
   isStreaming,
   isActiveAssistantMessage,
   copied,
@@ -96,6 +102,8 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   const isUserMessage = message.role === 'user'
   const showStreamingPlaceholder =
     isStreaming && isActiveAssistantMessage && !message.text
+  const showPendingDots =
+    showStreamingPlaceholder && !enableThinking
   const renderedText = showStreamingPlaceholder ? '' : message.text || ' '
   const assistantRenderedText = renderedText
   const canCopy = Boolean(message.text.trim())
@@ -181,7 +189,40 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           ml: messageLayoutTokens.assistantMarginLeft,
         }}
       >
-        <AssistantMarkdown content={assistantRenderedText} onCitationClick={handleCitationClick} />
+        {showPendingDots ? (
+          <Box
+            aria-live="polite"
+            sx={{
+              minHeight: messageLayoutTokens.assistantPendingMinHeight,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                color: 'text.disabled',
+                fontSize: messageLayoutTokens.assistantPendingDotsFontSize,
+                lineHeight: 1,
+                letterSpacing: messageLayoutTokens.assistantPendingDotsLetterSpacing,
+                display: 'inline-block',
+                width: '3ch',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                animation: 'chat-pending-ellipsis 1.2s steps(4, end) infinite',
+                '@keyframes chat-pending-ellipsis': {
+                  '0%': { width: '0ch', opacity: 0.38 },
+                  '50%': { width: '3ch', opacity: 0.9 },
+                  '100%': { width: '0ch', opacity: 0.38 },
+                },
+              }}
+            >
+              ...
+            </Box>
+          </Box>
+        ) : (
+          <AssistantMarkdown content={assistantRenderedText} onCitationClick={handleCitationClick} />
+        )}
 
         {showAssistantActions ? (
           <Box

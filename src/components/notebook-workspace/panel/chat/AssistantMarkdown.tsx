@@ -15,6 +15,7 @@ export function AssistantMarkdown({ content, onCitationClick }: AssistantMarkdow
     <MarkdownRenderer
       content={content}
       renderCitationAsSuperscript
+      justifyParagraphs
       onCitationClick={onCitationClick}
     />
   )

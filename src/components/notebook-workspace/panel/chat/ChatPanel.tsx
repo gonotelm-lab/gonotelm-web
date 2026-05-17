@@ -1,22 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Typography } from '@mui/material'
 import {
   ChatComposer,
   ChatMessagesList,
+  ChatNotebookInfoHeader,
   ChatPanelHeader,
   ChatSettingsDialog,
 } from './components'
 import { type ChatAnswerLengthOption, type ChatStyleOption } from './constants'
 import { useChatConversation } from './hooks'
+import { chatPanelLayoutTokens } from './layoutTokens'
 
-const chatPanelLeftPadding = 3
-const chatPanelRightContentPadding = 2.75
-const chatPanelRightContentPaddingPx = chatPanelRightContentPadding * 8
-const chatPanelVerticalPadding = 2
 const scrollToBottomButtonTokens = {
   size: 32,
-  rightPx: 7.8,
   marginBottom: 1.15,
   boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
   zIndex: 2,
@@ -25,6 +22,9 @@ const scrollToBottomButtonTokens = {
 interface ChatPanelProps {
   notebookId: string
   chatId: string
+  notebookName: string
+  notebookDescription: string
+  notebookSourceCount: number
   selectedSourceIds: string[]
   sourcesPanelCollapsed: boolean
   insightsPanelCollapsed: boolean
@@ -43,6 +43,9 @@ type ChatPanelContentProps = Omit<ChatPanelProps, 'notebookId'>
 
 function ChatPanelContent({
   chatId,
+  notebookName,
+  notebookDescription,
+  notebookSourceCount,
   selectedSourceIds,
   sourcesPanelCollapsed,
   insightsPanelCollapsed,
@@ -52,6 +55,8 @@ function ChatPanelContent({
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
   const [chatStyle, setChatStyle] = useState<ChatStyleOption>('default')
   const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>('default')
+  const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const wasStreamingRef = useRef(false)
 
   const {
     composerValue,
@@ -101,13 +106,23 @@ function ChatPanelContent({
     setSettingsDialogOpen(false)
   }
 
+  useEffect(() => {
+    const wasStreaming = wasStreamingRef.current
+    wasStreamingRef.current = isStreaming
+    if (!wasStreaming || isStreaming || isInputDisabled) {
+      return
+    }
+    window.requestAnimationFrame(() => {
+      chatInputRef.current?.focus()
+    })
+  }, [isInputDisabled, isStreaming])
+
   return (
     <Paper
       variant="outlined"
       sx={{
-        pl: chatPanelLeftPadding,
-        pr: 0,
-        py: chatPanelVerticalPadding,
+        px: 0,
+        py: chatPanelLayoutTokens.verticalPadding,
         height: '100%',
         minHeight: 0,
         position: 'relative',
@@ -116,21 +131,31 @@ function ChatPanelContent({
         overflow: 'hidden',
       }}
     >
-      <ChatPanelHeader
-        sourcesPanelCollapsed={sourcesPanelCollapsed}
-        insightsPanelCollapsed={insightsPanelCollapsed}
-        hasChatId={Boolean(chatId)}
-        isClearingContext={isClearingContext}
-        isStreaming={isStreaming}
-        onExpandSourcesPanel={onExpandSourcesPanel}
-        onExpandInsightsPanel={onExpandInsightsPanel}
-        onClearCurrentContext={onClearCurrentContext}
-        onOpenSettingsDialog={handleOpenSettingsDialog}
-        rightContentPadding={chatPanelRightContentPadding}
-      />
+      <Box sx={{ px: chatPanelLayoutTokens.horizontalPadding }}>
+        <ChatPanelHeader
+          sourcesPanelCollapsed={sourcesPanelCollapsed}
+          insightsPanelCollapsed={insightsPanelCollapsed}
+          hasChatId={Boolean(chatId)}
+          isClearingContext={isClearingContext}
+          isStreaming={isStreaming}
+          onExpandSourcesPanel={onExpandSourcesPanel}
+          onExpandInsightsPanel={onExpandInsightsPanel}
+          onClearCurrentContext={onClearCurrentContext}
+          onOpenSettingsDialog={handleOpenSettingsDialog}
+          rightContentPadding={0}
+        />
+      </Box>
 
       <ChatMessagesList
         messageListRef={messageListRef}
+        enableThinking={enableThinking}
+        notebookInfoHeader={(
+          <ChatNotebookInfoHeader
+            notebookName={notebookName}
+            notebookDescription={notebookDescription}
+            notebookSourceCount={notebookSourceCount}
+          />
+        )}
         messages={displayMessages}
         streamStatus={showStreamStatus ? streamStatus : ''}
         streamPhaseType={showStreamStatus ? streamPhaseType : null}
@@ -148,7 +173,7 @@ function ChatPanelContent({
         <Typography
           variant="caption"
           color="error.main"
-          sx={{ mt: 1, pr: chatPanelRightContentPadding }}
+          sx={{ mt: 1, px: chatPanelLayoutTokens.horizontalPadding }}
         >
           {errorText}
         </Typography>
@@ -156,13 +181,13 @@ function ChatPanelContent({
         <Typography
           variant="caption"
           color="warning.main"
-          sx={{ mt: 1, pr: chatPanelRightContentPadding }}
+          sx={{ mt: 1, px: chatPanelLayoutTokens.horizontalPadding }}
         >
           {finishReasonNotice}
         </Typography>
       ) : null}
 
-      <Box sx={{ position: 'relative', pr: chatPanelRightContentPadding }}>
+      <Box sx={{ position: 'relative', px: chatPanelLayoutTokens.horizontalPadding }}>
         {showScrollToBottomButton ? (
           <IconButton
             size="small"
@@ -170,7 +195,8 @@ function ChatPanelContent({
             onClick={smoothScrollToBottom}
             sx={{
               position: 'absolute',
-              right: `${scrollToBottomButtonTokens.rightPx + chatPanelRightContentPaddingPx}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
               bottom: `calc(100% + ${scrollToBottomButtonTokens.marginBottom * 8}px)`,
               width: scrollToBottomButtonTokens.size,
               height: scrollToBottomButtonTokens.size,
@@ -190,6 +216,7 @@ function ChatPanelContent({
 
         <ChatComposer
           value={composerValue}
+          inputRef={chatInputRef}
           isStreaming={isStreaming}
           isInputDisabled={isInputDisabled}
           isSubmitDisabled={submitDisabled}

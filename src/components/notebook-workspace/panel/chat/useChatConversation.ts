@@ -22,7 +22,6 @@ import {
   getErrorMessage,
   getFinishReasonNotice,
   resolveStreamContentAction,
-  scrollLoadTopThresholdPx,
   sleep,
   streamReconnectDelayMs,
   streamReconnectMaxRetries,
@@ -77,6 +76,32 @@ interface RefreshHistoryAfterStreamOptions {
   preserveAssistantDraftOnAbort?: boolean
 }
 
+const chatMessageSelector = '[data-message-id]'
+const getVisibleMessageStats = (container: HTMLDivElement) => {
+  const containerRect = container.getBoundingClientRect()
+  const messageItems = container.querySelectorAll<HTMLElement>(chatMessageSelector)
+  const totalMessageCount = messageItems.length
+  for (let index = 0; index < messageItems.length; index += 1) {
+    const messageItem = messageItems[index]
+    const rect = messageItem?.getBoundingClientRect()
+    if (!rect) continue
+    if (rect.bottom > containerRect.top && rect.top < containerRect.bottom) {
+      return {
+        firstVisibleMessageIndex: index,
+        totalMessageCount,
+        firstVisibleMessageId: messageItem.dataset.messageId ?? '',
+        firstVisibleMessageOffsetTop: rect.top - containerRect.top,
+      }
+    }
+  }
+  return {
+    firstVisibleMessageIndex: -1,
+    totalMessageCount,
+    firstVisibleMessageId: '',
+    firstVisibleMessageOffsetTop: 0,
+  }
+}
+
 /**
  * Coordinates the full chat conversation lifecycle for the panel:
  * - merges persisted history with live stream drafts
@@ -101,7 +126,13 @@ export function useChatConversation({
   const messageListRef = useRef<HTMLDivElement | null>(null)
   const streamAbortControllerRef = useRef<AbortController | null>(null)
   const abortRequestedRef = useRef(false)
-  const pendingScrollRestoreRef = useRef<{ prevHeight: number; prevTop: number } | null>(null)
+  const loadingMoreHistoryRef = useRef(false)
+  const pendingScrollRestoreRef = useRef<{
+    prevHeight: number
+    prevTop: number
+    anchorMessageId: string
+    anchorOffsetTop: number
+  } | null>(null)
   const shouldAutoScrollToBottomRef = useRef(true)
   // Bump this token whenever a stream lifecycle resets, so stale async handlers can self-cancel.
   const streamRunTokenRef = useRef(0)
@@ -224,6 +255,22 @@ export function useChatConversation({
     const pending = pendingScrollRestoreRef.current
     const container = messageListRef.current
     if (!pending || !container) return
+
+    if (pending.anchorMessageId) {
+      const messageItems = container.querySelectorAll<HTMLElement>(chatMessageSelector)
+      const anchorItem = Array.from(messageItems).find(
+        (item) => item.dataset.messageId === pending.anchorMessageId,
+      )
+      if (anchorItem) {
+        const containerRect = container.getBoundingClientRect()
+        const anchorRect = anchorItem.getBoundingClientRect()
+        const currentAnchorOffsetTop = anchorRect.top - containerRect.top
+        const offsetDelta = currentAnchorOffsetTop - pending.anchorOffsetTop
+        container.scrollTop += offsetDelta
+        pendingScrollRestoreRef.current = null
+        return
+      }
+    }
 
     const delta = container.scrollHeight - pending.prevHeight
     container.scrollTop = pending.prevTop + delta
@@ -483,9 +530,24 @@ export function useChatConversation({
     }
     syncScrollToBottomButtonVisibility()
 
+    const {
+      firstVisibleMessageIndex,
+      totalMessageCount,
+      firstVisibleMessageId,
+      firstVisibleMessageOffsetTop,
+    } = getVisibleMessageStats(container)
+    const loadMoreFirstVisibleMessageThreshold = Math.max(
+      1,
+      Math.floor(totalMessageCount / 4),
+    )
+    const shouldLoadMoreByVisibleCount =
+      firstVisibleMessageIndex >= 0 &&
+      firstVisibleMessageIndex <= loadMoreFirstVisibleMessageThreshold
+
     if (
-      container.scrollTop > scrollLoadTopThresholdPx ||
+      !shouldLoadMoreByVisibleCount ||
       !messagesQuery.hasNextPage ||
+      loadingMoreHistoryRef.current ||
       messagesQuery.isFetchingNextPage ||
       messagesQuery.isLoading
     ) {
@@ -496,9 +558,14 @@ export function useChatConversation({
       // Keep viewport anchored when prepending older history pages at the top.
       prevHeight: container.scrollHeight,
       prevTop: container.scrollTop,
+      anchorMessageId: firstVisibleMessageId,
+      anchorOffsetTop: firstVisibleMessageOffsetTop,
     }
     shouldAutoScrollToBottomRef.current = false
-    void messagesQuery.fetchNextPage()
+    loadingMoreHistoryRef.current = true
+    void messagesQuery.fetchNextPage().finally(() => {
+      loadingMoreHistoryRef.current = false
+    })
   }, [isProgrammaticScrollToBottomRef, messagesQuery, syncScrollToBottomButtonVisibility])
 
   const onSendMessage = useCallback(() => {

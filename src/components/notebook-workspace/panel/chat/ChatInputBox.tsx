@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import StopCircleIcon from '@mui/icons-material/StopCircle'
@@ -12,6 +12,7 @@ import {
 
 interface ChatInputBoxProps {
   value: string
+  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
   isStreaming: boolean
   isInputDisabled: boolean
   isSubmitDisabled: boolean
@@ -62,6 +63,7 @@ const rightControlRowGap = 0.5
 
 export function ChatInputBox({
   value,
+  inputRef,
   isStreaming,
   isInputDisabled,
   isSubmitDisabled,
@@ -92,6 +94,7 @@ export function ChatInputBox({
     >
       <TextField
         value={value}
+        inputRef={inputRef}
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={onKeyDown}
         placeholder="输入你的问题..."

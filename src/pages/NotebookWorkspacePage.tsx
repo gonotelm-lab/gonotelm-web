@@ -97,6 +97,8 @@ export function NotebookWorkspacePage() {
   const removeSource = useWorkspaceStore((s) => s.removeSource)
   const setSources = useWorkspaceStore((s) => s.setSources)
   const setSourceStatus = useWorkspaceStore((s) => s.setSourceStatus)
+  const notebookMeta = useWorkspaceStore((s) => s.notebookMeta)
+  const patchNotebookMeta = useWorkspaceStore((s) => s.patchNotebookMeta)
   const resetWorkspace = useWorkspaceStore((s) => s.reset)
   const removeSourceTimersRef = useRef<number[]>([])
   const workspacePanelsRef = useRef<HTMLDivElement | null>(null)
@@ -224,6 +226,18 @@ export function NotebookWorkspacePage() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
+
+  useEffect(() => {
+    const notebook = notebookQuery.data
+    if (!notebook) return
+
+    patchNotebookMeta({
+      id: notebook.id,
+      desc: notebook.desc ?? '',
+      sourceCount: notebook.source_count,
+      ...(isNotebookNameEditing ? {} : { name: notebook.name ?? '' }),
+    })
+  }, [isNotebookNameEditing, notebookQuery.data, patchNotebookMeta])
 
   useEffect(() => {
     const notebook = notebookQuery.data
@@ -526,8 +540,15 @@ export function NotebookWorkspacePage() {
     }
   }
 
+  const handleNotebookNameChange = (value: string) => {
+    setNotebookNameDraft(value)
+    patchNotebookMeta({ name: value })
+  }
+
   const handleNotebookNameFocus = () => {
-    setNotebookNameDraft(notebookQuery.data?.name ?? '')
+    const currentName = notebookQuery.data?.name ?? notebookMeta.name
+    setNotebookNameDraft(currentName)
+    patchNotebookMeta({ name: currentName })
     setIsNotebookNameEditing(true)
   }
 
@@ -537,10 +558,11 @@ export function NotebookWorkspacePage() {
       return
     }
 
-    const currentName = notebookQuery.data?.name ?? ''
+    const currentName = notebookQuery.data?.name ?? notebookMeta.name
     const nextName = notebookNameDraft.trim()
     if (!nextName || nextName === currentName) {
       setNotebookNameDraft(currentName)
+      patchNotebookMeta({ name: currentName })
       setIsNotebookNameEditing(false)
       return
     }
@@ -553,6 +575,7 @@ export function NotebookWorkspacePage() {
         name: nextName,
       }
     })
+    patchNotebookMeta({ name: nextName })
 
     try {
       await updateNotebookNameMutation.mutateAsync({
@@ -569,13 +592,10 @@ export function NotebookWorkspacePage() {
         }
       })
       setNotebookNameDraft(currentName)
+      patchNotebookMeta({ name: currentName })
       console.warn('update notebook name failed', error)
     }
   }
-
-  const notebookName = isNotebookNameEditing
-    ? notebookNameDraft
-    : notebookQuery.data?.name ?? ''
 
   const getLeftPanelWidthBounds = useCallback(
     (containerWidth: number, rightPanelWidth: number, rightPanelCollapsed: boolean) => {
@@ -859,10 +879,10 @@ export function NotebookWorkspacePage() {
         onSelectedSourceIdsChange={setSelectedSourceIds}
       />
       <WorkspaceHeader
-        notebookName={notebookName}
+        notebookName={notebookMeta.name}
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
-        onNotebookNameChange={setNotebookNameDraft}
+        onNotebookNameChange={handleNotebookNameChange}
         onNotebookNameFocus={handleNotebookNameFocus}
         onNotebookNameBlur={() => {
           void handleNotebookNameBlur()
@@ -948,6 +968,9 @@ export function NotebookWorkspacePage() {
           <ChatPanel
             notebookId={id}
             chatId={notebookChatQuery.data?.chat_id ?? ''}
+            notebookName={notebookMeta.name}
+            notebookDescription={notebookMeta.desc}
+            notebookSourceCount={notebookMeta.sourceCount}
             selectedSourceIds={selectedSourceIdList}
             sourcesPanelCollapsed={isSourcesPanelCollapsed}
             insightsPanelCollapsed={isInsightsPanelCollapsed}
