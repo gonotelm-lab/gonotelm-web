@@ -3,7 +3,6 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
 import {
   Alert,
   Box,
@@ -21,7 +20,13 @@ import { getSourceParsedContent, loadParsedContentFromUrl } from '@/api/source'
 import { ApiError } from '@/lib/http'
 import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceListRow } from './components/SourceListRow'
-import { MarkdownRenderer, panelTitleSx, panelTitleVariant, subtleScrollbarSx } from '../../shared'
+import {
+  MarkdownRenderer,
+  PanelSubpageLayout,
+  panelTitleSx,
+  panelTitleVariant,
+  subtleScrollbarSx,
+} from '../../shared'
 import type { SourceListItem } from './types/sourceTypes'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
@@ -94,7 +99,6 @@ export function SourcesPanel({
   const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
   const showListLoadingSkeleton =
     isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
-  const hasPreviewOpen = Boolean(previewState)
 
   const closeSourcePreview = () => {
     previewRequestSeqRef.current += 1
@@ -214,166 +218,158 @@ export function SourcesPanel({
             pointerEvents: collapsed ? 'none' : 'auto',
           }}
         >
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant={panelTitleVariant} sx={panelTitleSx}>
-            来源
-          </Typography>
-          <IconButton
-            size="small"
-            color="default"
-            aria-label="收起来源面板"
-            onClick={onCollapse}
-          >
-            <KeyboardDoubleArrowLeftIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-
-        <Stack spacing={1.25} sx={{ mt: 1.25 }}>
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={() => setDialogOpen(true)}
-            disabled={isBusy}
-            sx={{ borderStyle: 'dashed', textTransform: 'none', justifyContent: 'center' }}
-          >
-            + 添加来源
-          </Button>
-        </Stack>
-
-        <Divider sx={{ my: 2 }} />
-
-        <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', pr: 0.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
-            所有来源
-          </Typography>
-          <Box sx={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-            <Checkbox
-              size="small"
-              checked={allSourcesChecked}
-              indeterminate={someSourcesChecked}
-              disableRipple
-              icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
-              checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
-              indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: 16 }} />}
-              sx={{ p: 0, m: 0 }}
-              onChange={(e) => onToggleAll(e.target.checked)}
-            />
-          </Box>
-        </Stack>
-
-        <Stack
-          spacing={0}
-          sx={{ mt: 1.25, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}
-        >
-          {showListLoadingSkeleton
-            ? Array.from({ length: skeletonItemCount }).map((_, index) => (
-                <Box
-                  key={`source-skeleton-${index}`}
-                  sx={{ py: 1 }}
-                >
-                  <Stack
-                    direction="row"
-                    spacing={0.75}
-                    sx={{ minWidth: 0, alignItems: 'center' }}
-                  >
-                    <Stack
-                      direction="row"
-                      spacing={0.75}
-                      sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
-                    >
-                      <Box
-                        sx={{
-                          width: 18,
-                          height: 18,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Skeleton variant="rounded" width={18} height={18} />
-                      </Box>
-                      <Skeleton
-                        variant="rounded"
-                        width={sourceSkeletonNameWidthPattern[index % sourceSkeletonNameWidthPattern.length]}
-                        height={14}
-                        sx={{ flexShrink: 0 }}
-                      />
-                    </Stack>
-                    <Box
-                      sx={{
-                        display: 'inline-flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Skeleton variant="rounded" width={16} height={16} />
-                    </Box>
-                  </Stack>
-                </Box>
-              ))
-            : sourceListItems.length > 0
-              ? sourceListItems.map((item) => (
-                  <SourceListRow
-                    key={item.id}
-                    item={item}
-                    checked={Boolean(checkedMap[item.id])}
-                    removing={Boolean(removingMap[item.id])}
-                    isBusy={isBusy}
-                    onToggleItem={onToggleItem}
-                    onDeleteItem={onDeleteItem}
-                    onRetryItem={onRetryItem}
-                    onRenameItem={onRenameItem}
-                    onPreviewItem={openSourcePreview}
-                    previewLoading={Boolean(previewState?.loading && previewState.sourceId === item.id)}
-                  />
-                ))
-              : null}
-        </Stack>
-        {hasPreviewOpen && previewState ? (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              zIndex: 4,
-              bgcolor: 'background.paper',
-              p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant={panelTitleVariant} sx={panelTitleSx}>
-                预览 · {previewState.sourceName}
-              </Typography>
-              <IconButton
-                size="small"
-                color="default"
-                aria-label="收起预览"
-                onClick={closeSourcePreview}
-              >
-                <UnfoldLessIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-            <Divider sx={{ my: 1.25 }} />
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}>
-              {previewState.loading ? (
-                <Stack sx={{ height: '100%', justifyContent: 'center', alignItems: 'center' }} spacing={1}>
-                  <CircularProgress size={22} />
-                  <Typography variant="body2" color="text.secondary">
-                    {sourcePreviewLoadingText}
+          <PanelSubpageLayout
+            primaryContent={(
+              <Stack sx={{ height: '100%', minHeight: 0 }}>
+                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant={panelTitleVariant} sx={panelTitleSx}>
+                    来源
                   </Typography>
+                  <IconButton
+                    size="small"
+                    color="default"
+                    aria-label="收起来源面板"
+                    onClick={onCollapse}
+                  >
+                    <KeyboardDoubleArrowLeftIcon fontSize="small" />
+                  </IconButton>
                 </Stack>
-              ) : previewState.error ? (
-                <Alert severity="error">{previewState.error}</Alert>
-              ) : previewState.notice ? (
-                <Alert severity="info">{previewState.notice}</Alert>
-              ) : (
-                <MarkdownRenderer content={previewState.markdown} />
-              )}
-            </Box>
-          </Box>
-        ) : null}
+
+                <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => setDialogOpen(true)}
+                    disabled={isBusy}
+                    sx={{ borderStyle: 'dashed', textTransform: 'none', justifyContent: 'center' }}
+                  >
+                    + 添加来源
+                  </Button>
+                </Stack>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', pr: 0.5 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
+                    所有来源
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={allSourcesChecked}
+                      indeterminate={someSourcesChecked}
+                      disableRipple
+                      icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
+                      checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
+                      indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: 16 }} />}
+                      sx={{ p: 0, m: 0 }}
+                      onChange={(e) => onToggleAll(e.target.checked)}
+                    />
+                  </Box>
+                </Stack>
+
+                <Stack
+                  spacing={0}
+                  sx={{ mt: 1.25, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}
+                >
+                  {showListLoadingSkeleton
+                    ? Array.from({ length: skeletonItemCount }).map((_, index) => (
+                        <Box
+                          key={`source-skeleton-${index}`}
+                          sx={{ py: 1 }}
+                        >
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            sx={{ minWidth: 0, alignItems: 'center' }}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={0.75}
+                              sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
+                            >
+                              <Box
+                                sx={{
+                                  width: 18,
+                                  height: 18,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Skeleton variant="rounded" width={18} height={18} />
+                              </Box>
+                              <Skeleton
+                                variant="rounded"
+                                width={sourceSkeletonNameWidthPattern[index % sourceSkeletonNameWidthPattern.length]}
+                                height={14}
+                                sx={{ flexShrink: 0 }}
+                              />
+                            </Stack>
+                            <Box
+                              sx={{
+                                display: 'inline-flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Skeleton variant="rounded" width={16} height={16} />
+                            </Box>
+                          </Stack>
+                        </Box>
+                      ))
+                    : sourceListItems.length > 0
+                      ? sourceListItems.map((item) => (
+                          <SourceListRow
+                            key={item.id}
+                            item={item}
+                            checked={Boolean(checkedMap[item.id])}
+                            removing={Boolean(removingMap[item.id])}
+                            isBusy={isBusy}
+                            onToggleItem={onToggleItem}
+                            onDeleteItem={onDeleteItem}
+                            onRetryItem={onRetryItem}
+                            onRenameItem={onRenameItem}
+                            onPreviewItem={openSourcePreview}
+                            previewLoading={Boolean(previewState?.loading && previewState.sourceId === item.id)}
+                          />
+                        ))
+                      : null}
+                </Stack>
+              </Stack>
+            )}
+            subpage={previewState
+              ? {
+                  parentTitle: '来源',
+                  title: `预览 · ${previewState.sourceName}`,
+                  content: previewState.loading ? (
+                    <Stack sx={{ height: '100%', justifyContent: 'center', alignItems: 'center' }} spacing={1}>
+                      <CircularProgress size={22} />
+                      <Typography variant="body2" color="text.secondary">
+                        {sourcePreviewLoadingText}
+                      </Typography>
+                    </Stack>
+                  ) : previewState.error ? (
+                    <Alert severity="error">{previewState.error}</Alert>
+                  ) : previewState.notice ? (
+                    <Alert severity="info">{previewState.notice}</Alert>
+                  ) : (
+                    <MarkdownRenderer content={previewState.markdown} />
+                  ),
+                  onClose: closeSourcePreview,
+                  closeAriaLabel: '关闭预览',
+                }
+              : null}
+            subpageBodySx={{ pr: 0.5, ...subtleScrollbarSx }}
+          />
         </Paper>
       </Box>
     </>
