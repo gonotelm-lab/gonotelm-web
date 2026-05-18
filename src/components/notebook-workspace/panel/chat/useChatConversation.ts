@@ -137,6 +137,7 @@ export function useChatConversation({
     prevTop: number
     anchorMessageId: string
     anchorOffsetTop: number
+    historyPageCount: number
   } | null>(null)
   const shouldAutoScrollToBottomRef = useRef(true)
   // Bump this token whenever a stream lifecycle resets, so stale async handlers can self-cancel.
@@ -260,6 +261,13 @@ export function useChatConversation({
     const pending = pendingScrollRestoreRef.current
     const container = messageListRef.current
     if (!pending || !container) return
+
+    const currentHistoryPageCount = messagesQuery.data?.pages.length ?? 0
+    if (currentHistoryPageCount <= pending.historyPageCount) {
+      // Fetch-more failed or produced no new page, so keep user's current viewport untouched.
+      pendingScrollRestoreRef.current = null
+      return
+    }
 
     if (pending.anchorMessageId) {
       const messageItems = container.querySelectorAll<HTMLElement>(chatMessageSelector)
@@ -569,12 +577,25 @@ export function useChatConversation({
       prevTop: container.scrollTop,
       anchorMessageId: firstVisibleMessageId,
       anchorOffsetTop: firstVisibleMessageOffsetTop,
+      historyPageCount: messagesQuery.data?.pages.length ?? 0,
     }
+    setErrorText('')
     shouldAutoScrollToBottomRef.current = false
     loadingMoreHistoryRef.current = true
-    void messagesQuery.fetchNextPage().finally(() => {
-      loadingMoreHistoryRef.current = false
-    })
+    void messagesQuery.fetchNextPage()
+      .then((result) => {
+        if (result.isError || result.isFetchNextPageError) {
+          pendingScrollRestoreRef.current = null
+          setErrorText(getErrorMessage(result.error))
+        }
+      })
+      .catch((error) => {
+        pendingScrollRestoreRef.current = null
+        setErrorText(getErrorMessage(error))
+      })
+      .finally(() => {
+        loadingMoreHistoryRef.current = false
+      })
   }, [isProgrammaticScrollToBottomRef, messagesQuery, syncScrollToBottomButtonVisibility])
 
   const onSendMessage = useCallback(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import { Box, IconButton, Paper, Typography } from '@mui/material'
+import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
 import {
   ChatComposer,
   ChatMessagesList,
@@ -139,6 +139,8 @@ function ChatPanelContent({
   const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>(
     () => resolveStoredChatSettings(chatId).answerLength,
   )
+  const [errorToast, setErrorToast] = useState<{ key: number; message: string } | null>(null)
+  const errorToastKeyRef = useRef(0)
   const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const wasStreamingRef = useRef(false)
 
@@ -207,6 +209,17 @@ function ChatPanelContent({
     persistChatSettings(chatId, chatStyle, answerLength)
   }, [answerLength, chatId, chatStyle])
 
+  useEffect(() => {
+    if (!errorText) {
+      return
+    }
+    errorToastKeyRef.current += 1
+    setErrorToast({
+      key: errorToastKeyRef.current,
+      message: errorText,
+    })
+  }, [errorText])
+
   return (
     <Paper
       variant="outlined"
@@ -259,15 +272,7 @@ function ChatPanelContent({
         onCopyUserMessage={onCopyUserMessage}
       />
 
-      {errorText ? (
-        <Typography
-          variant="caption"
-          color="error.main"
-          sx={{ mt: 1, px: chatPanelLayoutTokens.horizontalPadding }}
-        >
-          {errorText}
-        </Typography>
-      ) : finishReasonNotice ? (
+      {finishReasonNotice ? (
         <Typography
           variant="caption"
           color="warning.main"
@@ -330,6 +335,44 @@ function ChatPanelContent({
         onChatStyleChange={setChatStyle}
         onAnswerLengthChange={setAnswerLength}
       />
+
+      <Snackbar
+        key={errorToast?.key}
+        open={Boolean(errorToast)}
+        autoHideDuration={2400}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') {
+            return
+          }
+          setErrorToast(null)
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            px: 1.5,
+            py: 0.6,
+            borderRadius: 1.5,
+            border: '1px solid',
+            borderColor: '#334155',
+            bgcolor: '#1E293B',
+            maxWidth: 420,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              fontSize: 12.2,
+              lineHeight: 1.35,
+              color: '#F8FAFC',
+            }}
+          >
+            {errorToast?.message ?? ''}
+          </Typography>
+        </Paper>
+      </Snackbar>
     </Paper>
   )
 }
