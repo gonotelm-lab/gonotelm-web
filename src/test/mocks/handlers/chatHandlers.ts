@@ -5,9 +5,11 @@ import {
   createChatMessageListItemFixture,
 } from '../fixtures/chat'
 import { getMockScenario } from '../scenarios'
-import { createSuccessResponse, resolveScenarioResponse } from './httpResponse'
+import { createErrorResponse, createSuccessResponse, resolveScenarioResponse } from './httpResponse'
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
+const validChatStyleSet = new Set(['default', 'analyst', 'guide'])
+const validChatAnswerLengthSet = new Set(['default', 'longer', 'shorter'])
 
 const chatHistoryMessages = [
   createChatMessageListItemFixture({
@@ -35,8 +37,25 @@ const chatHistoryMessages = [
 ]
 
 export const chatHandlers = [
-  http.post(`${apiBaseUrl}/api/v1/chat/:chatId/message/create`, async () => {
+  http.post(`${apiBaseUrl}/api/v1/chat/:chatId/message/create`, async ({ request }) => {
     const scenario = getMockScenario('chat')
+    if (scenario === 'success' || scenario === 'empty') {
+      const requestBody = (await request.json().catch(() => ({}))) as Record<string, unknown>
+      if (
+        typeof requestBody.style !== 'undefined' &&
+        (typeof requestBody.style !== 'string' || !validChatStyleSet.has(requestBody.style))
+      ) {
+        return createErrorResponse(200, 'invalid chat style', 1000)
+      }
+      if (
+        typeof requestBody.answer_length !== 'undefined' &&
+        (typeof requestBody.answer_length !== 'string' ||
+          !validChatAnswerLengthSet.has(requestBody.answer_length))
+      ) {
+        return createErrorResponse(200, 'invalid chat answer_length', 1000)
+      }
+    }
+
     return resolveScenarioResponse({
       scenario,
       successData: createChatCreateMessageResponseFixture({

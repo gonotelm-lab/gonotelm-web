@@ -10,6 +10,8 @@ describe('chat api with msw mock', () => {
       prompt: ' explain ownership ',
       source_ids: ['source-1'],
       enable_thinking: true,
+      style: 'analyst',
+      answer_length: 'longer',
     })
 
     expect(result.task_id).toBe('task-created-1')
@@ -22,6 +24,30 @@ describe('chat api with msw mock', () => {
     const result = await listChatMessages({ id: 'chat-1', cursor: 0, limit: 20 })
 
     expect(result.messages).toEqual([])
+  })
+
+  it('throws ApiError for invalid style or answer_length', async () => {
+    setMockScenario('chat', 'success')
+    await expect(
+      createChatMessage({
+        id: 'chat-1',
+        prompt: 'rust',
+        style: 'invalid' as never,
+      }),
+    ).rejects.toMatchObject({
+      status: 200,
+      code: 1000,
+    })
+    await expect(
+      createChatMessage({
+        id: 'chat-1',
+        prompt: 'rust',
+        answer_length: 'invalid' as never,
+      }),
+    ).rejects.toMatchObject({
+      status: 200,
+      code: 1000,
+    })
   })
 
   it('throws ApiError for server error and timeout scenarios', async () => {

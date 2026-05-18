@@ -28,6 +28,7 @@ import {
   toCitationDetailsFromStreamCitation,
 } from './chatConversationCommon'
 import { buildLiveMessagesAfterAbortRefresh, mapHistoryPagesToUiMessages } from './chatStreamDraftRetention'
+import type { ChatAnswerLengthOption, ChatStyleOption } from './constants'
 import type { ChatUiMessage } from './types'
 import { useAssistantChunkBuffer } from './useAssistantChunkBuffer'
 import { useChatScrollControl } from './useChatScrollControl'
@@ -37,6 +38,8 @@ import { useStreamStatusScheduler } from './useStreamStatusScheduler'
 interface UseChatConversationParams {
   chatId: string
   selectedSourceIds: string[]
+  chatStyle: ChatStyleOption
+  answerLength: ChatAnswerLengthOption
 }
 
 interface UseChatConversationResult {
@@ -111,6 +114,8 @@ const getVisibleMessageStats = (container: HTMLDivElement) => {
 export function useChatConversation({
   chatId,
   selectedSourceIds,
+  chatStyle,
+  answerLength,
 }: UseChatConversationParams): UseChatConversationResult {
   const [composerValue, setComposerValue] = useState('')
   const [liveMessages, setLiveMessages] = useState<ChatUiMessage[]>([])
@@ -476,6 +481,8 @@ export function useChatConversation({
         prompt,
         source_ids: selectedSourceIds,
         enable_thinking: enableThinking,
+        style: chatStyle,
+        answer_length: answerLength,
       })
       await runStreamSession(created.task_id, assistantMessageId)
     } catch (error) {
@@ -498,6 +505,8 @@ export function useChatConversation({
     scrollToBottom,
     selectedSourceIds,
     enableThinking,
+    chatStyle,
+    answerLength,
   ])
 
   const handleAbortStream = useCallback(async () => {

@@ -105,6 +105,8 @@ export function createChatMessage(payload: ChatCreateMessageRequest) {
     prompt: payload.prompt.trimEnd(),
     source_ids: payload.source_ids,
     enable_thinking: payload.enable_thinking,
+    style: payload.style,
+    answer_length: payload.answer_length,
   }
   const chatId = encodeURIComponent(payload.id)
   return request<ChatCreateMessageResponse>(`/api/v1/chat/${chatId}/message/create`, {

@@ -8,7 +8,12 @@ import {
   ChatPanelHeader,
   ChatSettingsDialog,
 } from './components'
-import { type ChatAnswerLengthOption, type ChatStyleOption } from './constants'
+import {
+  chatAnswerLengthOptionList,
+  chatStyleOptionList,
+  type ChatAnswerLengthOption,
+  type ChatStyleOption,
+} from './constants'
 import { useChatConversation } from './hooks'
 import { chatPanelLayoutTokens } from './layoutTokens'
 
@@ -17,6 +22,81 @@ const scrollToBottomButtonTokens = {
   marginBottom: 1.15,
   boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
   zIndex: 2,
+}
+
+const chatSettingsStorageKeyPrefix = 'chat-panel-settings'
+const defaultChatStyle: ChatStyleOption = 'default'
+const defaultChatAnswerLength: ChatAnswerLengthOption = 'default'
+const chatStyleOptionSet = new Set<ChatStyleOption>(
+  chatStyleOptionList.map(({ value }) => value),
+)
+const chatAnswerLengthOptionSet = new Set<ChatAnswerLengthOption>(
+  chatAnswerLengthOptionList.map(({ value }) => value),
+)
+
+interface PersistedChatPanelSettings {
+  style?: string
+  answerLength?: string
+}
+
+const buildChatSettingsStorageKey = (chatId: string) =>
+  `${chatSettingsStorageKeyPrefix}:${chatId}`
+
+const resolveStoredChatSettings = (
+  chatId: string,
+): {
+  chatStyle: ChatStyleOption
+  answerLength: ChatAnswerLengthOption
+} => {
+  if (typeof window === 'undefined' || !chatId) {
+    return {
+      chatStyle: defaultChatStyle,
+      answerLength: defaultChatAnswerLength,
+    }
+  }
+  const persistedSettings = window.localStorage.getItem(buildChatSettingsStorageKey(chatId))
+  if (!persistedSettings) {
+    return {
+      chatStyle: defaultChatStyle,
+      answerLength: defaultChatAnswerLength,
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(persistedSettings) as PersistedChatPanelSettings
+    const chatStyle = chatStyleOptionSet.has(parsed.style as ChatStyleOption)
+      ? (parsed.style as ChatStyleOption)
+      : defaultChatStyle
+    const answerLength = chatAnswerLengthOptionSet.has(parsed.answerLength as ChatAnswerLengthOption)
+      ? (parsed.answerLength as ChatAnswerLengthOption)
+      : defaultChatAnswerLength
+    return {
+      chatStyle,
+      answerLength,
+    }
+  } catch {
+    return {
+      chatStyle: defaultChatStyle,
+      answerLength: defaultChatAnswerLength,
+    }
+  }
+}
+
+const persistChatSettings = (
+  chatId: string,
+  chatStyle: ChatStyleOption,
+  answerLength: ChatAnswerLengthOption,
+) => {
+  if (typeof window === 'undefined' || !chatId) {
+    return
+  }
+  window.localStorage.setItem(
+    buildChatSettingsStorageKey(chatId),
+    JSON.stringify({
+      style: chatStyle,
+      answerLength,
+    }),
+  )
 }
 
 interface ChatPanelProps {
@@ -36,7 +116,7 @@ export function ChatPanel({
   notebookId,
   ...restProps
 }: ChatPanelProps) {
-  return <ChatPanelContent key={notebookId} {...restProps} />
+  return <ChatPanelContent key={`${notebookId}:${restProps.chatId}`} {...restProps} />
 }
 
 type ChatPanelContentProps = Omit<ChatPanelProps, 'notebookId'>
@@ -53,8 +133,12 @@ function ChatPanelContent({
   onExpandInsightsPanel,
 }: ChatPanelContentProps) {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
-  const [chatStyle, setChatStyle] = useState<ChatStyleOption>('default')
-  const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>('default')
+  const [chatStyle, setChatStyle] = useState<ChatStyleOption>(
+    () => resolveStoredChatSettings(chatId).chatStyle,
+  )
+  const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>(
+    () => resolveStoredChatSettings(chatId).answerLength,
+  )
   const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const wasStreamingRef = useRef(false)
 
@@ -92,6 +176,8 @@ function ChatPanelContent({
   } = useChatConversation({
     chatId,
     selectedSourceIds,
+    chatStyle,
+    answerLength,
   })
 
   const handleOpenSettingsDialog = () => {
@@ -116,6 +202,10 @@ function ChatPanelContent({
       chatInputRef.current?.focus()
     })
   }, [isInputDisabled, isStreaming])
+
+  useEffect(() => {
+    persistChatSettings(chatId, chatStyle, answerLength)
+  }, [answerLength, chatId, chatStyle])
 
   return (
     <Paper

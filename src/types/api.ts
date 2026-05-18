@@ -144,6 +144,8 @@ export interface ChatCreateMessageRequest {
   prompt: string
   source_ids?: string[]
   enable_thinking?: boolean
+  style?: ChatStyle
+  answer_length?: ChatAnswerLength
 }
 
 export interface ChatCreateMessageResponse {
@@ -162,6 +164,9 @@ export interface ChatListMessagesResponse {
   has_more: boolean
   next_cursor: number
 }
+
+export type ChatStyle = 'default' | 'analyst' | 'guide'
+export type ChatAnswerLength = 'default' | 'longer' | 'shorter'
 
 export type MessageStreamPhaseType = 'retrieving' | 'thinking' | 'answer'
 export type MessageStreamPhaseStatus = 'typing' | 'finished'

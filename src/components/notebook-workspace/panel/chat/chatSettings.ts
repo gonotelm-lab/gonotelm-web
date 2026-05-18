@@ -1,11 +1,10 @@
-export type ChatStyleOption = 'default' | 'analyst' | 'guide' | 'custom'
+export type ChatStyleOption = 'default' | 'analyst' | 'guide'
 export type ChatAnswerLengthOption = 'default' | 'longer' | 'shorter'
 
 export const chatStyleOptionList: { value: ChatStyleOption; label: string }[] = [
   { value: 'default', label: '默认' },
   { value: 'analyst', label: '分析师' },
   { value: 'guide', label: '向导' },
-  { value: 'custom', label: '自定义' },
 ]
 
 export const chatAnswerLengthOptionList: { value: ChatAnswerLengthOption; label: string }[] = [
