@@ -46,6 +46,10 @@ const workspacePanelTransitionCurve = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const workspacePanelGridTransition = `grid-template-columns ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
 const workspacePanelWidthTransition = `width ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
 const workspacePanelContentTransition = `transform ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}, opacity ${workspacePanelFadeTransitionMs}ms ease`
+const workspaceSourcesColumnVar = '--workspace-sources-column'
+const workspaceInsightsColumnVar = '--workspace-insights-column'
+const workspaceLeftHandleColumnVar = '--workspace-left-handle-column'
+const workspaceRightHandleColumnVar = '--workspace-right-handle-column'
 
 const isProcessingStatus = (status?: SourceStatus) =>
   !!status && processingStatusSet.has(status)
@@ -75,6 +79,38 @@ const truncateUTF8 = (text: string, maxChars: number) => {
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)
+
+const applyWorkspacePanelGridColumns = (
+  container: HTMLDivElement,
+  {
+    sourcesCollapsed,
+    insightsCollapsed,
+    sourcesWidth,
+    insightsWidth,
+  }: {
+    sourcesCollapsed: boolean
+    insightsCollapsed: boolean
+    sourcesWidth: number
+    insightsWidth: number
+  },
+) => {
+  container.style.setProperty(
+    workspaceSourcesColumnVar,
+    sourcesCollapsed ? '0px' : `${sourcesWidth}px`,
+  )
+  container.style.setProperty(
+    workspaceInsightsColumnVar,
+    insightsCollapsed ? '0px' : `${insightsWidth}px`,
+  )
+  container.style.setProperty(
+    workspaceLeftHandleColumnVar,
+    sourcesCollapsed ? '0px' : `${workspaceResizeHandleWidthPx}px`,
+  )
+  container.style.setProperty(
+    workspaceRightHandleColumnVar,
+    insightsCollapsed ? '0px' : `${workspaceResizeHandleWidthPx}px`,
+  )
+}
 
 export function NotebookWorkspacePage() {
   const { id = '' } = useParams()
@@ -180,6 +216,22 @@ export function NotebookWorkspacePage() {
   useEffect(() => {
     insightsPanelCollapsedRef.current = isInsightsPanelCollapsed
   }, [isInsightsPanelCollapsed])
+
+  useEffect(() => {
+    const container = workspacePanelsRef.current
+    if (!container) return
+    applyWorkspacePanelGridColumns(container, {
+      sourcesCollapsed: isSourcesPanelCollapsed,
+      insightsCollapsed: isInsightsPanelCollapsed,
+      sourcesWidth: Math.round(sourcesPanelWidthPx),
+      insightsWidth: Math.round(insightsPanelWidthPx),
+    })
+  }, [
+    insightsPanelWidthPx,
+    isInsightsPanelCollapsed,
+    isSourcesPanelCollapsed,
+    sourcesPanelWidthPx,
+  ])
 
   const handleSourceReady = useCallback(() => {
     if (!id) return
@@ -707,30 +759,51 @@ export function NotebookWorkspacePage() {
       document.body.style.userSelect = 'none'
       document.body.style.cursor = 'col-resize'
 
-      const onPointerMove = (moveEvent: PointerEvent) => {
-        const rect = container.getBoundingClientRect()
-        const containerWidth = rect.width
-        if (containerWidth <= 0) return
+      const initialRect = container.getBoundingClientRect()
+      const containerWidth = initialRect.width
+      if (containerWidth <= 0) {
+        document.body.style.userSelect = previousUserSelect
+        document.body.style.cursor = previousCursor
+        setActiveResizeSide(null)
+        return
+      }
+      let nextSourcesCollapsed = sourcesPanelCollapsedRef.current
+      let nextInsightsCollapsed = insightsPanelCollapsedRef.current
+      let nextSourcesWidth = Math.round(sourcesPanelWidthRef.current)
+      let nextInsightsWidth = Math.round(insightsPanelWidthRef.current)
+      let latestClientX = event.clientX
+      let resizeFrameId: number | null = null
 
+      const applyResizeByClientX = (clientX: number) => {
         if (side === 'left') {
-          const rawLeftWidth = moveEvent.clientX - rect.left
+          const rawLeftWidth = clientX - initialRect.left
           if (rawLeftWidth <= workspacePanelAutoCollapseWidthPx) {
-            if (!sourcesPanelCollapsedRef.current) {
-              setIsSourcesPanelCollapsed(true)
-              sourcesPanelCollapsedRef.current = true
+            if (!nextSourcesCollapsed) {
+              nextSourcesCollapsed = true
+              applyWorkspacePanelGridColumns(container, {
+                sourcesCollapsed: nextSourcesCollapsed,
+                insightsCollapsed: nextInsightsCollapsed,
+                sourcesWidth: nextSourcesWidth,
+                insightsWidth: nextInsightsWidth,
+              })
             }
             return
           }
 
           const leftBounds = getLeftPanelWidthBounds(
             containerWidth,
-            insightsPanelWidthRef.current,
-            insightsPanelCollapsedRef.current,
+            nextInsightsWidth,
+            nextInsightsCollapsed,
           )
           if (leftBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
-            if (!sourcesPanelCollapsedRef.current) {
-              setIsSourcesPanelCollapsed(true)
-              sourcesPanelCollapsedRef.current = true
+            if (!nextSourcesCollapsed) {
+              nextSourcesCollapsed = true
+              applyWorkspacePanelGridColumns(container, {
+                sourcesCollapsed: nextSourcesCollapsed,
+                insightsCollapsed: nextInsightsCollapsed,
+                sourcesWidth: nextSourcesWidth,
+                insightsWidth: nextInsightsWidth,
+              })
             }
             return
           }
@@ -739,33 +812,47 @@ export function NotebookWorkspacePage() {
             clampNumber(rawLeftWidth, leftBounds.minWidth, leftBounds.maxWidth),
           )
 
-          if (sourcesPanelCollapsedRef.current) {
-            setIsSourcesPanelCollapsed(false)
-            sourcesPanelCollapsedRef.current = false
+          if (nextSourcesCollapsed || nextSourcesWidth !== nextLeftWidth) {
+            nextSourcesCollapsed = false
+            nextSourcesWidth = nextLeftWidth
+            applyWorkspacePanelGridColumns(container, {
+              sourcesCollapsed: nextSourcesCollapsed,
+              insightsCollapsed: nextInsightsCollapsed,
+              sourcesWidth: nextSourcesWidth,
+              insightsWidth: nextInsightsWidth,
+            })
           }
-          setSourcesPanelWidthPx(nextLeftWidth)
-          sourcesPanelWidthRef.current = nextLeftWidth
           return
         }
 
-        const rawRightWidth = rect.right - moveEvent.clientX
+        const rawRightWidth = initialRect.right - clientX
         if (rawRightWidth <= workspacePanelAutoCollapseWidthPx) {
-          if (!insightsPanelCollapsedRef.current) {
-            setIsInsightsPanelCollapsed(true)
-            insightsPanelCollapsedRef.current = true
+          if (!nextInsightsCollapsed) {
+            nextInsightsCollapsed = true
+            applyWorkspacePanelGridColumns(container, {
+              sourcesCollapsed: nextSourcesCollapsed,
+              insightsCollapsed: nextInsightsCollapsed,
+              sourcesWidth: nextSourcesWidth,
+              insightsWidth: nextInsightsWidth,
+            })
           }
           return
         }
 
         const rightBounds = getRightPanelWidthBounds(
           containerWidth,
-          sourcesPanelWidthRef.current,
-          sourcesPanelCollapsedRef.current,
+          nextSourcesWidth,
+          nextSourcesCollapsed,
         )
         if (rightBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
-          if (!insightsPanelCollapsedRef.current) {
-            setIsInsightsPanelCollapsed(true)
-            insightsPanelCollapsedRef.current = true
+          if (!nextInsightsCollapsed) {
+            nextInsightsCollapsed = true
+            applyWorkspacePanelGridColumns(container, {
+              sourcesCollapsed: nextSourcesCollapsed,
+              insightsCollapsed: nextInsightsCollapsed,
+              sourcesWidth: nextSourcesWidth,
+              insightsWidth: nextInsightsWidth,
+            })
           }
           return
         }
@@ -773,20 +860,56 @@ export function NotebookWorkspacePage() {
           clampNumber(rawRightWidth, rightBounds.minWidth, rightBounds.maxWidth),
         )
 
-        if (insightsPanelCollapsedRef.current) {
-          setIsInsightsPanelCollapsed(false)
-          insightsPanelCollapsedRef.current = false
+        if (nextInsightsCollapsed || nextInsightsWidth !== nextRightWidth) {
+          nextInsightsCollapsed = false
+          nextInsightsWidth = nextRightWidth
+          applyWorkspacePanelGridColumns(container, {
+            sourcesCollapsed: nextSourcesCollapsed,
+            insightsCollapsed: nextInsightsCollapsed,
+            sourcesWidth: nextSourcesWidth,
+            insightsWidth: nextInsightsWidth,
+          })
         }
-        setInsightsPanelWidthPx(nextRightWidth)
-        insightsPanelWidthRef.current = nextRightWidth
+      }
+
+      const scheduleResizeFrame = () => {
+        if (resizeFrameId !== null) {
+          return
+        }
+        resizeFrameId = window.requestAnimationFrame(() => {
+          resizeFrameId = null
+          applyResizeByClientX(latestClientX)
+        })
+      }
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        latestClientX = moveEvent.clientX
+        scheduleResizeFrame()
       }
 
       const stopResize = () => {
         window.removeEventListener('pointermove', onPointerMove)
         window.removeEventListener('pointerup', stopResize)
         window.removeEventListener('pointercancel', stopResize)
+        if (resizeFrameId !== null) {
+          window.cancelAnimationFrame(resizeFrameId)
+          resizeFrameId = null
+        }
+        applyResizeByClientX(latestClientX)
         document.body.style.userSelect = previousUserSelect
         document.body.style.cursor = previousCursor
+        sourcesPanelCollapsedRef.current = nextSourcesCollapsed
+        insightsPanelCollapsedRef.current = nextInsightsCollapsed
+        sourcesPanelWidthRef.current = nextSourcesWidth
+        insightsPanelWidthRef.current = nextInsightsWidth
+        setIsSourcesPanelCollapsed(nextSourcesCollapsed)
+        setIsInsightsPanelCollapsed(nextInsightsCollapsed)
+        if (!nextSourcesCollapsed) {
+          setSourcesPanelWidthPx(nextSourcesWidth)
+        }
+        if (!nextInsightsCollapsed) {
+          setInsightsPanelWidthPx(nextInsightsWidth)
+        }
         setActiveResizeSide(null)
         if (stopPanelResizeRef.current === stopResize) {
           stopPanelResizeRef.current = null
@@ -859,15 +982,6 @@ export function NotebookWorkspacePage() {
     setInsightsPanelWidthPx(nextWidth)
   }, [getRightPanelWidthBounds, workspaceContainerWidthPx])
 
-  const sourcesPanelGridColumn = isSourcesPanelCollapsed ? '0px' : `${sourcesPanelWidthPx}px`
-  const insightsPanelGridColumn = isInsightsPanelCollapsed ? '0px' : `${insightsPanelWidthPx}px`
-  const leftResizeHandleGridColumn = isSourcesPanelCollapsed
-    ? '0px'
-    : `${workspaceResizeHandleWidthPx}px`
-  const rightResizeHandleGridColumn = isInsightsPanelCollapsed
-    ? '0px'
-    : `${workspaceResizeHandleWidthPx}px`
-
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SourceSelectionController
@@ -900,14 +1014,14 @@ export function NotebookWorkspacePage() {
             overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
-              md: `${sourcesPanelGridColumn} ${leftResizeHandleGridColumn} minmax(${workspaceCenterMinWidthPx}px, 1fr) ${rightResizeHandleGridColumn} ${insightsPanelGridColumn}`,
-              xl: `${sourcesPanelGridColumn} ${leftResizeHandleGridColumn} minmax(${workspaceCenterMinWidthPx}px, 1fr) ${rightResizeHandleGridColumn} ${insightsPanelGridColumn}`,
+              md: `var(${workspaceSourcesColumnVar}, ${workspacePanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspacePanelDefaultWidthPx}px)`,
+              xl: `var(${workspaceSourcesColumnVar}, ${workspacePanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspacePanelDefaultWidthPx}px)`,
             },
             gridTemplateRows: {
               xs: 'repeat(3, minmax(0, 1fr))',
               md: 'minmax(0, 1fr)',
             },
-            transition: workspacePanelGridTransition,
+            transition: activeResizeSide ? 'none' : workspacePanelGridTransition,
             '& > *': {
               minWidth: 0,
               minHeight: 0,
@@ -1015,6 +1129,7 @@ export function NotebookWorkspacePage() {
               minWidth: 0,
               overflow: 'hidden',
               transition: workspacePanelWidthTransition,
+              ...(activeResizeSide ? { transition: 'none' } : null),
             }}
           >
             <Box
@@ -1023,7 +1138,7 @@ export function NotebookWorkspacePage() {
                 height: '100%',
                 opacity: { xs: 1, md: isInsightsPanelCollapsed ? 0 : 1 },
                 transform: { xs: 'translateX(0)', md: isInsightsPanelCollapsed ? 'translateX(100%)' : 'translateX(0)' },
-                transition: workspacePanelContentTransition,
+                transition: activeResizeSide ? 'none' : workspacePanelContentTransition,
                 pointerEvents: { xs: 'auto', md: isInsightsPanelCollapsed ? 'none' : 'auto' },
               }}
             >
