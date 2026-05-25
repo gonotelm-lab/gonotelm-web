@@ -13,6 +13,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PreviewIcon from '@mui/icons-material/Preview'
 import ReplayIcon from '@mui/icons-material/Replay'
+import SchemaIcon from '@mui/icons-material/Schema'
 import {
   Button,
   Box,
@@ -44,7 +45,9 @@ interface SourceListRowProps {
   onRetryItem: (id: string) => Promise<void>
   onRenameItem: (id: string, title: string) => Promise<void>
   onPreviewItem: (item: SourceListItem) => Promise<void> | void
+  onShowTree: (item: SourceListItem) => Promise<void> | void
   previewLoading: boolean
+  treeLoading: boolean
 }
 
 export function SourceListRow({
@@ -57,7 +60,9 @@ export function SourceListRow({
   onRetryItem,
   onRenameItem,
   onPreviewItem,
+  onShowTree,
   previewLoading,
+  treeLoading,
 }: SourceListRowProps) {
   const isProcessing = item.status === 'uploading' || item.status === 'preparing'
   const isFailed = item.status === 'failed'
@@ -122,6 +127,11 @@ export function SourceListRow({
   const handlePreviewSource = () => {
     closeActionMenu()
     void onPreviewItem(item)
+  }
+
+  const handleShowTree = () => {
+    closeActionMenu()
+    void onShowTree(item)
   }
 
   const handleOpenEditDialog = () => {
@@ -292,6 +302,14 @@ export function SourceListRow({
         >
           <PreviewIcon sx={actionMenuIconSx} />
           <Typography sx={actionMenuTextSx}>预览</Typography>
+        </MenuItem>
+        <MenuItem
+          disabled={!isReady || isBusy || removing || treeLoading}
+          onClick={handleShowTree}
+          sx={actionMenuItemSx}
+        >
+          <SchemaIcon sx={actionMenuIconSx} />
+          <Typography sx={actionMenuTextSx}>展示</Typography>
         </MenuItem>
         {item.kind === 'url' ? (
           <MenuItem

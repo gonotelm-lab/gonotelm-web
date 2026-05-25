@@ -5,6 +5,7 @@ import type {
   CreateSourceResponse,
   GetSourceDocResponse,
   GetSourceParsedContentResponse,
+  GetSourceParsedTreeResponse,
   PollSourceStatusResponse,
   UploadFileSourceRequest,
   UploadFileSourceResponse,
@@ -110,6 +111,15 @@ export async function getSourceParsedContent(sourceId: string) {
   }
 
   return body.data
+}
+
+export function getSourceParsedTree(sourceId: string) {
+  return request<GetSourceParsedTreeResponse>(
+    `/api/v1/source/${encodeURIComponent(sourceId)}/parsed/tree`,
+    {
+      method: 'GET',
+    },
+  )
 }
 
 export async function loadParsedContentFromUrl(url: string) {

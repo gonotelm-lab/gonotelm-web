@@ -16,9 +16,11 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { getSourceParsedContent, loadParsedContentFromUrl } from '@/api/source'
+import { getSourceParsedContent, getSourceParsedTree, loadParsedContentFromUrl } from '@/api/source'
 import { ApiError } from '@/lib/http'
+import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { AddSourceDialog } from './components/AddSourceDialog'
+import { SourceParsedTreeOverlay } from './components/SourceParsedTreeOverlay'
 import { SourceListRow } from './components/SourceListRow'
 import {
   MarkdownRenderer,
@@ -39,6 +41,14 @@ interface SourcePreviewState {
   loading: boolean
   markdown: string
   notice: string
+  error: string
+}
+
+interface SourceTreeState {
+  sourceId: string
+  sourceName: string
+  loading: boolean
+  tree: GetSourceParsedTreeResponse | null
   error: string
 }
 
@@ -95,7 +105,9 @@ export function SourcesPanel({
 }: SourcesPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [previewState, setPreviewState] = useState<SourcePreviewState | null>(null)
+  const [treeState, setTreeState] = useState<SourceTreeState | null>(null)
   const previewRequestSeqRef = useRef(0)
+  const treeRequestSeqRef = useRef(0)
   const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
   const showListLoadingSkeleton =
     isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
@@ -181,6 +193,60 @@ export function SourcesPanel({
     }
   }
 
+  const closeSourceTree = () => {
+    treeRequestSeqRef.current += 1
+    setTreeState(null)
+  }
+
+  const loadSourceTree = async (sourceId: string, sourceName: string) => {
+    const requestSeq = treeRequestSeqRef.current + 1
+    treeRequestSeqRef.current = requestSeq
+
+    setTreeState({
+      sourceId,
+      sourceName,
+      loading: true,
+      tree: null,
+      error: '',
+    })
+
+    try {
+      const tree = await getSourceParsedTree(sourceId)
+      if (treeRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      setTreeState({
+        sourceId,
+        sourceName,
+        loading: false,
+        tree,
+        error: '',
+      })
+    } catch (error) {
+      if (treeRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      setTreeState({
+        sourceId,
+        sourceName,
+        loading: false,
+        tree: null,
+        error: getSourcePreviewErrorMessage(error),
+      })
+    }
+  }
+
+  const openSourceTree = async (item: SourceListItem) => {
+    await loadSourceTree(item.id, item.name)
+  }
+
+  const retryOpenSourceTree = () => {
+    if (!treeState) {
+      return
+    }
+    void loadSourceTree(treeState.sourceId, treeState.sourceName)
+  }
+
   return (
     <>
       <AddSourceDialog
@@ -191,6 +257,18 @@ export function SourcesPanel({
         onCreateUrl={onCreateUrl}
         onCreateText={onCreateText}
       />
+      {treeState ? (
+        <SourceParsedTreeOverlay
+          key={treeState.sourceId}
+          open
+          sourceName={treeState.sourceName}
+          loading={treeState.loading}
+          error={treeState.error}
+          tree={treeState.tree}
+          onClose={closeSourceTree}
+          onRetry={retryOpenSourceTree}
+        />
+      ) : null}
       <Box
         sx={{
           width: { xs: '100%', md: collapsed ? 0 : '100%' },
@@ -339,7 +417,9 @@ export function SourcesPanel({
                             onRetryItem={onRetryItem}
                             onRenameItem={onRenameItem}
                             onPreviewItem={openSourcePreview}
+                            onShowTree={openSourceTree}
                             previewLoading={Boolean(previewState?.loading && previewState.sourceId === item.id)}
+                            treeLoading={Boolean(treeState?.loading && treeState.sourceId === item.id)}
                           />
                         ))
                       : null}

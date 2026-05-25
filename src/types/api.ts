@@ -112,6 +112,20 @@ export interface GetSourceParsedContentResponse {
   url?: string
 }
 
+export interface SourceParsedTreeNode {
+  id: string
+  content: string
+  level: number
+  pos: number
+  is_leaf: boolean
+  children?: SourceParsedTreeNode[]
+}
+
+export interface GetSourceParsedTreeResponse {
+  root?: SourceParsedTreeNode
+  height: number
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface ChatMessageContentText {

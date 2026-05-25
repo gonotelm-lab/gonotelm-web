@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/http'
-import { createSource, pollSourceStatus } from './source'
+import { createSource, getSourceParsedTree, pollSourceStatus } from './source'
 import { setMockScenario } from '@/test/mocks'
 
 describe('source api with msw mock', () => {
@@ -23,6 +23,13 @@ describe('source api with msw mock', () => {
     const status = await pollSourceStatus('source-1')
 
     expect(status.status).toBe('failed')
+  })
+
+  it('loads parsed tree data from source api', async () => {
+    const tree = await getSourceParsedTree('source-1')
+
+    expect(tree.height).toBeGreaterThanOrEqual(0)
+    expect(tree.root?.content).toBeTruthy()
   })
 
   it('throws ApiError for server error and timeout scenarios', async () => {
