@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import { Box, Divider, IconButton, Stack, Typography } from '@mui/material'
-import type { Theme } from '@mui/material/styles'
-import type { SystemStyleObject } from '@mui/system'
+import type { SxProps, Theme } from '@mui/material/styles'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
 
 const panelSubpageTransition = 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)'
@@ -18,13 +17,15 @@ export interface PanelSubpageConfig {
 interface PanelSubpageLayoutProps {
   primaryContent: ReactNode
   subpage: PanelSubpageConfig | null
-  subpageBodySx?: SystemStyleObject<Theme>
+  subpageBodySx?: SxProps<Theme>
+  subpageBodyRef?: RefObject<HTMLDivElement | null>
 }
 
 export function PanelSubpageLayout({
   primaryContent,
   subpage,
   subpageBodySx,
+  subpageBodyRef,
 }: PanelSubpageLayoutProps) {
   const subpageOpen = Boolean(subpage)
 
@@ -71,6 +72,7 @@ export function PanelSubpageLayout({
               </Stack>
               <Divider sx={{ my: 1.25 }} />
               <Box
+                ref={subpageBodyRef}
                 sx={{
                   flex: 1,
                   minHeight: 0,

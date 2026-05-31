@@ -15,6 +15,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 export const sourceDocCacheTtlMs = 5 * 60 * 1000
 export const sourceDocQueryKey = (sourceId: string, docId: string) =>
   ['source-doc', sourceId, docId] as const
+export const sourcePreviewCacheTtlMs = 5 * 60 * 1000
 
 export const buildSourceDocQueryOptions = (sourceId: string, docId: string) => ({
   queryKey: sourceDocQueryKey(sourceId, docId),
@@ -27,6 +28,16 @@ export const buildSourceDocQueryOptions = (sourceId: string, docId: string) => (
     ),
   staleTime: sourceDocCacheTtlMs,
   gcTime: sourceDocCacheTtlMs,
+})
+
+export const sourceParsedContentQueryKey = (sourceId: string) =>
+  ['source-parsed-content', sourceId] as const
+
+export const buildSourceParsedContentQueryOptions = (sourceId: string) => ({
+  queryKey: sourceParsedContentQueryKey(sourceId),
+  queryFn: () => getSourceParsedContent(sourceId),
+  staleTime: sourcePreviewCacheTtlMs,
+  gcTime: sourcePreviewCacheTtlMs,
 })
 
 export function createSource(payload: CreateSourceRequest) {
@@ -122,14 +133,23 @@ export function getSourceParsedTree(sourceId: string) {
   )
 }
 
+export const sourceParsedContentUrlQueryKey = (url: string) =>
+  ['source-parsed-content-url', url] as const
+
 export async function loadParsedContentFromUrl(url: string) {
   const response = await fetch(url)
   if (!response.ok) {
     throw new ApiError(`解析内容读取失败，HTTP ${response.status}`, -1, response.status)
   }
-
   return response.text()
 }
+
+export const buildSourceParsedContentUrlQueryOptions = (url: string) => ({
+  queryKey: sourceParsedContentUrlQueryKey(url),
+  queryFn: () => loadParsedContentFromUrl(url),
+  staleTime: sourcePreviewCacheTtlMs,
+  gcTime: sourcePreviewCacheTtlMs,
+})
 
 export async function uploadToObjectStorage(
   file: File,

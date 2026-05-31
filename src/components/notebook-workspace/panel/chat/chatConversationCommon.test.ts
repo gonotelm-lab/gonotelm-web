@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatCitationPositionText,
   getFinishReasonNotice,
   mergeDistinctCitationDetails,
+  normalizeCitationPosition,
+  resolveCitationTypeLabel,
   resolveStreamContentAction,
   toCitationDetailsFromStreamCitation,
 } from './chatConversationCommon'
@@ -28,7 +31,10 @@ describe('toCitationDetailsFromStreamCitation', () => {
     const citation = [
       {
         source_id: 'source-1',
-        docs: [{ id: 'doc-1' }, { id: 'doc-2' }],
+        docs: [
+          { id: 'doc-1', is_summary: true, position: { start: 0, end: 0 } },
+          { id: 'doc-2', is_summary: false, position: { start: 12, end: 34 } },
+        ],
       },
     ]
 
@@ -41,6 +47,8 @@ describe('toCitationDetailsFromStreamCitation', () => {
         docIndex: 0,
         sourceId: 'source-1',
         docId: 'doc-1',
+        isSummary: true,
+        position: { start: 0, end: 0 },
       },
       {
         marker: '[[0#1]]',
@@ -48,8 +56,44 @@ describe('toCitationDetailsFromStreamCitation', () => {
         docIndex: 1,
         sourceId: 'source-1',
         docId: 'doc-2',
+        isSummary: false,
+        position: { start: 12, end: 34 },
       },
     ])
+  })
+})
+
+describe('citation metadata helpers', () => {
+  it('normalizes source-doc position from snake_case keys', () => {
+    expect(normalizeCitationPosition({ start: 1, end: 9 })).toEqual({ start: 1, end: 9 })
+  })
+
+  it('normalizes byte range metadata when provided', () => {
+    expect(
+      normalizeCitationPosition({ start: 3, end: 11, bytes_start: 12, bytes_end: 32 }),
+    ).toEqual({
+      start: 3,
+      end: 11,
+      bytesStart: 12,
+      bytesEnd: 32,
+    })
+  })
+
+  it('formats summary zero-span as non-locatable text', () => {
+    expect(formatCitationPositionText({ start: 0, end: 0 }, true)).toBe('无原文定位（总结性引用）')
+  })
+
+  it('formats regular position range text', () => {
+    expect(formatCitationPositionText({ start: 8, end: 20 }, false)).toBe('8 - 20')
+  })
+
+  it('returns fallback text when position missing', () => {
+    expect(formatCitationPositionText(undefined, false)).toBe('-')
+  })
+
+  it('maps summary label from boolean', () => {
+    expect(resolveCitationTypeLabel(true)).toBe('总结性引用')
+    expect(resolveCitationTypeLabel(false)).toBe('原文片段引用')
   })
 })
 

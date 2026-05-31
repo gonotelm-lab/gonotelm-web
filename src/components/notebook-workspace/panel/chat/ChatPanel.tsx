@@ -14,6 +14,7 @@ import {
   type ChatAnswerLengthOption,
   type ChatStyleOption,
 } from './constants'
+import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './hooks'
 import { chatPanelLayoutTokens } from './layoutTokens'
 
@@ -110,6 +111,7 @@ interface ChatPanelProps {
   insightsPanelCollapsed: boolean
   onExpandSourcesPanel: () => void
   onExpandInsightsPanel: () => void
+  onOpenCitationJump: (request: ChatCitationJumpRequest) => void
 }
 
 export function ChatPanel({
@@ -131,6 +133,7 @@ function ChatPanelContent({
   insightsPanelCollapsed,
   onExpandSourcesPanel,
   onExpandInsightsPanel,
+  onOpenCitationJump,
 }: ChatPanelContentProps) {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
   const [chatStyle, setChatStyle] = useState<ChatStyleOption>(
@@ -270,6 +273,7 @@ function ChatPanelContent({
         copiedUserMessageId={copiedUserMessageId}
         onScrollTopCheck={onMessageListScroll}
         onCopyUserMessage={onCopyUserMessage}
+        onOpenCitationJump={onOpenCitationJump}
       />
 
       {finishReasonNotice ? (

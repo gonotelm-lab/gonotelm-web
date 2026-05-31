@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox'
@@ -16,12 +16,18 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { getSourceParsedContent, getSourceParsedTree, loadParsedContentFromUrl } from '@/api/source'
+import {
+  buildSourceParsedContentQueryOptions,
+  buildSourceParsedContentUrlQueryOptions,
+  getSourceParsedTree,
+} from '@/api/source'
 import { ApiError } from '@/lib/http'
+import { useQueryClient } from '@tanstack/react-query'
 import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceParsedTreeOverlay } from './components/SourceParsedTreeOverlay'
 import { SourceListRow } from './components/SourceListRow'
+import type { ChatCitationJumpRequest } from '../chat/types'
 import {
   MarkdownRenderer,
   PanelSubpageLayout,
@@ -35,13 +41,21 @@ const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'
 const sourcePreviewEmptyNotice = '当前来源暂无可展示的解析内容。'
 const sourcePreviewLoadingText = '正在加载预览内容...'
 
+interface SourcePreviewRequest extends ChatCitationJumpRequest {
+  requestId: number
+}
+
 interface SourcePreviewState {
   sourceId: string
   sourceName: string
   loading: boolean
+  rawMarkdown: string
   markdown: string
+  highlightSnippet: string
+  focusRange: HighlightRange | null
   notice: string
   error: string
+  locator: ChatCitationJumpRequest | null
 }
 
 interface SourceTreeState {
@@ -60,6 +74,125 @@ const getSourcePreviewErrorMessage = (error: unknown) => {
     return error.message
   }
   return '预览加载失败，请稍后重试。'
+}
+
+const toCodeUnitOffsetByRune = (text: string, runeOffset: number) => {
+  if (runeOffset <= 0) {
+    return 0
+  }
+  let codeUnitOffset = 0
+  let consumedRunes = 0
+  for (const rune of text) {
+    if (consumedRunes >= runeOffset) {
+      break
+    }
+    codeUnitOffset += rune.length
+    consumedRunes += 1
+  }
+  return codeUnitOffset
+}
+
+interface HighlightRange {
+  start: number
+  end: number
+}
+
+const normalizeHighlightRange = (
+  text: string,
+  startCodeUnitOffset: number,
+  endCodeUnitOffset: number,
+): HighlightRange | null => {
+  if (!text) {
+    return null
+  }
+  const safeStart = Math.max(Math.min(startCodeUnitOffset, text.length - 1), 0)
+  const safeEnd = Math.max(Math.min(endCodeUnitOffset, text.length), safeStart + 1)
+  if (safeEnd <= safeStart) {
+    return null
+  }
+  return { start: safeStart, end: safeEnd }
+}
+
+const expandHighlightRangeToLineBoundaries = (
+  text: string,
+  range: HighlightRange | null,
+): HighlightRange | null => {
+  if (!range) {
+    return null
+  }
+  const lineStart = text.lastIndexOf('\n', Math.max(range.start - 1, 0))
+  const lineEnd = text.indexOf('\n', range.end)
+  return {
+    start: lineStart < 0 ? 0 : lineStart + 1,
+    end: lineEnd < 0 ? text.length : lineEnd,
+  }
+}
+
+const resolveHighlightRangeBySnippet = (
+  text: string,
+  snippet?: string,
+): HighlightRange | null => {
+  if (!snippet) {
+    return null
+  }
+  const normalizedSnippet = snippet.trim()
+  if (!normalizedSnippet) {
+    return null
+  }
+  const snippetStart = text.indexOf(normalizedSnippet)
+  if (snippetStart < 0) {
+    return null
+  }
+  return normalizeHighlightRange(text, snippetStart, snippetStart + normalizedSnippet.length)
+}
+
+const resolveHighlightRangeByRunePosition = (
+  text: string,
+  position?: { start?: number; end?: number },
+): HighlightRange | null => {
+  if (!position) {
+    return null
+  }
+  const totalRunes = Array.from(text).length
+  if (totalRunes <= 0) {
+    return null
+  }
+  const safeStart = Math.min(Math.max(position.start ?? 0, 0), totalRunes - 1)
+  const rawEnd = Math.min(Math.max(position.end ?? safeStart + 1, safeStart + 1), totalRunes)
+  const startCodeUnitOffset = toCodeUnitOffsetByRune(text, safeStart)
+  const endCodeUnitOffset = toCodeUnitOffsetByRune(text, rawEnd)
+  return normalizeHighlightRange(text, startCodeUnitOffset, endCodeUnitOffset)
+}
+
+const escapeHtml = (text: string) =>
+  text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+
+const toLineMarkedHighlightMarkdown = (text: string) =>
+  text
+    .split('\n')
+    .map((line) => {
+      if (!line.trim()) {
+        return line
+      }
+      return `<mark>${escapeHtml(line)}</mark>`
+    })
+    .join('\n')
+
+const buildMarkdownWithLineMarksByRange = (
+  content: string,
+  range: HighlightRange | null,
+) => {
+  if (!range) {
+    return content
+  }
+  const focusText = content.slice(range.start, range.end)
+  if (!focusText) {
+    return content
+  }
+  return `${content.slice(0, range.start)}${toLineMarkedHighlightMarkdown(focusText)}${content.slice(range.end)}`
 }
 
 interface SourcesPanelProps {
@@ -81,6 +214,7 @@ interface SourcesPanelProps {
   onRetryItem: (id: string) => Promise<void>
   onRenameItem: (id: string, title: string) => Promise<void>
   checkedMap: Record<string, boolean>
+  previewRequest?: SourcePreviewRequest | null
 }
 
 export function SourcesPanel({
@@ -102,24 +236,34 @@ export function SourcesPanel({
   onRetryItem,
   onRenameItem,
   checkedMap,
+  previewRequest,
 }: SourcesPanelProps) {
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [previewState, setPreviewState] = useState<SourcePreviewState | null>(null)
   const [treeState, setTreeState] = useState<SourceTreeState | null>(null)
   const previewRequestSeqRef = useRef(0)
   const treeRequestSeqRef = useRef(0)
+  const handledPreviewRequestIdRef = useRef<number>(0)
+  const previewBodyRef = useRef<HTMLDivElement | null>(null)
+  const previewInitialFocusPendingRef = useRef(false)
   const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
   const showListLoadingSkeleton =
     isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
 
   const closeSourcePreview = () => {
     previewRequestSeqRef.current += 1
+    previewInitialFocusPendingRef.current = false
     setPreviewState(null)
   }
 
-  const openSourcePreview = async (item: SourceListItem) => {
+  const openSourcePreview = useCallback(async (
+    item: SourceListItem,
+    locator: ChatCitationJumpRequest | null = null,
+  ) => {
     const requestSeq = previewRequestSeqRef.current + 1
     previewRequestSeqRef.current = requestSeq
+    previewInitialFocusPendingRef.current = true
 
     const sourceId = item.id
     const sourceName = item.name
@@ -127,13 +271,19 @@ export function SourcesPanel({
       sourceId,
       sourceName,
       loading: true,
+      rawMarkdown: '',
       markdown: '',
+      highlightSnippet: locator?.snippet?.trim() ?? '',
+      focusRange: null,
       notice: '',
       error: '',
+      locator,
     })
 
     try {
-      const parsedContent = await getSourceParsedContent(sourceId)
+      const parsedContent = await queryClient.fetchQuery(
+        buildSourceParsedContentQueryOptions(sourceId),
+      )
       if (previewRequestSeqRef.current !== requestSeq) {
         return
       }
@@ -143,16 +293,23 @@ export function SourcesPanel({
           sourceId,
           sourceName,
           loading: false,
+          rawMarkdown: '',
           markdown: '',
+          highlightSnippet: locator?.snippet?.trim() ?? '',
+          focusRange: null,
           notice: sourcePreviewEmptyNotice,
           error: '',
+          locator,
         })
         return
       }
 
       let markdown = parsedContent.content?.trim() ?? ''
       if (!markdown && parsedContent.url) {
-        markdown = (await loadParsedContentFromUrl(parsedContent.url)).trim()
+        markdown = await queryClient.fetchQuery(
+          buildSourceParsedContentUrlQueryOptions(parsedContent.url),
+        )
+        markdown = markdown.trim()
         if (previewRequestSeqRef.current !== requestSeq) {
           return
         }
@@ -163,20 +320,34 @@ export function SourcesPanel({
           sourceId,
           sourceName,
           loading: false,
+          rawMarkdown: '',
           markdown: '',
+          highlightSnippet: locator?.snippet?.trim() ?? '',
+          focusRange: null,
           notice: sourcePreviewEmptyNotice,
           error: '',
+          locator,
         })
         return
       }
 
+      let focusRange: HighlightRange | null = null
+      focusRange = resolveHighlightRangeByRunePosition(markdown, locator?.position)
+      if (!focusRange) {
+        focusRange = resolveHighlightRangeBySnippet(markdown, locator?.snippet)
+      }
+      const focusRangeRange = expandHighlightRangeToLineBoundaries(markdown, focusRange)
       setPreviewState({
         sourceId,
         sourceName,
         loading: false,
+        rawMarkdown: markdown,
         markdown,
+        highlightSnippet: locator?.snippet?.trim() ?? '',
+        focusRange: focusRangeRange,
         notice: '',
         error: '',
+        locator,
       })
     } catch (error) {
       if (previewRequestSeqRef.current !== requestSeq) {
@@ -186,12 +357,16 @@ export function SourcesPanel({
         sourceId,
         sourceName,
         loading: false,
+        rawMarkdown: '',
         markdown: '',
+        highlightSnippet: locator?.snippet?.trim() ?? '',
+        focusRange: null,
         notice: '',
         error: getSourcePreviewErrorMessage(error),
+        locator,
       })
     }
-  }
+  }, [queryClient])
 
   const closeSourceTree = () => {
     treeRequestSeqRef.current += 1
@@ -246,6 +421,86 @@ export function SourcesPanel({
     }
     void loadSourceTree(treeState.sourceId, treeState.sourceName)
   }
+
+  useEffect(() => {
+    if (!previewRequest) {
+      return
+    }
+    if (handledPreviewRequestIdRef.current === previewRequest.requestId) {
+      return
+    }
+    const targetSource = sourceListItems.find((item) => item.id === previewRequest.sourceId)
+    if (!targetSource) {
+      return
+    }
+    handledPreviewRequestIdRef.current = previewRequest.requestId
+    const timer = window.setTimeout(() => {
+      void openSourcePreview(targetSource, previewRequest)
+    }, 0)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [openSourcePreview, previewRequest, sourceListItems])
+
+  useEffect(() => {
+    if (!previewState || previewState.loading || previewState.error || previewState.notice) {
+      return
+    }
+    if (!previewInitialFocusPendingRef.current) {
+      return
+    }
+    if (!previewState.locator?.position && !previewState.focusRange && !previewState.highlightSnippet) {
+      previewInitialFocusPendingRef.current = false
+      return
+    }
+    const container = previewBodyRef.current
+    if (!container) {
+      return
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const scrollElementToVerticalCenter = (element: HTMLElement) => {
+        const containerRect = container.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+        const deltaTop = elementRect.top - containerRect.top
+        const targetTop = container.scrollTop + deltaTop - container.clientHeight / 2 + elementRect.height / 2
+        const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0)
+        container.scrollTop = Math.min(Math.max(Math.round(targetTop), 0), maxScrollTop)
+        container.scrollLeft = 0
+      }
+
+      const rangeHighlightBlock = container.querySelector('[data-citation-range-highlight="true"]')
+      if (rangeHighlightBlock instanceof HTMLElement) {
+        scrollElementToVerticalCenter(rangeHighlightBlock)
+        previewInitialFocusPendingRef.current = false
+        return
+      }
+      const highlight = container.querySelector('mark')
+      if (highlight instanceof HTMLElement) {
+        scrollElementToVerticalCenter(highlight)
+        previewInitialFocusPendingRef.current = false
+        return
+      }
+
+      const start = previewState.locator?.position?.start
+      if (typeof start !== 'number' || !Number.isFinite(start)) {
+        return
+      }
+      const maxScrollTop = container.scrollHeight - container.clientHeight
+      if (maxScrollTop <= 0) {
+        return
+      }
+      const totalRunes = Math.max(Array.from(previewState.rawMarkdown).length, 1)
+      const ratio = Math.min(Math.max(start / totalRunes, 0), 1)
+      container.scrollTop = Math.round(maxScrollTop * ratio)
+      container.scrollLeft = 0
+      previewInitialFocusPendingRef.current = false
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [previewState])
 
   return (
     <>
@@ -441,14 +696,46 @@ export function SourcesPanel({
                     <Alert severity="error">{previewState.error}</Alert>
                   ) : previewState.notice ? (
                     <Alert severity="info">{previewState.notice}</Alert>
+                  ) : previewState.focusRange ? (
+                    <Box sx={{ minWidth: 0 }}>
+                      <MarkdownRenderer
+                        content={buildMarkdownWithLineMarksByRange(
+                          previewState.markdown,
+                          previewState.focusRange,
+                        )}
+                      />
+                    </Box>
                   ) : (
-                    <MarkdownRenderer content={previewState.markdown} />
+                    <Stack spacing={0.55} sx={{ minWidth: 0 }}>
+                      {previewState.highlightSnippet ? (
+                        <Box
+                          data-citation-range-highlight="true"
+                          sx={{
+                            px: 0.7,
+                            py: 0.55,
+                            borderRadius: 0.7,
+                            bgcolor: '#FFF59D',
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontWeight: 500 }}
+                          >
+                            {previewState.highlightSnippet}
+                          </Typography>
+                        </Box>
+                      ) : null}
+                      <Box sx={{ minWidth: 0 }}>
+                        <MarkdownRenderer content={previewState.markdown} />
+                      </Box>
+                    </Stack>
                   ),
                   onClose: closeSourcePreview,
                   closeAriaLabel: '关闭预览',
                 }
               : null}
-            subpageBodySx={{ pr: 0.5, ...subtleScrollbarSx }}
+            subpageBodyRef={previewBodyRef}
+            subpageBodySx={{ pr: 0.5, overflowX: 'hidden', ...subtleScrollbarSx }}
           />
         </Paper>
       </Box>

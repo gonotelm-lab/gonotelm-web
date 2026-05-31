@@ -359,7 +359,10 @@ export function useChatConversation({
                 )
               }
               if (phase?.type === 'retrieving') {
-                queueStreamStatus('retrieving', '正在检索来源...')
+                queueStreamStatus(
+                  'retrieving',
+                  phase.status === 'finished' ? '来源检索完成' : '正在检索来源...',
+                )
               } else if (phase?.type === 'thinking') {
                 queueStreamStatus('thinking', '正在思考...')
               } else if (phase?.type === 'answer') {

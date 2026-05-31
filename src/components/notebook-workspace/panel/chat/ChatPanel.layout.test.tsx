@@ -78,6 +78,7 @@ describe('ChatPanel layout', () => {
         insightsPanelCollapsed={false}
         onExpandSourcesPanel={() => undefined}
         onExpandInsightsPanel={() => undefined}
+        onOpenCitationJump={() => undefined}
       />,
     )
 

@@ -100,11 +100,21 @@ export interface PollSourceStatusResponse {
   status: SourceStatus
 }
 
+export interface SourceDocPosition {
+  start?: number
+  end?: number
+  bytes_start?: number
+  bytes_end?: number
+}
+
 export interface GetSourceDocResponse {
   source_id: string
   doc_id: string
   source_title: string
   content: string
+  position?: SourceDocPosition
+  is_summary?: boolean
+  summarized_from?: string[]
 }
 
 export interface GetSourceParsedContentResponse {
@@ -195,6 +205,7 @@ export interface ChatMessageStreamCitationDocPosition {
 export interface ChatMessageStreamCitationDoc {
   id?: string
   position?: ChatMessageStreamCitationDocPosition
+  is_summary?: boolean
 }
 
 export interface ChatMessageStreamCitationItem {

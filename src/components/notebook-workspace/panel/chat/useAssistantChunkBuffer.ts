@@ -178,7 +178,14 @@ export function useAssistantChunkBuffer({
             currentCitationDetails.length === mergedCitationDetails.length &&
             currentCitationDetails.every(
               (citationDetail, idx) =>
-                citationDetail.marker === mergedCitationDetails[idx]?.marker,
+                citationDetail.marker === mergedCitationDetails[idx]?.marker &&
+                citationDetail.sourceId === mergedCitationDetails[idx]?.sourceId &&
+                citationDetail.docId === mergedCitationDetails[idx]?.docId &&
+                citationDetail.isSummary === mergedCitationDetails[idx]?.isSummary &&
+                citationDetail.position?.start === mergedCitationDetails[idx]?.position?.start &&
+                citationDetail.position?.end === mergedCitationDetails[idx]?.position?.end &&
+                citationDetail.position?.bytesStart === mergedCitationDetails[idx]?.position?.bytesStart &&
+                citationDetail.position?.bytesEnd === mergedCitationDetails[idx]?.position?.bytesEnd,
             )
           if (unchanged) {
             return message

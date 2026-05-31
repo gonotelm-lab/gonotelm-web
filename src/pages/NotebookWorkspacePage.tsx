@@ -30,6 +30,7 @@ import {
   WorkspaceHeader,
   type SourceListItem,
 } from '../components/notebook-workspace'
+import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
@@ -128,6 +129,9 @@ export function NotebookWorkspacePage() {
   const [isHydratingSources, setIsHydratingSources] = useState(false)
   const [notebookNameDraft, setNotebookNameDraft] = useState('')
   const [isNotebookNameEditing, setIsNotebookNameEditing] = useState(false)
+  const [citationPreviewRequest, setCitationPreviewRequest] = useState<
+    (ChatCitationJumpRequest & { requestId: number }) | null
+  >(null)
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
@@ -145,6 +149,7 @@ export function NotebookWorkspacePage() {
   const sourcesPanelCollapsedRef = useRef(isSourcesPanelCollapsed)
   const insightsPanelCollapsedRef = useRef(isInsightsPanelCollapsed)
   const stopPanelResizeRef = useRef<(() => void) | null>(null)
+  const citationPreviewRequestSeqRef = useRef(0)
 
   const resetWorkspaceUiState = useCallback(() => {
     setRemovingSourceIds({})
@@ -1003,6 +1008,15 @@ export function NotebookWorkspacePage() {
     setInsightsPanelWidthPx(nextWidth)
   }, [getRightPanelWidthBounds, workspaceContainerWidthPx])
 
+  const handleOpenCitationJump = useCallback((request: ChatCitationJumpRequest) => {
+    handleExpandSourcesPanel()
+    citationPreviewRequestSeqRef.current += 1
+    setCitationPreviewRequest({
+      ...request,
+      requestId: citationPreviewRequestSeqRef.current,
+    })
+  }, [handleExpandSourcesPanel])
+
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SourceSelectionController
@@ -1070,6 +1084,7 @@ export function NotebookWorkspacePage() {
             onRetryItem={handleRetrySource}
             onRenameItem={handleRenameSourceTitle}
             checkedMap={selectedSourceIds}
+            previewRequest={citationPreviewRequest}
           />
 
           <Box
@@ -1113,6 +1128,7 @@ export function NotebookWorkspacePage() {
             insightsPanelCollapsed={isInsightsPanelCollapsed}
             onExpandSourcesPanel={handleExpandSourcesPanel}
             onExpandInsightsPanel={handleExpandInsightsPanel}
+            onOpenCitationJump={handleOpenCitationJump}
           />
 
           <Box

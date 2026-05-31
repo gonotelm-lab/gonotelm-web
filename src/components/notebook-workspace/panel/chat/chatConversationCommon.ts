@@ -3,9 +3,11 @@ import type {
   ChatMessageCitation,
   ChatMessageListItem,
   ChatMessageStreamCitation,
+  ChatMessageStreamCitationDocPosition,
   MessageStreamPhaseContentAction,
+  SourceDocPosition,
 } from '@/types/api'
-import type { ChatUiCitationDetail, ChatUiMessage } from './types'
+import type { ChatUiCitationDetail, ChatUiCitationPosition, ChatUiMessage } from './types'
 
 export const chatMessagesPageLimit = 20
 export const scrollLoadTopThresholdPx = 260
@@ -74,6 +76,73 @@ export const writeTextWithFallback = async (text: string) => {
   }
 }
 
+type CitationPositionLike = ChatMessageStreamCitationDocPosition | SourceDocPosition | null | undefined
+
+const readCitationPositionBoundary = (
+  position: CitationPositionLike,
+  fieldKey: 'start' | 'end',
+): number | null => {
+  if (!position) {
+    return null
+  }
+
+  const rawValue = (position as Record<string, unknown>)[fieldKey]
+  if (typeof rawValue !== 'number' || Number.isNaN(rawValue)) {
+    return null
+  }
+  return rawValue
+}
+
+const readCitationByteBoundary = (
+  position: CitationPositionLike,
+  fieldKey: 'bytes_start' | 'bytes_end',
+): number | null => {
+  if (!position) {
+    return null
+  }
+
+  const rawValue = (position as Record<string, unknown>)[fieldKey]
+  if (typeof rawValue !== 'number' || Number.isNaN(rawValue)) {
+    return null
+  }
+  return rawValue
+}
+
+export const normalizeCitationPosition = (
+  position: CitationPositionLike,
+): ChatUiCitationPosition | null => {
+  const start = readCitationPositionBoundary(position, 'start')
+  const end = readCitationPositionBoundary(position, 'end')
+  if (start === null || end === null) {
+    return null
+  }
+  const bytesStart = readCitationByteBoundary(position, 'bytes_start')
+  const bytesEnd = readCitationByteBoundary(position, 'bytes_end')
+  return {
+    start,
+    end,
+    ...(bytesStart === null ? {} : { bytesStart }),
+    ...(bytesEnd === null ? {} : { bytesEnd }),
+  }
+}
+
+export const resolveCitationTypeLabel = (isSummary?: boolean) =>
+  isSummary ? '总结性引用' : '原文片段引用'
+
+export const formatCitationPositionText = (
+  position: CitationPositionLike,
+  isSummary?: boolean,
+) => {
+  const normalizedPosition = normalizeCitationPosition(position)
+  if (!normalizedPosition) {
+    return '-'
+  }
+  if (isSummary && normalizedPosition.start === 0 && normalizedPosition.end === 0) {
+    return '无原文定位（总结性引用）'
+  }
+  return `${normalizedPosition.start} - ${normalizedPosition.end}`
+}
+
 export const toCitationDetailsFromMessageCitation = (
   citation?: ChatMessageCitation,
 ): ChatUiCitationDetail[] => {
@@ -109,12 +178,15 @@ export const toCitationDetailsFromStreamCitation = (
   citation.forEach((citationItem, sourceIndex) => {
     const sourceId = citationItem.source_id
     ;(citationItem.docs ?? []).forEach((doc, docIndex) => {
+      const normalizedPosition = normalizeCitationPosition(doc.position)
       citationDetails.push({
         marker: `[[${sourceIndex}#${docIndex}]]`,
         sourceIndex,
         docIndex,
         sourceId,
         docId: doc.id,
+        isSummary: Boolean(doc.is_summary),
+        position: normalizedPosition ?? undefined,
       })
     })
   })

@@ -1,18 +1,27 @@
 const sourceUploadMimeByExt: Record<string, string> = {
   '.pdf': 'application/pdf',
-  '.txt': 'text/plain',
-  '.md': 'text/markdown',
-  '.markdown': 'text/markdown',
+  '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.markdown': 'text/markdown; charset=utf-8',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.epub': 'application/epub+zip',
 }
 
-const supportedSourceUploadMimeSet = new Set(Object.values(sourceUploadMimeByExt))
+const normalizeMimeType = (mimeType: string) =>
+  mimeType
+    .split(';', 1)[0]
+    ?.trim()
+    .toLowerCase() ?? ''
+
+const canonicalMimeByMediaType = new Map(
+  Object.values(sourceUploadMimeByExt).map((mimeType) => [normalizeMimeType(mimeType), mimeType]),
+)
 
 export function resolveUploadMimeType(file: File): string {
   const normalizedType = file.type.trim().toLowerCase()
-  if (normalizedType && supportedSourceUploadMimeSet.has(normalizedType)) {
-    return normalizedType
+  const canonicalMimeType = canonicalMimeByMediaType.get(normalizeMimeType(normalizedType))
+  if (canonicalMimeType) {
+    return canonicalMimeType
   }
 
   const lowerName = file.name.toLowerCase()

@@ -5,7 +5,7 @@ import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { subtleScrollbarSx } from '../../shared/ui'
 import { ChatMessageItem } from './ChatMessageItem'
-import type { ChatUiMessage } from './types'
+import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { chatMessageContentTokens } from './layoutTokens'
 import type { MessageStreamPhaseType } from '@/types/api'
 
@@ -52,6 +52,7 @@ interface ChatMessagesListProps {
   copiedUserMessageId: string | null
   onScrollTopCheck: () => void
   onCopyUserMessage: (id: string, text: string) => void
+  onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
 }
 
 /**
@@ -74,6 +75,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   copiedUserMessageId,
   onScrollTopCheck,
   onCopyUserMessage,
+  onOpenCitationJump,
 }: ChatMessagesListProps) {
   // Status icon intentionally mirrors backend stream phase to make retrieval/thinking states glanceable.
   const streamStatusIcon =
@@ -187,6 +189,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
               isActiveAssistantMessage={activeAssistantMessageId === message.id}
               copied={copiedUserMessageId === message.id}
               onCopyUserMessage={onCopyUserMessage}
+              onOpenCitationJump={onOpenCitationJump}
             />
           </Box>
         ))}

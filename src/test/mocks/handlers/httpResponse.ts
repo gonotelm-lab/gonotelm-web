@@ -4,8 +4,8 @@ import type { MockApiScenario } from '../scenarios'
 
 const timeoutDelayMs = 30
 
-export const createSuccessResponse = <T>(data: T) =>
-  HttpResponse.json<ApiResult<T>>({
+export const createSuccessResponse = (data: unknown) =>
+  HttpResponse.json<ApiResult<unknown>>({
     code: 0,
     msg: 'ok',
     data,
@@ -16,7 +16,7 @@ export const createErrorResponse = (
   message = 'mock server error',
   code = 500_000,
 ) =>
-  HttpResponse.json<ApiResult<null>>(
+  HttpResponse.json<ApiResult<unknown>>(
     {
       code,
       msg: message,
@@ -25,14 +25,14 @@ export const createErrorResponse = (
     { status },
   )
 
-export const resolveScenarioResponse = async <T>({
+export const resolveScenarioResponse = async ({
   scenario,
   successData,
   emptyData,
 }: {
   scenario: MockApiScenario
-  successData: T
-  emptyData: T
+  successData: unknown
+  emptyData: unknown
 }) => {
   if (scenario === 'server-error') {
     return createErrorResponse(500, 'mock server error', 500_001)

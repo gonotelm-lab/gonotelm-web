@@ -55,7 +55,7 @@ const markdownTableTokens = {
 
 const markdownSanitizeSchema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'sup'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'sup', 'mark'],
   attributes: {
     ...defaultSchema.attributes,
     a: [
@@ -63,6 +63,7 @@ const markdownSanitizeSchema = {
       ['href', /^#cite-[a-zA-Z0-9_%-]+~[a-zA-Z0-9_%-]+$/],
     ],
     sup: [...(defaultSchema.attributes?.sup ?? [])],
+    mark: [...(defaultSchema.attributes?.mark ?? [])],
   },
 }
 
@@ -216,6 +217,13 @@ export function MarkdownRenderer({
         '& a[href^="#cite-"]:hover': {
           color: 'primary.dark',
           textDecoration: 'underline',
+        },
+        '& mark': {
+          px: 0.1,
+          py: 0.02,
+          bgcolor: '#FFF59D',
+          color: 'inherit',
+          borderRadius: 0.25,
         },
         '& .katex': {
           fontSize: '0.96em',

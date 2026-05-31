@@ -2,6 +2,7 @@ import { memo, useCallback, useRef, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Box,
   CircularProgress,
@@ -15,9 +16,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { buildSourceDocQueryOptions } from '@/api/source'
 import type { GetSourceDocResponse } from '@/types/api'
 import { AssistantMarkdown } from './AssistantMarkdown'
+import {
+  formatCitationPositionText,
+  normalizeCitationPosition,
+  resolveCitationTypeLabel,
+} from './chatConversationCommon'
 import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown'
-import type { ChatUiCitationDetail, ChatUiMessage } from './types'
+import type { ChatCitationJumpRequest, ChatUiCitationDetail, ChatUiMessage } from './types'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
@@ -75,6 +81,7 @@ interface ChatMessageItemProps {
   isActiveAssistantMessage: boolean
   copied: boolean
   onCopyUserMessage: (id: string, text: string) => void
+  onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
 }
 
 /**
@@ -88,12 +95,14 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   isActiveAssistantMessage,
   copied,
   onCopyUserMessage,
+  onOpenCitationJump,
 }: ChatMessageItemProps) {
   const queryClient = useQueryClient()
   const [citationAnchorPosition, setCitationAnchorPosition] = useState<{
     left: number
     top: number
   } | null>(null)
+  const [activeCitationDetail, setActiveCitationDetail] = useState<ChatUiCitationDetail | null>(null)
   const [activeCitationDoc, setActiveCitationDoc] = useState<GetSourceDocResponse | null>(null)
   const [isCitationLoading, setIsCitationLoading] = useState(false)
   const [citationLoadError, setCitationLoadError] = useState('')
@@ -115,6 +124,23 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     }
     return detailMap
   }, [message.citationDetails])
+  const citationSummary = activeCitationDoc?.is_summary ?? activeCitationDetail?.isSummary ?? false
+  const isOriginalCitation =
+    activeCitationDoc?.is_summary === false || activeCitationDetail?.isSummary === false
+  const activeCitationSourceId = activeCitationDoc?.source_id ?? activeCitationDetail?.sourceId
+  const activeCitationPosition =
+    normalizeCitationPosition(activeCitationDoc?.position) ?? activeCitationDetail?.position
+  const citationPositionText = useMemo(
+    () =>
+      formatCitationPositionText(
+        activeCitationPosition,
+        citationSummary,
+      ),
+    [activeCitationPosition, citationSummary],
+  )
+  const canJumpToSourcePreview = Boolean(
+    onOpenCitationJump && activeCitationSourceId && isOriginalCitation,
+  )
 
   /**
    * Fetches citation document content for the currently selected marker.
@@ -151,6 +177,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         top: event.clientY,
       })
       const citationDetail = citationDetailMap.get(`${sourceIndex}#${docIndex}`) ?? null
+      setActiveCitationDetail(citationDetail)
       setActiveCitationDoc(null)
       setCitationLoadError('')
 
@@ -174,10 +201,32 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     // Closing the popover also invalidates in-flight fetches to avoid late state writes.
     citationFetchSeqRef.current += 1
     setCitationAnchorPosition(null)
+    setActiveCitationDetail(null)
     setActiveCitationDoc(null)
     setCitationLoadError('')
     setIsCitationLoading(false)
   }, [])
+
+  const handleJumpToSourcePreview = useCallback(() => {
+    if (!onOpenCitationJump || !activeCitationSourceId || !isOriginalCitation) {
+      return
+    }
+    onOpenCitationJump({
+      sourceId: activeCitationSourceId,
+      sourceTitle: activeCitationDoc?.source_title,
+      position: activeCitationPosition,
+      snippet: activeCitationDoc?.content,
+    })
+    handleCloseCitationCard()
+  }, [
+    activeCitationDoc?.content,
+    activeCitationDoc?.source_title,
+    activeCitationPosition,
+    activeCitationSourceId,
+    handleCloseCitationCard,
+    isOriginalCitation,
+    onOpenCitationJump,
+  ])
 
   if (!isUserMessage) {
     return (
@@ -279,6 +328,34 @@ export const ChatMessageItem = memo(function ChatMessageItem({
             </Typography>
             <Typography variant="body2" sx={{ mt: citationCardTokens.sourceTitleMarginTop, fontWeight: 600 }}>
               {`来源标题: ${activeCitationDoc?.source_title || '-'}`}
+            </Typography>
+            <Box sx={{ mt: 0.45, display: 'flex', alignItems: 'center', gap: 0.4 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: citationSummary ? 'warning.main' : 'text.secondary' }}
+              >
+                {`引用类型: ${resolveCitationTypeLabel(citationSummary)}`}
+              </Typography>
+              {canJumpToSourcePreview ? (
+                <Tooltip title="跳转到来源预览">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={handleJumpToSourcePreview}
+                      sx={{
+                        p: 0,
+                        color: 'primary.main',
+                        '&:hover': { bgcolor: 'transparent', color: 'primary.dark' },
+                      }}
+                    >
+                      <OpenInNewIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ) : null}
+            </Box>
+            <Typography variant="body2" sx={{ mt: 0.2, color: 'text.secondary' }}>
+              {`位置: ${citationPositionText}`}
             </Typography>
             <Box
               sx={{
