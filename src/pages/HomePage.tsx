@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import type { ListNotebooksSortBy } from '@/types/api'
-import { createNotebook, listNotebooks } from '../api/notebook'
+import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
@@ -26,6 +26,7 @@ export function HomePage() {
   const [createNotebookErrorMessage, setCreateNotebookErrorMessage] = useState<string | null>(
     null,
   )
+  const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null)
 
   const notebooksQuery = useQuery({
     queryKey: ['notebooks', 'home', { sortBy }],
@@ -34,6 +35,9 @@ export function HomePage() {
 
   const createNotebookMutation = useMutation({
     mutationFn: createNotebook,
+  })
+  const deleteNotebookMutation = useMutation({
+    mutationFn: deleteNotebook,
   })
 
   const notebookItems = notebooksQuery.data?.notebooks ?? []
@@ -70,6 +74,19 @@ export function HomePage() {
         return
       }
       setCreateNotebookErrorMessage('创建失败，请稍后重试')
+    }
+  }
+
+  const handleDeleteNotebook = async (notebookId: string) => {
+    if (deleteNotebookMutation.isPending) {
+      return
+    }
+    setDeletingNotebookId(notebookId)
+    try {
+      await deleteNotebookMutation.mutateAsync(notebookId)
+      await queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
+    } finally {
+      setDeletingNotebookId(null)
     }
   }
 
@@ -123,6 +140,8 @@ export function HomePage() {
                   sourceCount={viewModel.sourceCount}
                   dateLabel={viewModel.dateLabel}
                   onOpen={() => navigate(notebookPath)}
+                  onDelete={() => handleDeleteNotebook(viewModel.id)}
+                  deleting={deleteNotebookMutation.isPending && deletingNotebookId === viewModel.id}
                 />
               )
             })}

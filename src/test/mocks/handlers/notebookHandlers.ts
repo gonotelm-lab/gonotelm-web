@@ -82,6 +82,15 @@ export const notebookHandlers = [
     })
   }),
 
+  http.delete(`${apiBaseUrl}/api/v1/notebook/:notebookId`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: null,
+      emptyData: null,
+    })
+  }),
+
   http.get(`${apiBaseUrl}/api/v1/notebook/:notebookId`, async ({ params }) => {
     const scenario = getMockScenario('notebook')
     const notebookId = String(params.notebookId ?? 'notebook-1')

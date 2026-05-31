@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/http'
 import {
   createNotebook,
+  deleteNotebook,
   getNotebook,
   getOrCreateNotebookChat,
   listNotebooks,
@@ -49,6 +50,10 @@ describe('notebook api with msw mock', () => {
 
     expect(withNameResult.id).toBe('notebook-created-with-name')
     expect(laterResult.id).toBe('notebook-created-later')
+  })
+
+  it('deletes notebook successfully', async () => {
+    await expect(deleteNotebook('notebook-1')).resolves.toBeNull()
   })
 
   it('throws ApiError on server error scenario', async () => {

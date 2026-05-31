@@ -1,9 +1,18 @@
+import { useState } from 'react'
+import DeleteIcon from '@mui/icons-material/Delete'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import {
+  Button,
   Box,
   Card,
   CardActionArea,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
+  Menu,
+  MenuItem,
   Stack,
   Typography,
 } from '@mui/material'
@@ -14,6 +23,8 @@ interface NotebookCardProps {
   dateLabel: string
   sourceCount: number
   onOpen: () => void
+  onDelete?: () => Promise<void>
+  deleting?: boolean
 }
 
 export function NotebookCard({
@@ -22,7 +33,59 @@ export function NotebookCard({
   dateLabel,
   sourceCount,
   onOpen,
+  onDelete,
+  deleting = false,
 }: NotebookCardProps) {
+  const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
+  const actionMenuOpen = Boolean(actionAnchorEl)
+  const canDelete = typeof onDelete === 'function'
+
+  const handleOpenActionMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation()
+    setActionAnchorEl(event.currentTarget)
+  }
+
+  const handleCloseActionMenu = () => {
+    setActionAnchorEl(null)
+  }
+
+  const handleOpenDeleteDialog = () => {
+    handleCloseActionMenu()
+    if (!canDelete) {
+      return
+    }
+    setDeleteErrorMessage(null)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    if (deleting) {
+      return
+    }
+    setDeleteErrorMessage(null)
+    setDeleteDialogOpen(false)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!onDelete || deleting) {
+      return
+    }
+    setDeleteErrorMessage(null)
+    void onDelete()
+      .then(() => {
+        setDeleteDialogOpen(false)
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.message.trim()) {
+          setDeleteErrorMessage(error.message)
+          return
+        }
+        setDeleteErrorMessage('删除失败，请稍后重试')
+      })
+  }
+
   return (
     <Card
       variant="outlined"
@@ -33,7 +96,11 @@ export function NotebookCard({
         bgcolor: '#fbfcff',
       }}
     >
-      <CardActionArea onClick={onOpen} sx={{ px: 1.75, py: 1.5, height: '100%' }}>
+      <CardActionArea
+        onClick={onOpen}
+        disabled={deleting}
+        sx={{ px: 1.75, py: 1.5, height: '100%' }}
+      >
         <Stack
           sx={{
             minHeight: 136,
@@ -60,8 +127,9 @@ export function NotebookCard({
             </Box>
             <IconButton
               size="small"
-              aria-label="笔记本操作（占位）"
-              disabled
+              aria-label="笔记本操作"
+              onClick={handleOpenActionMenu}
+              disabled={!canDelete || deleting}
               sx={{ mt: -0.25, mr: -0.75 }}
             >
               <MoreVertIcon sx={{ fontSize: 18 }} />
@@ -103,6 +171,52 @@ export function NotebookCard({
           </Stack>
         </Stack>
       </CardActionArea>
+      <Menu
+        anchorEl={actionAnchorEl}
+        open={actionMenuOpen}
+        onClose={handleCloseActionMenu}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <MenuItem
+          onClick={handleOpenDeleteDialog}
+          disabled={!canDelete || deleting}
+          sx={{ minHeight: 34, px: 1.25, gap: 0.75 }}
+        >
+          <DeleteIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography sx={{ fontSize: 12.5, lineHeight: 1.2 }}>删除</Typography>
+        </MenuItem>
+      </Menu>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>删除笔记本</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            删除后将移除该笔记本及其相关聊天与来源数据，此操作不可恢复。
+          </Typography>
+          {deleteErrorMessage ? (
+            <Typography variant="caption" color="error.main" sx={{ mt: 1, display: 'block' }}>
+              {deleteErrorMessage}
+            </Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} disabled={deleting}>
+            取消
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+          >
+            {deleting ? '删除中...' : '删除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   )
 }

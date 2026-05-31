@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box } from '@mui/material'
 import {
@@ -11,6 +11,7 @@ import {
   uploadToObjectStorage,
 } from '../api/source'
 import {
+  deleteNotebook,
   getNotebook,
   getOrCreateNotebookChat,
   listNotebookSources,
@@ -114,6 +115,7 @@ const applyWorkspacePanelGridColumns = (
 
 export function NotebookWorkspacePage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
@@ -369,6 +371,9 @@ export function NotebookWorkspacePage() {
   const updateNotebookNameMutation = useMutation({
     mutationFn: ({ notebookId, name }: { notebookId: string; name: string }) =>
       updateNotebookName(notebookId, { name }),
+  })
+  const deleteNotebookMutation = useMutation({
+    mutationFn: (notebookId: string) => deleteNotebook(notebookId),
   })
 
   const isBusy = useMemo(
@@ -646,6 +651,22 @@ export function NotebookWorkspacePage() {
       setNotebookNameDraft(currentName)
       patchNotebookMeta({ name: currentName })
       console.warn('update notebook name failed', error)
+    }
+  }
+
+  const handleDeleteNotebook = async () => {
+    if (!id || deleteNotebookMutation.isPending) {
+      return
+    }
+
+    try {
+      await deleteNotebookMutation.mutateAsync(id)
+      resetWorkspace()
+      await queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
+      navigate('/')
+    } catch (error) {
+      console.warn('delete notebook failed', id, error)
+      throw error
     }
   }
 
@@ -996,11 +1017,13 @@ export function NotebookWorkspacePage() {
         notebookName={notebookMeta.name}
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
+        isDeletingNotebook={deleteNotebookMutation.isPending}
         onNotebookNameChange={handleNotebookNameChange}
         onNotebookNameFocus={handleNotebookNameFocus}
         onNotebookNameBlur={() => {
           void handleNotebookNameBlur()
         }}
+        onDeleteNotebook={handleDeleteNotebook}
       />
 
       <Box sx={{ width: '100%', flex: 1, minHeight: 0, px: 1, py: 1, overflow: 'hidden' }}>

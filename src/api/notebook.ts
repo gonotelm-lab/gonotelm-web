@@ -20,6 +20,12 @@ export function getNotebook(id: string) {
   return request<Notebook>(`/api/v1/notebook/${id}`)
 }
 
+export function deleteNotebook(id: string) {
+  return request<null>(`/api/v1/notebook/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export function getOrCreateNotebookChat(id: string) {
   return request<GetNotebookChatResponse>(`/api/v1/notebook/${id}/chat`, {
     method: 'POST',
