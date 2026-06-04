@@ -3,7 +3,7 @@ import type { ReactNode, RefObject } from 'react'
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded'
 import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
-import { subtleScrollbarSx } from '../../shared/ui'
+import { panelTitleToBodySpacing, subtleScrollbarSx } from '../../shared/ui'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { chatMessageContentTokens } from './layoutTokens'
@@ -15,7 +15,7 @@ const loadingIndicatorSize = 13
 const streamStatusRowMarginBottom = 0.55
 const streamStatusIconSize = 16
 const messageListLayoutTokens = {
-  marginTop: 2,
+  marginTop: panelTitleToBodySpacing,
   innerPaddingX: chatMessageContentTokens.scrollInnerPaddingX,
   notebookDividerMarginY: 2.5,
   notebookDividerColor: 'transparent',

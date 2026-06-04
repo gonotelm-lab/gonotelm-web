@@ -1,4 +1,4 @@
-export type MockApiDomain = 'notebook' | 'chat' | 'source'
+export type MockApiDomain = 'notebook' | 'chat' | 'source' | 'studio'
 
 export type MockApiScenario = 'success' | 'empty' | 'server-error' | 'timeout'
 
@@ -6,6 +6,7 @@ const defaultScenarioState: Record<MockApiDomain, MockApiScenario> = {
   notebook: 'success',
   chat: 'success',
   source: 'success',
+  studio: 'success',
 }
 
 let scenarioState: Record<MockApiDomain, MockApiScenario> = {

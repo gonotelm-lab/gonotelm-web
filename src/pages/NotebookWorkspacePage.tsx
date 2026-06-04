@@ -429,6 +429,13 @@ export function NotebookWorkspacePage() {
       Object.keys(selectedSourceIds).filter((sourceId) => Boolean(selectedSourceIds[sourceId])),
     [selectedSourceIds],
   )
+  const readySourceIdList = useMemo(
+    () =>
+      sourceListItems
+        .filter((item) => item.status === 'ready')
+        .map((item) => item.id),
+    [sourceListItems],
+  )
 
   const toggleAllSourceChecked = (checked: boolean) => {
     const next: Record<string, boolean> = {}
@@ -1181,7 +1188,12 @@ export function NotebookWorkspacePage() {
                 pointerEvents: { xs: 'auto', md: isInsightsPanelCollapsed ? 'none' : 'auto' },
               }}
             >
-              <StudioPanel onCollapse={() => setIsInsightsPanelCollapsed(true)} />
+              <StudioPanel
+                notebookId={id}
+                selectedSourceIds={selectedSourceIdList}
+                readySourceIds={readySourceIdList}
+                onCollapse={() => setIsInsightsPanelCollapsed(true)}
+              />
             </Box>
           </Box>
         </Box>

@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { pollSourceStatus } from '@/api/source'
 import type { SourceCard } from '@/store/workspace'
 import type { SourceStatus } from '@/types/api'
+import { useAdaptivePollingLoop } from './useAdaptivePollingLoop'
 
 const terminalStatusSet = new Set<SourceStatus>(['ready', 'failed'])
 const sourceStatusPollBaseIntervalMs = 1_000
@@ -26,6 +27,8 @@ export function useSourcePolling({
 }: UseSourcePollingOptions) {
   const sourcesRef = useRef(sources)
   const removingSourceIdsRef = useRef(removingSourceIds)
+  const setSourceStatusRef = useRef(setSourceStatus)
+  const onSourceReadyRef = useRef(onSourceReady)
 
   useEffect(() => {
     sourcesRef.current = sources
@@ -36,69 +39,50 @@ export function useSourcePolling({
   }, [removingSourceIds])
 
   useEffect(() => {
-    if (!notebookId) return
+    setSourceStatusRef.current = setSourceStatus
+  }, [setSourceStatus])
 
-    let cancelled = false
-    let timeoutId: number | null = null
-    let attempt = 0
+  useEffect(() => {
+    onSourceReadyRef.current = onSourceReady
+  }, [onSourceReady])
 
-    const scheduleNext = () => {
-      if (cancelled) return
-      const delay = Math.min(
-        sourceStatusPollBaseIntervalMs * Math.pow(2, attempt),
-        sourceStatusPollMaxIntervalMs,
-      )
-      timeoutId = window.setTimeout(() => {
-        void tick()
-      }, delay)
+  const pollSourceTick = useCallback(async () => {
+    const pendingSources = sourcesRef.current.filter(
+      (source) =>
+        !isTerminalStatus(source.status) &&
+        !removingSourceIdsRef.current[source.id],
+    )
+    if (pendingSources.length === 0) {
+      return false
     }
 
-    const tick = async () => {
-      if (cancelled) return
+    let hasSourceReady = false
 
-      const pendingSources = sourcesRef.current.filter(
-        (source) =>
-          !isTerminalStatus(source.status) &&
-          !removingSourceIdsRef.current[source.id],
-      )
-      if (pendingSources.length === 0) {
-        attempt = 0
-        scheduleNext()
-        return
-      }
-
-      let hasSourceReady = false
-
-      await Promise.all(
-        pendingSources.map(async (source) => {
-          try {
-            const status = await pollSourceStatus(source.id)
-            if (!cancelled) {
-              if (source.status !== 'ready' && status.status === 'ready') {
-                hasSourceReady = true
-              }
-              setSourceStatus(source.id, status.status)
-            }
-          } catch (error) {
-            // keep silent for polling loop to avoid noisy snackbars
-            console.warn('poll source status failed', source.id, error)
+    await Promise.all(
+      pendingSources.map(async (source) => {
+        try {
+          const status = await pollSourceStatus(source.id)
+          if (source.status !== 'ready' && status.status === 'ready') {
+            hasSourceReady = true
           }
-        }),
-      )
-      if (!cancelled && hasSourceReady) {
-        onSourceReady?.()
-      }
-      attempt += 1
-      scheduleNext()
+          setSourceStatusRef.current(source.id, status.status)
+        } catch (error) {
+          // keep silent for polling loop to avoid noisy snackbars
+          console.warn('poll source status failed', source.id, error)
+        }
+      }),
+    )
+    if (hasSourceReady) {
+      onSourceReadyRef.current?.()
     }
+    return true
+  }, [])
 
-    void tick()
-
-    return () => {
-      cancelled = true
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [notebookId, onSourceReady, setSourceStatus])
+  useAdaptivePollingLoop({
+    enabled: Boolean(notebookId),
+    restartKey: notebookId,
+    baseIntervalMs: sourceStatusPollBaseIntervalMs,
+    maxIntervalMs: sourceStatusPollMaxIntervalMs,
+    tick: pollSourceTick,
+  })
 }

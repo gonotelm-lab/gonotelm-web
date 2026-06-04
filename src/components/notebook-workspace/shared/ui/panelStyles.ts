@@ -7,3 +7,6 @@ export const panelTitleSx: SxProps<Theme> = {
   lineHeight: 1.4,
   letterSpacing: 0.1,
 }
+
+// 统一三栏（来源/对话/工作区）标题到底部主体内容的垂直间距。
+export const panelTitleToBodySpacing = 1.25

@@ -136,6 +136,50 @@ export interface GetSourceParsedTreeResponse {
   height: number
 }
 
+export type StudioArtifactKind = 'mindmap' | string
+
+export type StudioArtifactTaskStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'expired'
+  | string
+
+export type StudioArtifactContentKind = 'inline' | 'storage'
+
+export interface GenerateStudioArtifactRequest {
+  notebook_id: string
+  kind: StudioArtifactKind
+  source_ids: string[]
+}
+
+export interface GenerateStudioArtifactResponse {
+  task_id: string
+}
+
+export interface GetStudioArtifactStatusResponse {
+  task_id: string
+  status: StudioArtifactTaskStatus
+}
+
+export interface StudioArtifactResult {
+  notebook_id: string
+  task_id: string
+  status: StudioArtifactTaskStatus
+  content?: string
+  content_url?: string
+  content_kind: StudioArtifactContentKind
+}
+
+export interface ListNotebookStudioArtifactsResponse {
+  artifacts: StudioArtifactResult[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface ChatMessageContentText {

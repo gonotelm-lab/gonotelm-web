@@ -32,6 +32,7 @@ import {
   MarkdownRenderer,
   PanelSubpageLayout,
   panelTitleSx,
+  panelTitleToBodySpacing,
   panelTitleVariant,
   subtleScrollbarSx,
 } from '../../shared'
@@ -568,7 +569,7 @@ export function SourcesPanel({
                   </IconButton>
                 </Stack>
 
-                <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+                <Stack spacing={1.25} sx={{ mt: panelTitleToBodySpacing }}>
                   <Button
                     variant="outlined"
                     fullWidth
