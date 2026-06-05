@@ -34,7 +34,7 @@ interface StudioArtifactListItemProps {
 const statusLabelMap: Record<StudioArtifactVisualStatus, string> = {
   queued: '排队中',
   polling: '生成中',
-  succeeded: '已完成',
+  succeeded: '完成',
   failed: '失败',
 }
 
