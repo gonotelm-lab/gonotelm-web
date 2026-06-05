@@ -34,7 +34,8 @@ interface StudioArtifactListItemProps {
 const statusLabelMap: Record<StudioArtifactVisualStatus, string> = {
   queued: '排队中',
   polling: '生成中',
-  succeeded: '完成',
+  succeeded: '已完成',
+  cancelled: '已取消',
   failed: '失败',
 }
 
@@ -42,6 +43,7 @@ const statusColorMap: Record<StudioArtifactVisualStatus, string> = {
   queued: 'warning.main',
   polling: 'warning.main',
   succeeded: 'success.main',
+  cancelled: 'text.secondary',
   failed: 'error.main',
 }
 
@@ -49,6 +51,7 @@ const statusIconMap: Record<StudioArtifactVisualStatus, typeof HourglassBottomRo
   queued: HourglassBottomRoundedIcon,
   polling: HourglassBottomRoundedIcon,
   succeeded: TaskAltRoundedIcon,
+  cancelled: CancelRoundedIcon,
   failed: ErrorOutlineRoundedIcon,
 }
 
@@ -70,6 +73,11 @@ export function StudioArtifactListItem({
   const canCancel = isStudioTaskRunning(item.status)
   const canDelete = !isStudioTaskRunning(item.status)
   const failedHint = item.error || '任务执行失败，请重试。'
+  const cancelledHint = item.error || '任务已取消。'
+  const statusHint =
+    visualStatus === 'failed'
+      ? failedHint
+      : (visualStatus === 'cancelled' ? cancelledHint : statusLabelMap[visualStatus])
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {
@@ -88,22 +96,25 @@ export function StudioArtifactListItem({
         position: 'relative',
         overflow: 'hidden',
         p: 1.1,
-        cursor: 'pointer',
+        cursor: canPreview ? 'pointer' : 'default',
         transition: 'border-color 0.2s ease, background-color 0.2s ease',
         '&:hover': {
           borderColor: canPreview ? 'primary.main' : 'divider',
           backgroundColor: 'action.hover',
         },
         ...(previewLoading ? { borderColor: 'primary.main' } : null),
-        borderStyle: item.status === 'failed' ? 'dashed' : 'solid',
+        borderStyle:
+          visualStatus === 'failed' || visualStatus === 'cancelled'
+            ? 'dashed'
+            : 'solid',
       }}
-      role="button"
-      tabIndex={0}
+      role={canPreview ? 'button' : undefined}
+      tabIndex={canPreview ? 0 : -1}
       onClick={() => {
         if (actionMenuOpen) {
           return
         }
-        if (!previewLoading) {
+        if (canPreview && !previewLoading) {
           onPreview(item)
         }
       }}
@@ -111,7 +122,11 @@ export function StudioArtifactListItem({
         if (event.target !== event.currentTarget) {
           return
         }
-        if ((event.key === 'Enter' || event.key === ' ') && !previewLoading) {
+        if (
+          canPreview &&
+          (event.key === 'Enter' || event.key === ' ') &&
+          !previewLoading
+        ) {
           event.preventDefault()
           onPreview(item)
         }
@@ -128,7 +143,7 @@ export function StudioArtifactListItem({
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.45} sx={{ alignItems: 'center', flexShrink: 0 }}>
-            <Tooltip title={visualStatus === 'failed' ? failedHint : statusLabelMap[visualStatus]}>
+            <Tooltip title={statusHint}>
               <StatusIcon
                 sx={{
                   fontSize: 17,
@@ -146,7 +161,7 @@ export function StudioArtifactListItem({
                 }}
               />
             </Tooltip>
-            <Tooltip title={canPreview ? '点击卡片可预览' : '当前任务未完成，点击卡片将提示原因'}>
+            <Tooltip title={canPreview ? '点击卡片可预览' : '仅已完成任务可预览'}>
               <span>
                 <Typography variant="caption" color="text.secondary">
                   {statusLabelMap[visualStatus]}

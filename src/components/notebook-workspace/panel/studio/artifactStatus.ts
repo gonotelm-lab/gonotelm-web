@@ -1,8 +1,10 @@
 import type { StudioArtifactTaskStatus } from '@/types/api'
 
-const failedTaskStatusSet = new Set(['failed', 'cancelled', 'expired'])
+const failedTaskStatusSet = new Set(['failed', 'expired'])
+const failedLikeTaskStatusSet = new Set(['failed', 'cancelled', 'expired'])
+const retryableTaskStatusSet = new Set(['failed', 'cancelled'])
 const pendingTaskStatusSet = new Set(['pending', 'running'])
-export type StudioArtifactVisualStatus = 'queued' | 'polling' | 'succeeded' | 'failed'
+export type StudioArtifactVisualStatus = 'queued' | 'polling' | 'succeeded' | 'failed' | 'cancelled'
 
 const normalizeStudioTaskStatus = (status: StudioArtifactTaskStatus) =>
   String(status || '').trim().toLowerCase()
@@ -11,10 +13,10 @@ export const isStudioTaskCompleted = (status: StudioArtifactTaskStatus) =>
   normalizeStudioTaskStatus(status) === 'completed'
 
 export const isStudioTaskFailed = (status: StudioArtifactTaskStatus) =>
-  failedTaskStatusSet.has(normalizeStudioTaskStatus(status))
+  failedLikeTaskStatusSet.has(normalizeStudioTaskStatus(status))
 
 export const isStudioTaskRetryable = (status: StudioArtifactTaskStatus) =>
-  normalizeStudioTaskStatus(status) === 'failed'
+  retryableTaskStatusSet.has(normalizeStudioTaskStatus(status))
 
 export const shouldStudioTaskKeepPolling = (status: StudioArtifactTaskStatus) =>
   pendingTaskStatusSet.has(normalizeStudioTaskStatus(status))
@@ -28,6 +30,9 @@ export const toArtifactVisualStatus = (
   const normalized = normalizeStudioTaskStatus(status)
   if (normalized === 'completed') {
     return 'succeeded'
+  }
+  if (normalized === 'cancelled') {
+    return 'cancelled'
   }
   if (failedTaskStatusSet.has(normalized)) {
     return 'failed'

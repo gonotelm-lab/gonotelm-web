@@ -70,7 +70,10 @@ const toHistoryArtifactItem = (
     content: artifact.content ?? '',
     contentUrl: artifact.content_url ?? '',
     contentKind: artifact.content_kind ?? 'inline',
-    error: itemStatus === 'failed' ? buildTaskFailedMessage(artifact.status) : '',
+    error:
+      itemStatus === 'failed' || itemStatus === 'cancelled'
+        ? buildTaskFailedMessage(artifact.status)
+        : '',
     createdAt: Date.now() - index,
   }
 }
@@ -169,7 +172,7 @@ export function useStudioArtifactTasks({
                     ...item,
                     status: result.status,
                     error:
-                      itemStatus === 'failed'
+                      itemStatus === 'failed' || itemStatus === 'cancelled'
                         ? buildTaskFailedMessage(result.status)
                         : '',
                     content: result.content ?? '',
@@ -554,7 +557,7 @@ export function useStudioArtifactTasks({
                       contentUrl,
                       contentKind,
                       error:
-                        itemStatus === 'failed'
+                        itemStatus === 'failed' || itemStatus === 'cancelled'
                           ? buildTaskFailedMessage(taskStatus)
                           : '',
                     }
@@ -572,7 +575,7 @@ export function useStudioArtifactTasks({
             return
           }
 
-          if (itemStatus === 'failed') {
+          if (itemStatus === 'failed' || itemStatus === 'cancelled') {
             setPreviewState((prev) => ({
               ...prev,
               loading: false,
