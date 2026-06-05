@@ -32,6 +32,24 @@ export function getStudioArtifactResult(taskId: string) {
   )
 }
 
+export function deleteStudioArtifact(taskId: string) {
+  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/delete`, {
+    method: 'POST',
+  })
+}
+
+export function retryStudioArtifactTask(taskId: string) {
+  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/retry`, {
+    method: 'POST',
+  })
+}
+
+export function cancelStudioArtifactTask(taskId: string) {
+  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/cancel`, {
+    method: 'POST',
+  })
+}
+
 interface ListNotebookStudioArtifactsParams {
   limit?: number
   offset?: number

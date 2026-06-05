@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from 'react'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox'
@@ -29,13 +36,11 @@ import { SourceParsedTreeOverlay } from './components/SourceParsedTreeOverlay'
 import { SourceListRow } from './components/SourceListRow'
 import type { ChatCitationJumpRequest } from '../chat/types'
 import {
-  MarkdownRenderer,
   PanelSubpageLayout,
-  panelTitleSx,
-  panelTitleToBodySpacing,
-  panelTitleVariant,
-  subtleScrollbarSx,
-} from '../../shared'
+} from '../../shared/ui/PanelSubpageLayout'
+import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
+import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
+import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
 import type { SourceListItem } from './types/sourceTypes'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
@@ -218,297 +223,64 @@ interface SourcesPanelProps {
   previewRequest?: SourcePreviewRequest | null
 }
 
-export function SourcesPanel({
-  collapsed,
-  isBusy,
-  isHydrating,
-  loadingSkeletonCount,
-  sourceListItems,
-  removingMap,
-  allSourcesChecked,
-  someSourcesChecked,
-  onCollapse,
-  onCreateFile,
-  onCreateUrl,
-  onCreateText,
-  onToggleAll,
-  onToggleItem,
-  onDeleteItem,
-  onRetryItem,
-  onRenameItem,
-  checkedMap,
-  previewRequest,
-}: SourcesPanelProps) {
-  const queryClient = useQueryClient()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [previewState, setPreviewState] = useState<SourcePreviewState | null>(null)
-  const [treeState, setTreeState] = useState<SourceTreeState | null>(null)
-  const previewRequestSeqRef = useRef(0)
-  const treeRequestSeqRef = useRef(0)
-  const handledPreviewRequestIdRef = useRef<number>(0)
-  const previewBodyRef = useRef<HTMLDivElement | null>(null)
-  const previewInitialFocusPendingRef = useRef(false)
-  const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
-  const showListLoadingSkeleton =
-    isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
+interface SourcesPanelLayoutProps {
+  panelProps: SourcesPanelProps
+  dialogOpen: boolean
+  onDialogOpen: () => void
+  onDialogClose: () => void
+  previewState: SourcePreviewState | null
+  treeState: SourceTreeState | null
+  closeSourcePreview: () => void
+  closeSourceTree: () => void
+  retryOpenSourceTree: () => void
+  showListLoadingSkeleton: boolean
+  skeletonItemCount: number
+  openSourcePreview: (item: SourceListItem, locator?: ChatCitationJumpRequest | null) => Promise<void>
+  openSourceTree: (item: SourceListItem) => Promise<void>
+  previewBodyRef: RefObject<HTMLDivElement | null>
+}
 
-  const closeSourcePreview = () => {
-    previewRequestSeqRef.current += 1
-    previewInitialFocusPendingRef.current = false
-    setPreviewState(null)
-  }
-
-  const openSourcePreview = useCallback(async (
-    item: SourceListItem,
-    locator: ChatCitationJumpRequest | null = null,
-  ) => {
-    const requestSeq = previewRequestSeqRef.current + 1
-    previewRequestSeqRef.current = requestSeq
-    previewInitialFocusPendingRef.current = true
-
-    const sourceId = item.id
-    const sourceName = item.name
-    setPreviewState({
-      sourceId,
-      sourceName,
-      loading: true,
-      rawMarkdown: '',
-      markdown: '',
-      highlightSnippet: locator?.snippet?.trim() ?? '',
-      focusRange: null,
-      notice: '',
-      error: '',
-      locator,
-    })
-
-    try {
-      const parsedContent = await queryClient.fetchQuery(
-        buildSourceParsedContentQueryOptions(sourceId),
-      )
-      if (previewRequestSeqRef.current !== requestSeq) {
-        return
-      }
-
-      if (!parsedContent) {
-        setPreviewState({
-          sourceId,
-          sourceName,
-          loading: false,
-          rawMarkdown: '',
-          markdown: '',
-          highlightSnippet: locator?.snippet?.trim() ?? '',
-          focusRange: null,
-          notice: sourcePreviewEmptyNotice,
-          error: '',
-          locator,
-        })
-        return
-      }
-
-      let markdown = parsedContent.content?.trim() ?? ''
-      if (!markdown && parsedContent.url) {
-        markdown = await queryClient.fetchQuery(
-          buildSourceParsedContentUrlQueryOptions(parsedContent.url),
-        )
-        markdown = markdown.trim()
-        if (previewRequestSeqRef.current !== requestSeq) {
-          return
-        }
-      }
-
-      if (!markdown) {
-        setPreviewState({
-          sourceId,
-          sourceName,
-          loading: false,
-          rawMarkdown: '',
-          markdown: '',
-          highlightSnippet: locator?.snippet?.trim() ?? '',
-          focusRange: null,
-          notice: sourcePreviewEmptyNotice,
-          error: '',
-          locator,
-        })
-        return
-      }
-
-      let focusRange: HighlightRange | null = null
-      focusRange = resolveHighlightRangeByRunePosition(markdown, locator?.position)
-      if (!focusRange) {
-        focusRange = resolveHighlightRangeBySnippet(markdown, locator?.snippet)
-      }
-      const focusRangeRange = expandHighlightRangeToLineBoundaries(markdown, focusRange)
-      setPreviewState({
-        sourceId,
-        sourceName,
-        loading: false,
-        rawMarkdown: markdown,
-        markdown,
-        highlightSnippet: locator?.snippet?.trim() ?? '',
-        focusRange: focusRangeRange,
-        notice: '',
-        error: '',
-        locator,
-      })
-    } catch (error) {
-      if (previewRequestSeqRef.current !== requestSeq) {
-        return
-      }
-      setPreviewState({
-        sourceId,
-        sourceName,
-        loading: false,
-        rawMarkdown: '',
-        markdown: '',
-        highlightSnippet: locator?.snippet?.trim() ?? '',
-        focusRange: null,
-        notice: '',
-        error: getSourcePreviewErrorMessage(error),
-        locator,
-      })
-    }
-  }, [queryClient])
-
-  const closeSourceTree = () => {
-    treeRequestSeqRef.current += 1
-    setTreeState(null)
-  }
-
-  const loadSourceTree = async (sourceId: string, sourceName: string) => {
-    const requestSeq = treeRequestSeqRef.current + 1
-    treeRequestSeqRef.current = requestSeq
-
-    setTreeState({
-      sourceId,
-      sourceName,
-      loading: true,
-      tree: null,
-      error: '',
-    })
-
-    try {
-      const tree = await getSourceParsedTree(sourceId)
-      if (treeRequestSeqRef.current !== requestSeq) {
-        return
-      }
-      setTreeState({
-        sourceId,
-        sourceName,
-        loading: false,
-        tree,
-        error: '',
-      })
-    } catch (error) {
-      if (treeRequestSeqRef.current !== requestSeq) {
-        return
-      }
-      setTreeState({
-        sourceId,
-        sourceName,
-        loading: false,
-        tree: null,
-        error: getSourcePreviewErrorMessage(error),
-      })
-    }
-  }
-
-  const openSourceTree = async (item: SourceListItem) => {
-    await loadSourceTree(item.id, item.name)
-  }
-
-  const retryOpenSourceTree = () => {
-    if (!treeState) {
-      return
-    }
-    void loadSourceTree(treeState.sourceId, treeState.sourceName)
-  }
-
-  useEffect(() => {
-    if (!previewRequest) {
-      return
-    }
-    if (handledPreviewRequestIdRef.current === previewRequest.requestId) {
-      return
-    }
-    const targetSource = sourceListItems.find((item) => item.id === previewRequest.sourceId)
-    if (!targetSource) {
-      return
-    }
-    handledPreviewRequestIdRef.current = previewRequest.requestId
-    const timer = window.setTimeout(() => {
-      void openSourcePreview(targetSource, previewRequest)
-    }, 0)
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [openSourcePreview, previewRequest, sourceListItems])
-
-  useEffect(() => {
-    if (!previewState || previewState.loading || previewState.error || previewState.notice) {
-      return
-    }
-    if (!previewInitialFocusPendingRef.current) {
-      return
-    }
-    if (!previewState.locator?.position && !previewState.focusRange && !previewState.highlightSnippet) {
-      previewInitialFocusPendingRef.current = false
-      return
-    }
-    const container = previewBodyRef.current
-    if (!container) {
-      return
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      const scrollElementToVerticalCenter = (element: HTMLElement) => {
-        const containerRect = container.getBoundingClientRect()
-        const elementRect = element.getBoundingClientRect()
-        const deltaTop = elementRect.top - containerRect.top
-        const targetTop = container.scrollTop + deltaTop - container.clientHeight / 2 + elementRect.height / 2
-        const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0)
-        container.scrollTop = Math.min(Math.max(Math.round(targetTop), 0), maxScrollTop)
-        container.scrollLeft = 0
-      }
-
-      const rangeHighlightBlock = container.querySelector('[data-citation-range-highlight="true"]')
-      if (rangeHighlightBlock instanceof HTMLElement) {
-        scrollElementToVerticalCenter(rangeHighlightBlock)
-        previewInitialFocusPendingRef.current = false
-        return
-      }
-      const highlight = container.querySelector('mark')
-      if (highlight instanceof HTMLElement) {
-        scrollElementToVerticalCenter(highlight)
-        previewInitialFocusPendingRef.current = false
-        return
-      }
-
-      const start = previewState.locator?.position?.start
-      if (typeof start !== 'number' || !Number.isFinite(start)) {
-        return
-      }
-      const maxScrollTop = container.scrollHeight - container.clientHeight
-      if (maxScrollTop <= 0) {
-        return
-      }
-      const totalRunes = Math.max(Array.from(previewState.rawMarkdown).length, 1)
-      const ratio = Math.min(Math.max(start / totalRunes, 0), 1)
-      container.scrollTop = Math.round(maxScrollTop * ratio)
-      container.scrollLeft = 0
-      previewInitialFocusPendingRef.current = false
-    })
-
-    return () => {
-      window.cancelAnimationFrame(frameId)
-    }
-  }, [previewState])
+function SourcesPanelLayout({
+  panelProps,
+  dialogOpen,
+  onDialogOpen,
+  onDialogClose,
+  previewState,
+  treeState,
+  closeSourcePreview,
+  closeSourceTree,
+  retryOpenSourceTree,
+  showListLoadingSkeleton,
+  skeletonItemCount,
+  openSourcePreview,
+  openSourceTree,
+  previewBodyRef,
+}: SourcesPanelLayoutProps) {
+  const {
+    collapsed,
+    isBusy,
+    sourceListItems,
+    removingMap,
+    allSourcesChecked,
+    someSourcesChecked,
+    onCollapse,
+    onCreateFile,
+    onCreateUrl,
+    onCreateText,
+    onToggleAll,
+    onToggleItem,
+    onDeleteItem,
+    onRetryItem,
+    onRenameItem,
+    checkedMap,
+  } = panelProps
 
   return (
     <>
       <AddSourceDialog
         open={dialogOpen}
         isBusy={isBusy}
-        onClose={() => setDialogOpen(false)}
+        onClose={onDialogClose}
         onCreateFile={onCreateFile}
         onCreateUrl={onCreateUrl}
         onCreateText={onCreateText}
@@ -573,7 +345,7 @@ export function SourcesPanel({
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => setDialogOpen(true)}
+                    onClick={onDialogOpen}
                     disabled={isBusy}
                     sx={{ borderStyle: 'dashed', textTransform: 'none', justifyContent: 'center' }}
                   >
@@ -741,5 +513,315 @@ export function SourcesPanel({
         </Paper>
       </Box>
     </>
+  )
+}
+
+const usePreviewInitialFocus = ({
+  previewState,
+  previewBodyRef,
+  previewInitialFocusPendingRef,
+}: {
+  previewState: SourcePreviewState | null
+  previewBodyRef: RefObject<HTMLDivElement | null>
+  previewInitialFocusPendingRef: MutableRefObject<boolean>
+}) => {
+  useEffect(() => {
+    if (!previewState || previewState.loading || previewState.error || previewState.notice) {
+      return
+    }
+    if (!previewInitialFocusPendingRef.current) {
+      return
+    }
+    if (!previewState.locator?.position && !previewState.focusRange && !previewState.highlightSnippet) {
+      previewInitialFocusPendingRef.current = false
+      return
+    }
+    const container = previewBodyRef.current
+    if (!container) {
+      return
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const scrollElementToVerticalCenter = (element: HTMLElement) => {
+        const containerRect = container.getBoundingClientRect()
+        const elementRect = element.getBoundingClientRect()
+        const deltaTop = elementRect.top - containerRect.top
+        const targetTop = container.scrollTop + deltaTop - container.clientHeight / 2 + elementRect.height / 2
+        const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0)
+        container.scrollTop = Math.min(Math.max(Math.round(targetTop), 0), maxScrollTop)
+        container.scrollLeft = 0
+      }
+
+      const rangeHighlightBlock = container.querySelector('[data-citation-range-highlight="true"]')
+      if (rangeHighlightBlock instanceof HTMLElement) {
+        scrollElementToVerticalCenter(rangeHighlightBlock)
+        previewInitialFocusPendingRef.current = false
+        return
+      }
+      const highlight = container.querySelector('mark')
+      if (highlight instanceof HTMLElement) {
+        scrollElementToVerticalCenter(highlight)
+        previewInitialFocusPendingRef.current = false
+        return
+      }
+
+      const start = previewState.locator?.position?.start
+      if (typeof start !== 'number' || !Number.isFinite(start)) {
+        return
+      }
+      const maxScrollTop = container.scrollHeight - container.clientHeight
+      if (maxScrollTop <= 0) {
+        return
+      }
+      const totalRunes = Math.max(Array.from(previewState.rawMarkdown).length, 1)
+      const ratio = Math.min(Math.max(start / totalRunes, 0), 1)
+      container.scrollTop = Math.round(maxScrollTop * ratio)
+      container.scrollLeft = 0
+      previewInitialFocusPendingRef.current = false
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [previewBodyRef, previewInitialFocusPendingRef, previewState])
+}
+
+export function SourcesPanel(props: SourcesPanelProps) {
+  const {
+    isHydrating,
+    loadingSkeletonCount,
+    sourceListItems,
+    previewRequest,
+  } = props
+  const queryClient = useQueryClient()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [previewState, setPreviewState] = useState<SourcePreviewState | null>(null)
+  const [treeState, setTreeState] = useState<SourceTreeState | null>(null)
+  const previewRequestSeqRef = useRef(0)
+  const treeRequestSeqRef = useRef(0)
+  const handledPreviewRequestIdRef = useRef<number>(0)
+  const previewBodyRef = useRef<HTMLDivElement | null>(null)
+  const previewInitialFocusPendingRef = useRef(false)
+  const skeletonItemCount = Math.max(loadingSkeletonCount, 0)
+  const showListLoadingSkeleton =
+    isHydrating && sourceListItems.length === 0 && skeletonItemCount > 0
+
+  const closeSourcePreview = () => {
+    previewRequestSeqRef.current += 1
+    previewInitialFocusPendingRef.current = false
+    setPreviewState(null)
+  }
+
+  const openSourcePreview = useCallback(async (
+    item: SourceListItem,
+    locator: ChatCitationJumpRequest | null = null,
+  ) => {
+    const requestSeq = previewRequestSeqRef.current + 1
+    previewRequestSeqRef.current = requestSeq
+    previewInitialFocusPendingRef.current = true
+
+    const sourceId = item.id
+    const sourceName = item.name
+    setPreviewState({
+      sourceId,
+      sourceName,
+      loading: true,
+      rawMarkdown: '',
+      markdown: '',
+      highlightSnippet: locator?.snippet?.trim() ?? '',
+      focusRange: null,
+      notice: '',
+      error: '',
+      locator,
+    })
+
+    try {
+      if (previewRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      const parsedContent = await queryClient.fetchQuery(
+        buildSourceParsedContentQueryOptions(sourceId),
+      )
+      if (previewRequestSeqRef.current === requestSeq) {
+        if (!parsedContent) {
+          setPreviewState({
+            sourceId,
+            sourceName,
+            loading: false,
+            rawMarkdown: '',
+            markdown: '',
+            highlightSnippet: locator?.snippet?.trim() ?? '',
+            focusRange: null,
+            notice: sourcePreviewEmptyNotice,
+            error: '',
+            locator,
+          })
+          return
+        }
+
+        let markdown = parsedContent.content?.trim() ?? ''
+        if (!markdown && parsedContent.url) {
+          markdown = await queryClient.fetchQuery(
+            buildSourceParsedContentUrlQueryOptions(parsedContent.url),
+          )
+          markdown = markdown.trim()
+          if (previewRequestSeqRef.current !== requestSeq) {
+            return
+          }
+        }
+
+        if (!markdown) {
+          setPreviewState({
+            sourceId,
+            sourceName,
+            loading: false,
+            rawMarkdown: '',
+            markdown: '',
+            highlightSnippet: locator?.snippet?.trim() ?? '',
+            focusRange: null,
+            notice: sourcePreviewEmptyNotice,
+            error: '',
+            locator,
+          })
+          return
+        }
+
+        let focusRange: HighlightRange | null = null
+        focusRange = resolveHighlightRangeByRunePosition(markdown, locator?.position)
+        if (!focusRange) {
+          focusRange = resolveHighlightRangeBySnippet(markdown, locator?.snippet)
+        }
+        const focusRangeRange = expandHighlightRangeToLineBoundaries(markdown, focusRange)
+        setPreviewState({
+          sourceId,
+          sourceName,
+          loading: false,
+          rawMarkdown: markdown,
+          markdown,
+          highlightSnippet: locator?.snippet?.trim() ?? '',
+          focusRange: focusRangeRange,
+          notice: '',
+          error: '',
+          locator,
+        })
+      }
+    } catch (error) {
+      if (previewRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      setPreviewState({
+        sourceId,
+        sourceName,
+        loading: false,
+        rawMarkdown: '',
+        markdown: '',
+        highlightSnippet: locator?.snippet?.trim() ?? '',
+        focusRange: null,
+        notice: '',
+        error: getSourcePreviewErrorMessage(error),
+        locator,
+      })
+    }
+  }, [queryClient])
+
+  const closeSourceTree = () => {
+    treeRequestSeqRef.current += 1
+    setTreeState(null)
+  }
+
+  const loadSourceTree = async (sourceId: string, sourceName: string) => {
+    const requestSeq = treeRequestSeqRef.current + 1
+    treeRequestSeqRef.current = requestSeq
+
+    setTreeState({
+      sourceId,
+      sourceName,
+      loading: true,
+      tree: null,
+      error: '',
+    })
+
+    try {
+      if (treeRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      const tree = await getSourceParsedTree(sourceId)
+      if (treeRequestSeqRef.current === requestSeq) {
+        setTreeState({
+          sourceId,
+          sourceName,
+          loading: false,
+          tree,
+          error: '',
+        })
+      }
+    } catch (error) {
+      if (treeRequestSeqRef.current !== requestSeq) {
+        return
+      }
+      setTreeState({
+        sourceId,
+        sourceName,
+        loading: false,
+        tree: null,
+        error: getSourcePreviewErrorMessage(error),
+      })
+    }
+  }
+
+  const openSourceTree = async (item: SourceListItem) => {
+    await loadSourceTree(item.id, item.name)
+  }
+
+  const retryOpenSourceTree = () => {
+    if (!treeState) {
+      return
+    }
+    void loadSourceTree(treeState.sourceId, treeState.sourceName)
+  }
+
+  useEffect(() => {
+    if (!previewRequest) {
+      return
+    }
+    if (handledPreviewRequestIdRef.current === previewRequest.requestId) {
+      return
+    }
+    const targetSource = sourceListItems.find((item) => item.id === previewRequest.sourceId)
+    if (!targetSource) {
+      return
+    }
+    handledPreviewRequestIdRef.current = previewRequest.requestId
+    const timer = window.setTimeout(() => {
+      void openSourcePreview(targetSource, previewRequest)
+    }, 0)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [openSourcePreview, previewRequest, sourceListItems])
+
+  usePreviewInitialFocus({
+    previewState,
+    previewBodyRef,
+    previewInitialFocusPendingRef,
+  })
+
+  return (
+    <SourcesPanelLayout
+      panelProps={props}
+      dialogOpen={dialogOpen}
+      onDialogOpen={() => setDialogOpen(true)}
+      onDialogClose={() => setDialogOpen(false)}
+      previewState={previewState}
+      treeState={treeState}
+      closeSourcePreview={closeSourcePreview}
+      closeSourceTree={closeSourceTree}
+      retryOpenSourceTree={retryOpenSourceTree}
+      showListLoadingSkeleton={showListLoadingSkeleton}
+      skeletonItemCount={skeletonItemCount}
+      openSourcePreview={openSourcePreview}
+      openSourceTree={openSourceTree}
+      previewBodyRef={previewBodyRef}
+    />
   )
 }

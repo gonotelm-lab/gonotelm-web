@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
-import {
-  ChatComposer,
-  ChatMessagesList,
-  ChatNotebookInfoHeader,
-  ChatPanelHeader,
-  ChatSettingsDialog,
-} from './components'
+import { ChatComposer } from './ChatComposer'
+import { ChatMessagesList } from './ChatMessagesList'
+import { ChatNotebookInfoHeader } from './ChatNotebookInfoHeader'
+import { ChatPanelHeader } from './ChatPanelHeader'
+import { ChatSettingsDialog } from './ChatSettingsDialog'
 import {
   chatAnswerLengthOptionList,
   chatStyleOptionList,
   type ChatAnswerLengthOption,
   type ChatStyleOption,
-} from './constants'
+} from './chatSettings'
 import type { ChatCitationJumpRequest } from './types'
-import { useChatConversation } from './hooks'
+import { useChatConversation } from './useChatConversation'
 import { chatPanelLayoutTokens } from './layoutTokens'
 
 const scrollToBottomButtonTokens = {
@@ -217,6 +215,7 @@ function ChatPanelContent({
       return
     }
     errorToastKeyRef.current += 1
+    // oxlint-disable-next-line react-doctor/no-derived-state -- Toast visibility is intentionally decoupled from source error text for manual dismissal.
     setErrorToast({
       key: errorToastKeyRef.current,
       message: errorText,
@@ -316,12 +315,14 @@ function ChatPanelContent({
         <ChatComposer
           value={composerValue}
           inputRef={chatInputRef}
-          isStreaming={isStreaming}
-          isInputDisabled={isInputDisabled}
-          isSubmitDisabled={submitDisabled}
-          isAbortDisabled={isAbortDisabled}
-          enableThinking={enableThinking}
-          isThinkingToggleDisabled={isThinkingToggleDisabled}
+          interactionState={{
+            isStreaming,
+            isInputDisabled,
+            isSubmitDisabled: submitDisabled,
+            isAbortDisabled,
+            enableThinking,
+            isThinkingToggleDisabled,
+          }}
           onValueChange={setComposerValue}
           onThinkingToggle={setEnableThinking}
           onKeyDown={onComposerKeyDown}

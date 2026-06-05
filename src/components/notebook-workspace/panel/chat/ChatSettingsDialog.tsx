@@ -1,5 +1,5 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { chatAnswerLengthOptionList, chatStyleOptionList, settingsToggleButtonSx, type ChatAnswerLengthOption, type ChatStyleOption } from './constants'
+import { chatAnswerLengthOptionList, chatStyleOptionList, settingsToggleButtonSx, type ChatAnswerLengthOption, type ChatStyleOption } from './chatSettings'
 
 interface ChatSettingsDialogProps {
   open: boolean

@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/http'
 import { setMockScenario } from '@/test/mocks'
 import {
+  cancelStudioArtifactTask,
+  deleteStudioArtifact,
   generateStudioArtifact,
   getStudioArtifactResult,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
+  retryStudioArtifactTask,
 } from './studio'
 
 describe('studio api with msw mock', () => {
@@ -32,6 +35,24 @@ describe('studio api with msw mock', () => {
 
     const result = await listNotebookStudioArtifacts('notebook-1')
     expect(result.artifacts).toHaveLength(0)
+  })
+
+  it('supports retry, cancel and delete actions', async () => {
+    const submitResp = await generateStudioArtifact({
+      notebook_id: 'notebook-1',
+      kind: 'mindmap',
+      source_ids: ['source-1'],
+    })
+
+    await retryStudioArtifactTask(submitResp.task_id)
+    const retryStatus = await getStudioArtifactStatus(submitResp.task_id)
+    expect(retryStatus.status).toBe('running')
+
+    await cancelStudioArtifactTask(submitResp.task_id)
+    const cancelStatus = await getStudioArtifactStatus(submitResp.task_id)
+    expect(cancelStatus.status).toBe('cancelled')
+
+    await deleteStudioArtifact(submitResp.task_id)
   })
 
   it('throws ApiError for server-error and timeout scenarios', async () => {

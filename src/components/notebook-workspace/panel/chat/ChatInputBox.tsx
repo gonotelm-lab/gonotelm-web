@@ -10,15 +10,19 @@ import {
   TextField,
 } from '@mui/material'
 
-interface ChatInputBoxProps {
-  value: string
-  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
+export interface ChatInputInteractionState {
   isStreaming: boolean
   isInputDisabled: boolean
   isSubmitDisabled: boolean
   isAbortDisabled: boolean
   enableThinking: boolean
   isThinkingToggleDisabled: boolean
+}
+
+interface ChatInputBoxProps {
+  value: string
+  inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
+  interactionState: ChatInputInteractionState
   leftControlsExtra?: ReactNode
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
@@ -64,12 +68,7 @@ const rightControlRowGap = 0.5
 export function ChatInputBox({
   value,
   inputRef,
-  isStreaming,
-  isInputDisabled,
-  isSubmitDisabled,
-  isAbortDisabled,
-  enableThinking,
-  isThinkingToggleDisabled,
+  interactionState,
   leftControlsExtra,
   rightControlsExtra,
   onValueChange,
@@ -78,6 +77,15 @@ export function ChatInputBox({
   onSend,
   onAbort,
 }: ChatInputBoxProps) {
+  const {
+    isStreaming,
+    isInputDisabled,
+    isSubmitDisabled,
+    isAbortDisabled,
+    enableThinking,
+    isThinkingToggleDisabled,
+  } = interactionState
+
   return (
     <Paper
       variant="outlined"

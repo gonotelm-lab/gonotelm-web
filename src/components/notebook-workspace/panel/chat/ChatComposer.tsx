@@ -1,18 +1,13 @@
 import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import { Box } from '@mui/material'
-import { ChatInputBox } from './ChatInputBox'
+import { ChatInputBox, type ChatInputInteractionState } from './ChatInputBox'
 
 const composerMarginTop = 2
 
 interface ChatComposerProps {
   value: string
   inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
-  isStreaming: boolean
-  isInputDisabled: boolean
-  isSubmitDisabled: boolean
-  isAbortDisabled: boolean
-  enableThinking: boolean
-  isThinkingToggleDisabled: boolean
+  interactionState: ChatInputInteractionState
   leftControlsExtra?: ReactNode
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
@@ -25,12 +20,7 @@ interface ChatComposerProps {
 export function ChatComposer({
   value,
   inputRef,
-  isStreaming,
-  isInputDisabled,
-  isSubmitDisabled,
-  isAbortDisabled,
-  enableThinking,
-  isThinkingToggleDisabled,
+  interactionState,
   leftControlsExtra,
   rightControlsExtra,
   onValueChange,
@@ -46,12 +36,7 @@ export function ChatComposer({
         inputRef={inputRef}
         onValueChange={onValueChange}
         onKeyDown={onKeyDown}
-        isStreaming={isStreaming}
-        isInputDisabled={isInputDisabled}
-        isSubmitDisabled={isSubmitDisabled}
-        isAbortDisabled={isAbortDisabled}
-        enableThinking={enableThinking}
-        isThinkingToggleDisabled={isThinkingToggleDisabled}
+        interactionState={interactionState}
         leftControlsExtra={leftControlsExtra}
         rightControlsExtra={rightControlsExtra}
         onSend={onSend}

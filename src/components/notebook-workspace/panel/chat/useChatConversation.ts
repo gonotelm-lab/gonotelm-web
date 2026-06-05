@@ -28,7 +28,7 @@ import {
   toCitationDetailsFromStreamCitation,
 } from './chatConversationCommon'
 import { buildLiveMessagesAfterAbortRefresh, mapHistoryPagesToUiMessages } from './chatStreamDraftRetention'
-import type { ChatAnswerLengthOption, ChatStyleOption } from './constants'
+import type { ChatAnswerLengthOption, ChatStyleOption } from './chatSettings'
 import type { ChatUiMessage } from './types'
 import { useAssistantChunkBuffer } from './useAssistantChunkBuffer'
 import { useChatScrollControl } from './useChatScrollControl'
@@ -209,6 +209,23 @@ export function useChatConversation({
   )
 
   const isStreaming = Boolean(activeTaskId)
+  const invalidateStreamRunToken = useCallback(() => {
+    streamRunTokenRef.current += 1
+  }, [])
+  const abortActiveStreamController = useCallback(() => {
+    const activeController = streamAbortControllerRef.current
+    if (!activeController) {
+      return
+    }
+    activeController.abort()
+    streamAbortControllerRef.current = null
+  }, [])
+  const resetStreamAbortController = useCallback(() => {
+    streamAbortControllerRef.current = null
+  }, [])
+  const setAbortRequestedFlag = useCallback((requested: boolean) => {
+    abortRequestedRef.current = requested
+  }, [])
 
   /**
    * Re-syncs UI with server history after a stream session settles.
@@ -238,10 +255,9 @@ export function useChatConversation({
   useEffect(() => {
     return () => {
       // Unmount cleanup invalidates in-flight stream work and removes UI timers/buffers.
-      streamRunTokenRef.current += 1
-      streamAbortControllerRef.current?.abort()
-      streamAbortControllerRef.current = null
-      abortRequestedRef.current = false
+      invalidateStreamRunToken()
+      abortActiveStreamController()
+      setAbortRequestedFlag(false)
       clearStreamStatusSchedule()
       stopScrollToBottomAnimation()
       clearPendingAssistantChunkBuffer()
@@ -249,9 +265,12 @@ export function useChatConversation({
       resetScrollControl()
     }
   }, [
+    abortActiveStreamController,
     clearPendingAssistantChunkBuffer,
     clearCopyFeedback,
     clearStreamStatusSchedule,
+    invalidateStreamRunToken,
+    setAbortRequestedFlag,
     resetScrollControl,
     stopScrollToBottomAnimation,
   ])
@@ -329,14 +348,16 @@ export function useChatConversation({
       setActiveTaskId(taskId)
       clearStreamStatusSchedule()
       applyStreamStatusImmediately(null, '')
-      abortRequestedRef.current = false
+      setAbortRequestedFlag(false)
 
       // Retry stream connection until success/abort/limit, but only while this run token is still current.
       while (runToken === streamRunTokenRef.current) {
         try {
           const controller = new AbortController()
           streamAbortControllerRef.current = controller
+          let shouldStopAfterStream = false
 
+          // oxlint-disable-next-line react-doctor/async-await-in-loop -- reconnect attempts must stay sequential for one stream session.
           await streamChatEvents({
             id: chatId,
             task_id: taskId,
@@ -393,18 +414,20 @@ export function useChatConversation({
             },
           })
 
-          if (abortRequestedRef.current || finished) {
+          shouldStopAfterStream = abortRequestedRef.current || finished
+          if (!shouldStopAfterStream) {
+            if (reconnectCount >= streamReconnectMaxRetries) {
+              setErrorText('流式连接中断，请稍后重试。')
+              break
+            }
+            reconnectCount += 1
+            clearStreamStatusSchedule()
+            applyStreamStatusImmediately(null, '')
+            await sleep(streamReconnectDelayMs)
+          }
+          if (shouldStopAfterStream) {
             break
           }
-
-          if (reconnectCount >= streamReconnectMaxRetries) {
-            setErrorText('流式连接中断，请稍后重试。')
-            break
-          }
-          reconnectCount += 1
-          clearStreamStatusSchedule()
-          applyStreamStatusImmediately(null, '')
-          await sleep(streamReconnectDelayMs)
         } catch (error) {
           if (error instanceof DOMException && error.name === 'AbortError') {
             break
@@ -438,8 +461,8 @@ export function useChatConversation({
       setStreamStatus('')
       setStreamPhaseType(null)
       resetLastStreamStatusAt()
-      streamAbortControllerRef.current = null
-      abortRequestedRef.current = false
+      resetStreamAbortController()
+      setAbortRequestedFlag(false)
       clearPendingAssistantChunkBuffer()
       await refreshHistoryAfterStream({ preserveAssistantDraftOnAbort })
     },
@@ -454,7 +477,9 @@ export function useChatConversation({
       queueAssistantChunk,
       queueStreamStatus,
       refreshHistoryAfterStream,
+      resetStreamAbortController,
       resetLastStreamStatusAt,
+      setAbortRequestedFlag,
     ],
   )
 
@@ -527,7 +552,7 @@ export function useChatConversation({
     setErrorText('')
     setFinishReasonNotice('')
     setStreamStatus('正在终止...')
-    abortRequestedRef.current = true
+    setAbortRequestedFlag(true)
 
     try {
       await abortStreamMutation.mutateAsync({
@@ -537,9 +562,15 @@ export function useChatConversation({
     } catch (error) {
       setErrorText(getErrorMessage(error))
     } finally {
-      streamAbortControllerRef.current?.abort()
+      abortActiveStreamController()
     }
-  }, [abortStreamMutation, activeTaskId, chatId])
+  }, [
+    abortActiveStreamController,
+    abortStreamMutation,
+    activeTaskId,
+    chatId,
+    setAbortRequestedFlag,
+  ])
 
   const handleMessageListScroll = useCallback(() => {
     const container = messageListRef.current

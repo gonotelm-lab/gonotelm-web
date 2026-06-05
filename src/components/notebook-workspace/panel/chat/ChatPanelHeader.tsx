@@ -3,7 +3,7 @@ import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArro
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
-import { panelTitleSx, panelTitleVariant } from '../../shared/ui'
+import { panelTitleSx, panelTitleVariant } from '../../shared/ui/panelStyles'
 
 const chatHeaderStackSpacing = 0.5
 const sidePanelToggleButtonTokens = {

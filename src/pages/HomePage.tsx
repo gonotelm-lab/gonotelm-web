@@ -22,10 +22,13 @@ export function HomePage() {
   const queryClient = useQueryClient()
   const [sortBy, setSortBy] = useState<ListNotebooksSortBy>('create_time')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [createNotebookNameDraft, setCreateNotebookNameDraft] = useState('')
-  const [createNotebookErrorMessage, setCreateNotebookErrorMessage] = useState<string | null>(
-    null,
-  )
+  const [createDialogState, setCreateDialogState] = useState<{
+    draftName: string
+    errorMessage: string | null
+  }>({
+    draftName: '',
+    errorMessage: null,
+  })
   const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null)
 
   const notebooksQuery = useQuery({
@@ -43,7 +46,7 @@ export function HomePage() {
   const notebookItems = notebooksQuery.data?.notebooks ?? []
 
   const handleOpenCreateDialog = () => {
-    setCreateNotebookErrorMessage(null)
+    setCreateDialogState((prev) => ({ ...prev, errorMessage: null }))
     setIsCreateDialogOpen(true)
   }
 
@@ -51,29 +54,28 @@ export function HomePage() {
     if (createNotebookMutation.isPending) {
       return
     }
-    setCreateNotebookErrorMessage(null)
-    setCreateNotebookNameDraft('')
+    setCreateDialogState({ draftName: '', errorMessage: null })
     setIsCreateDialogOpen(false)
   }
 
   const handleCreateNotebook = async (mode: 'with-name' | 'later') => {
-    setCreateNotebookErrorMessage(null)
+    setCreateDialogState((prev) => ({ ...prev, errorMessage: null }))
 
     try {
-      const payload = buildCreateNotebookRequest(createNotebookNameDraft, mode)
+      const payload = buildCreateNotebookRequest(createDialogState.draftName, mode)
       const result = await createNotebookMutation.mutateAsync(payload)
 
       setIsCreateDialogOpen(false)
-      setCreateNotebookNameDraft('')
+      setCreateDialogState({ draftName: '', errorMessage: null })
       void queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
       navigate(`/notebook/${result.id}`)
     } catch (error) {
       // 保留输入和弹窗上下文，让用户可直接重试。
       if (error instanceof Error && error.message.trim()) {
-        setCreateNotebookErrorMessage(error.message)
+        setCreateDialogState((prev) => ({ ...prev, errorMessage: error.message }))
         return
       }
-      setCreateNotebookErrorMessage('创建失败，请稍后重试')
+      setCreateDialogState((prev) => ({ ...prev, errorMessage: '创建失败，请稍后重试' }))
     }
   }
 
@@ -150,10 +152,12 @@ export function HomePage() {
       </Stack>
       <CreateNotebookDialog
         open={isCreateDialogOpen}
-        draftName={createNotebookNameDraft}
+        draftName={createDialogState.draftName}
         submitting={createNotebookMutation.isPending}
-        errorMessage={createNotebookErrorMessage}
-        onDraftNameChange={setCreateNotebookNameDraft}
+        errorMessage={createDialogState.errorMessage}
+        onDraftNameChange={(value) => {
+          setCreateDialogState((prev) => ({ ...prev, draftName: value }))
+        }}
         onClose={handleCloseCreateDialog}
         onCreateWithName={() => {
           void handleCreateNotebook('with-name')

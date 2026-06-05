@@ -66,16 +66,9 @@ const consumeSseBuffer = (
   buffer: string,
   onEvent: (eventType: string, event: ChatMessageStreamEvent) => void,
 ): string => {
-  let rest = buffer
-
-  while (true) {
-    const separatorIndex = rest.indexOf('\n\n')
-    if (separatorIndex === -1) {
-      break
-    }
-
-    const frame = rest.slice(0, separatorIndex)
-    rest = rest.slice(separatorIndex + 2)
+  const frames = buffer.split('\n\n')
+  const rest = frames.pop() ?? ''
+  for (const frame of frames) {
     const parsed = parseSseFrame(frame)
     if (!parsed) {
       continue
@@ -145,7 +138,7 @@ export function deleteChatContext(chatId: string) {
   })
 }
 
-export function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
+function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
   const query = new URLSearchParams()
   query.set('task_id', params.task_id)
   if (params.last_stream_id) {
@@ -192,6 +185,7 @@ export async function streamChatEvents(options: StreamChatEventsOptions) {
   let buffer = ''
 
   while (true) {
+    // oxlint-disable-next-line react-doctor/async-await-in-loop -- a single stream reader must consume chunks in order.
     const { done, value } = await reader.read()
     if (done) {
       buffer += decoder.decode()

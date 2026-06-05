@@ -10,7 +10,6 @@ import type {
 import type { ChatUiCitationDetail, ChatUiCitationPosition, ChatUiMessage } from './types'
 
 export const chatMessagesPageLimit = 20
-export const scrollLoadTopThresholdPx = 260
 export const showScrollToBottomButtonThresholdPx = 80
 export const scrollToBottomAnimationDurationMs = 460
 export const streamReconnectDelayMs = 600
@@ -143,7 +142,7 @@ export const formatCitationPositionText = (
   return `${normalizedPosition.start} - ${normalizedPosition.end}`
 }
 
-export const toCitationDetailsFromMessageCitation = (
+const toCitationDetailsFromMessageCitation = (
   citation?: ChatMessageCitation,
 ): ChatUiCitationDetail[] => {
   if (!citation || citation.length === 0) {

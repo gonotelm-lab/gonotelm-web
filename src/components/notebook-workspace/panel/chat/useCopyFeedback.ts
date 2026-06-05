@@ -17,23 +17,21 @@ export function useCopyFeedback({
 }: UseCopyFeedbackParams): UseCopyFeedbackResult {
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null)
   const copyFeedbackTimerRef = useRef<number | null>(null)
-
-  const clearCopyFeedback = useCallback(() => {
+  const clearCopyFeedbackTimer = useCallback(() => {
     if (copyFeedbackTimerRef.current !== null) {
       window.clearTimeout(copyFeedbackTimerRef.current)
       copyFeedbackTimerRef.current = null
     }
-    setCopiedUserMessageId(null)
   }, [])
 
+  const clearCopyFeedback = useCallback(() => {
+    clearCopyFeedbackTimer()
+    setCopiedUserMessageId(null)
+  }, [clearCopyFeedbackTimer])
+
   useEffect(() => {
-    return () => {
-      if (copyFeedbackTimerRef.current !== null) {
-        window.clearTimeout(copyFeedbackTimerRef.current)
-        copyFeedbackTimerRef.current = null
-      }
-    }
-  }, [])
+    return clearCopyFeedbackTimer
+  }, [clearCopyFeedbackTimer])
 
   const onCopyUserMessage = useCallback(
     (messageId: string, text: string) => {
@@ -44,9 +42,7 @@ export function useCopyFeedback({
         try {
           await writeTextWithFallback(normalized)
           setCopiedUserMessageId(messageId)
-          if (copyFeedbackTimerRef.current !== null) {
-            window.clearTimeout(copyFeedbackTimerRef.current)
-          }
+          clearCopyFeedbackTimer()
           copyFeedbackTimerRef.current = window.setTimeout(() => {
             setCopiedUserMessageId((prev) => (prev === messageId ? null : prev))
             copyFeedbackTimerRef.current = null
@@ -58,7 +54,7 @@ export function useCopyFeedback({
 
       void copy()
     },
-    [setErrorText],
+    [clearCopyFeedbackTimer, setErrorText],
   )
 
   return {

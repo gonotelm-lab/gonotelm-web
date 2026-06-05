@@ -34,13 +34,20 @@ const hasAssistantTextInHistory = (
  * Normalizes paginated history payload into chronological UI messages.
  * API returns latest-first, but chat list expects oldest-first order.
  */
-export const mapHistoryPagesToUiMessages = (pages: ChatListMessagesResponse[]) =>
-  pages
-    .slice()
-    // API pages and message arrays are newest-first; UI list renders oldest-first for chat chronology.
-    .reverse()
-    .flatMap((page) => page.messages.slice().reverse())
-    .map(mapChatItemToUiMessage)
+export const mapHistoryPagesToUiMessages = (pages: ChatListMessagesResponse[]) => {
+  const messages: ChatUiMessage[] = []
+  // API pages and message arrays are newest-first; UI list renders oldest-first for chat chronology.
+  for (let pageIndex = pages.length - 1; pageIndex >= 0; pageIndex -= 1) {
+    const pageMessages = pages[pageIndex]?.messages ?? []
+    for (let messageIndex = pageMessages.length - 1; messageIndex >= 0; messageIndex -= 1) {
+      const item = pageMessages[messageIndex]
+      if (item) {
+        messages.push(mapChatItemToUiMessage(item))
+      }
+    }
+  }
+  return messages
+}
 
 /**
  * Preserves the latest local assistant draft after abort if it was not

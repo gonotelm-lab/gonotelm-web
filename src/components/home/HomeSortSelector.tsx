@@ -13,7 +13,7 @@ interface HomeSortSelectorProps {
 }
 
 export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
-  const handleChange = (event: SelectChangeEvent<ListNotebooksSortBy>) => {
+  const handleSortByChange = (event: SelectChangeEvent<ListNotebooksSortBy>) => {
     onChange(event.target.value as ListNotebooksSortBy)
   }
 
@@ -21,7 +21,7 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
     <FormControl size="small" sx={{ minWidth: 84 }}>
       <Select
         value={value}
-        onChange={handleChange}
+        onChange={handleSortByChange}
         IconComponent={KeyboardArrowDownRoundedIcon}
         sx={{
           height: 30,

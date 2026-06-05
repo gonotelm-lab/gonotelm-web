@@ -49,6 +49,12 @@ export function ChatNotebookInfoHeader({
 }: ChatNotebookInfoHeaderProps) {
   const [copied, setCopied] = useState(false)
   const copyResetTimerRef = useRef<number | null>(null)
+  const clearCopyResetTimer = useCallback(() => {
+    if (copyResetTimerRef.current) {
+      window.clearTimeout(copyResetTimerRef.current)
+      copyResetTimerRef.current = null
+    }
+  }, [])
   const title = notebookName.trim() || fallbackNotebookName
   const description = notebookDescription.trim()
   const sourceCountLabel = formatSourceCountLabel(notebookSourceCount)
@@ -61,24 +67,19 @@ export function ChatNotebookInfoHeader({
     if (!canCopy) return
     void navigator.clipboard.writeText(copyPayload).then(() => {
       setCopied(true)
-      if (copyResetTimerRef.current) {
-        window.clearTimeout(copyResetTimerRef.current)
-      }
+      clearCopyResetTimer()
       copyResetTimerRef.current = window.setTimeout(() => {
         setCopied(false)
+        copyResetTimerRef.current = null
       }, 1200)
     }).catch(() => {
       setCopied(false)
     })
-  }, [canCopy, copyPayload])
+  }, [canCopy, clearCopyResetTimer, copyPayload])
 
   useEffect(() => {
-    return () => {
-      if (copyResetTimerRef.current) {
-        window.clearTimeout(copyResetTimerRef.current)
-      }
-    }
-  }, [])
+    return clearCopyResetTimer
+  }, [clearCopyResetTimer])
 
   return (
     <Box

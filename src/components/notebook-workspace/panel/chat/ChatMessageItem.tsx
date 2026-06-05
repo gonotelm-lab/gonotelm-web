@@ -22,7 +22,7 @@ import {
   resolveCitationTypeLabel,
 } from './chatConversationCommon'
 import { chatMessageContentTokens } from './layoutTokens'
-import { MarkdownRenderer } from '../../shared/markdown'
+import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
 import type { ChatCitationJumpRequest, ChatUiCitationDetail, ChatUiMessage } from './types'
 
 const actionIconSize = 16
@@ -148,12 +148,14 @@ export const ChatMessageItem = memo(function ChatMessageItem({
    */
   const fetchCitationDoc = useCallback(async (sourceId: string, docId: string, fetchSeq: number) => {
     try {
-      const sourceDoc = await queryClient.fetchQuery(buildSourceDocQueryOptions(sourceId, docId))
       if (citationFetchSeqRef.current !== fetchSeq) {
         return
       }
-      setActiveCitationDoc(sourceDoc)
-      setCitationLoadError('')
+      const sourceDoc = await queryClient.fetchQuery(buildSourceDocQueryOptions(sourceId, docId))
+      if (citationFetchSeqRef.current === fetchSeq) {
+        setActiveCitationDoc(sourceDoc)
+        setCitationLoadError('')
+      }
     } catch {
       if (citationFetchSeqRef.current !== fetchSeq) {
         return

@@ -9,6 +9,7 @@ interface StudioTaskSnapshot {
   notebookId: string
   kind: string
   sourceCount: number
+  status: string
 }
 
 const studioTaskStore = new Map<string, StudioTaskSnapshot>()
@@ -41,6 +42,7 @@ export const studioHandlers = [
       notebookId: requestBody.notebook_id ?? 'unknown',
       kind: requestBody.kind ?? 'mindmap',
       sourceCount,
+      status: 'completed',
     })
 
     return resolveScenarioResponse({
@@ -56,12 +58,13 @@ export const studioHandlers = [
   http.get(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/status`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
+    const snapshot = studioTaskStore.get(taskId)
 
     return resolveScenarioResponse({
       scenario,
       successData: {
         task_id: taskId,
-        status: 'completed',
+        status: snapshot?.status ?? 'completed',
       },
       emptyData: {
         task_id: taskId,
@@ -81,7 +84,7 @@ export const studioHandlers = [
       successData: {
         notebook_id: notebookId,
         task_id: taskId,
-        status: 'completed',
+        status: snapshot?.status ?? 'completed',
         content: buildMindmapContent(taskId, notebookId, sourceCount),
         content_kind: 'inline',
       },
@@ -92,6 +95,51 @@ export const studioHandlers = [
         content: '',
         content_kind: 'inline',
       },
+    })
+  }),
+  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/retry`, async ({ params }) => {
+    const scenario = getMockScenario('studio')
+    const taskId = String(params.taskId ?? '')
+    const snapshot = studioTaskStore.get(taskId)
+    if (snapshot) {
+      studioTaskStore.set(taskId, {
+        ...snapshot,
+        status: 'running',
+      })
+    }
+
+    return resolveScenarioResponse({
+      scenario,
+      successData: null,
+      emptyData: null,
+    })
+  }),
+  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/cancel`, async ({ params }) => {
+    const scenario = getMockScenario('studio')
+    const taskId = String(params.taskId ?? '')
+    const snapshot = studioTaskStore.get(taskId)
+    if (snapshot) {
+      studioTaskStore.set(taskId, {
+        ...snapshot,
+        status: 'cancelled',
+      })
+    }
+
+    return resolveScenarioResponse({
+      scenario,
+      successData: null,
+      emptyData: null,
+    })
+  }),
+  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/delete`, async ({ params }) => {
+    const scenario = getMockScenario('studio')
+    const taskId = String(params.taskId ?? '')
+    studioTaskStore.delete(taskId)
+
+    return resolveScenarioResponse({
+      scenario,
+      successData: null,
+      emptyData: null,
     })
   }),
   http.get(`${apiBaseUrl}/api/v1/notebook/:notebookId/studio/artifact/list`, async ({ params }) => {

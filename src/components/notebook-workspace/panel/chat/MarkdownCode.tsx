@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
@@ -80,16 +80,19 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
   const copiedTimerRef = useRef<number | null>(null)
   const codeText = useMemo(() => String(children ?? '').replace(/\n$/, ''), [children])
   const language = useMemo(() => detectLanguage(className), [className])
+  const clearCopiedTimer = useCallback(() => {
+    if (copiedTimerRef.current !== null) {
+      window.clearTimeout(copiedTimerRef.current)
+      copiedTimerRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
       // Clear pending feedback timer to avoid state updates after component unmount.
-      if (copiedTimerRef.current !== null) {
-        window.clearTimeout(copiedTimerRef.current)
-        copiedTimerRef.current = null
-      }
+      clearCopiedTimer()
     }
-  }, [])
+  }, [clearCopiedTimer])
 
   if (inline || !className) {
     return (
@@ -156,9 +159,7 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
                     await copyToClipboard(codeText)
                     setCopied(true)
                     // Reset the previous timer so rapid clicks always keep the latest feedback window.
-                    if (copiedTimerRef.current !== null) {
-                      window.clearTimeout(copiedTimerRef.current)
-                    }
+                    clearCopiedTimer()
                     copiedTimerRef.current = window.setTimeout(() => {
                       setCopied(false)
                       copiedTimerRef.current = null

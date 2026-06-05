@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded'
 import { Alert, Box, IconButton, Tooltip } from '@mui/material'
 import type { Edge, Network as VisNetwork, Node, Options } from 'vis-network'
@@ -134,7 +134,7 @@ const buildNodeVisualByDepth = (depth: number) => {
   }
 }
 
-export function MindmapCanvas({
+function MindmapCanvasInner({
   mermaid,
   spacingPreset = 'default',
   height = 440,
@@ -143,9 +143,9 @@ export function MindmapCanvas({
   const networkRef = useRef<VisNetwork | null>(null)
   const hasInitializedViewportRef = useRef(false)
   const [networkReadyVersion, setNetworkReadyVersion] = useState(0)
-  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(
-    () => new Set(),
-  )
+  const setNetworkInstance = useCallback((instance: VisNetwork | null) => {
+    networkRef.current = instance
+  }, [])
 
   const parsedMindmap = useMemo(
     () => parseMermaidMindmap(mermaid),
@@ -165,6 +165,9 @@ export function MindmapCanvas({
     })
     return next
   }, [parsedMindmap.childIdsByNodeId, parsedMindmap.nodes])
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(
+    () => new Set(defaultCollapsedNodeIds),
+  )
 
   const hiddenNodeIds = useMemo(
     () => buildHiddenNodeIds(collapsedNodeIds, parsedMindmap),
@@ -173,47 +176,50 @@ export function MindmapCanvas({
 
   const visibleGraphData = useMemo(() => {
     const visibleNodeIds = new Set<string>()
-    const nodes: Node[] = parsedMindmap.nodes
-      .filter((node) => !hiddenNodeIds.has(node.id))
-      .map((node) => {
-        visibleNodeIds.add(node.id)
-        const childCount = parsedMindmap.childIdsByNodeId[node.id]?.length ?? 0
-        const hasChildren = childCount > 0
-        const collapsed = hasChildren && collapsedNodeIds.has(node.id)
-        const nodeVisual = buildNodeVisualByDepth(node.depth)
-        const collapsedPrefix = hasChildren
-          ? collapsed
-            ? '▶ '
-            : '▼ '
-          : ''
+    const nodes: Node[] = []
+    for (const node of parsedMindmap.nodes) {
+      if (hiddenNodeIds.has(node.id)) {
+        continue
+      }
+      visibleNodeIds.add(node.id)
+      const childCount = parsedMindmap.childIdsByNodeId[node.id]?.length ?? 0
+      const hasChildren = childCount > 0
+      const collapsed = hasChildren && collapsedNodeIds.has(node.id)
+      const nodeVisual = buildNodeVisualByDepth(node.depth)
+      const collapsedPrefix = hasChildren
+        ? collapsed
+          ? '▶ '
+          : '▼ '
+        : ''
 
-        return {
-          id: node.id,
-          label: `${collapsedPrefix}${node.label}`,
-          level: node.depth,
-          borderWidth: 1.2,
-          color: {
-            border: nodeVisual.border,
-            background: nodeVisual.background,
-          },
-          font: {
-            color: nodeVisual.fontColor,
-            size: nodeVisual.fontSize,
-            bold: nodeVisual.fontWeight,
-          },
-        }
+      nodes.push({
+        id: node.id,
+        label: `${collapsedPrefix}${node.label}`,
+        level: node.depth,
+        borderWidth: 1.2,
+        color: {
+          border: nodeVisual.border,
+          background: nodeVisual.background,
+        },
+        font: {
+          color: nodeVisual.fontColor,
+          size: nodeVisual.fontSize,
+          bold: nodeVisual.fontWeight,
+        },
       })
+    }
 
-    const edges: Edge[] = parsedMindmap.edges
-      .filter(
-        (edge) =>
-          visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to),
-      )
-      .map((edge) => ({
+    const edges: Edge[] = []
+    for (const edge of parsedMindmap.edges) {
+      if (!visibleNodeIds.has(edge.from) || !visibleNodeIds.has(edge.to)) {
+        continue
+      }
+      edges.push({
         id: edge.id,
         from: edge.from,
         to: edge.to,
-      }))
+      })
+    }
 
     return {
       nodes,
@@ -249,7 +255,7 @@ export function MindmapCanvas({
         },
         graphOptions,
       )
-      networkRef.current = network
+      setNetworkInstance(network)
 
       handleClick = (event: unknown) => {
         if (
@@ -292,9 +298,9 @@ export function MindmapCanvas({
         network.off('click', handleClick)
       }
       network?.destroy()
-      networkRef.current = null
+      setNetworkInstance(null)
     }
-  }, [graphOptions, parsedMindmap.childIdsByNodeId])
+  }, [graphOptions, parsedMindmap.childIdsByNodeId, setNetworkInstance])
 
   useEffect(() => {
     const network = networkRef.current
@@ -345,12 +351,6 @@ export function MindmapCanvas({
     visibleGraphData.nodes,
   ])
 
-  useEffect(() => {
-    // mindmap 内容切换后，下一轮数据渲染重新执行初次定位到根节点。
-    hasInitializedViewportRef.current = false
-    setCollapsedNodeIds(new Set(defaultCollapsedNodeIds))
-  }, [defaultCollapsedNodeIds])
-
   const handleResetView = () => {
     hasInitializedViewportRef.current = false
     setCollapsedNodeIds(new Set(defaultCollapsedNodeIds))
@@ -362,6 +362,8 @@ export function MindmapCanvas({
 
   return (
     <Box
+      data-network-ready-version={networkReadyVersion}
+      data-collapsed-node-count={collapsedNodeIds.size}
       sx={{
         height,
         borderRadius: 1.5,
@@ -398,5 +400,15 @@ export function MindmapCanvas({
         sx={{ width: '100%', height: '100%' }}
       />
     </Box>
+  )
+}
+
+export function MindmapCanvas(props: MindmapCanvasProps) {
+  const resetKey = `${props.spacingPreset ?? 'default'}:${props.mermaid}`
+  return (
+    <MindmapCanvasInner
+      key={resetKey}
+      {...props}
+    />
   )
 }

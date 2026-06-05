@@ -4,7 +4,7 @@ const failedTaskStatusSet = new Set(['failed', 'cancelled', 'expired'])
 const pendingTaskStatusSet = new Set(['pending', 'running'])
 export type StudioArtifactVisualStatus = 'queued' | 'polling' | 'succeeded' | 'failed'
 
-export const normalizeStudioTaskStatus = (status: StudioArtifactTaskStatus) =>
+const normalizeStudioTaskStatus = (status: StudioArtifactTaskStatus) =>
   String(status || '').trim().toLowerCase()
 
 export const isStudioTaskCompleted = (status: StudioArtifactTaskStatus) =>
@@ -13,8 +13,14 @@ export const isStudioTaskCompleted = (status: StudioArtifactTaskStatus) =>
 export const isStudioTaskFailed = (status: StudioArtifactTaskStatus) =>
   failedTaskStatusSet.has(normalizeStudioTaskStatus(status))
 
+export const isStudioTaskRetryable = (status: StudioArtifactTaskStatus) =>
+  normalizeStudioTaskStatus(status) === 'failed'
+
 export const shouldStudioTaskKeepPolling = (status: StudioArtifactTaskStatus) =>
   pendingTaskStatusSet.has(normalizeStudioTaskStatus(status))
+
+export const isStudioTaskRunning = (status: StudioArtifactTaskStatus) =>
+  normalizeStudioTaskStatus(status) === 'running'
 
 export const toArtifactVisualStatus = (
   status: StudioArtifactTaskStatus,

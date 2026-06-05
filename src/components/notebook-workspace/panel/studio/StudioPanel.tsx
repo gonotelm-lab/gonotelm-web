@@ -11,12 +11,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import {
-  panelTitleSx,
-  panelTitleToBodySpacing,
-  panelTitleVariant,
-  subtleScrollbarSx,
-} from '../../shared'
+import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
+import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
 import { StudioToolCard } from './components/StudioToolCard'
@@ -61,6 +57,9 @@ export function StudioPanel({
     reloadHistoryArtifacts,
     submitArtifactTask,
     retryArtifact,
+    cancelArtifact,
+    deleteArtifact,
+    isArtifactActionPending,
     openArtifactPreview,
     retryPreviewLoad,
     closePreviewOverlay,
@@ -182,13 +181,18 @@ export function StudioPanel({
                   key={item.id}
                   item={item}
                   previewLoading={previewState.loading && previewState.targetId === item.id}
-                  retryDisabled={Boolean(pendingActions['generate-mindmap'])}
                   onPreview={openArtifactPreview}
+                  retryPending={isArtifactActionPending(item.id, 'retry')}
+                  cancelPending={isArtifactActionPending(item.id, 'cancel')}
+                  deletePending={isArtifactActionPending(item.id, 'delete')}
                   onRetry={(target) => {
-                    retryArtifact({
-                      item: target,
-                      fallbackSourceIds: selectedReadySourceIds,
-                    })
+                    void retryArtifact(target)
+                  }}
+                  onCancel={(target) => {
+                    void cancelArtifact(target)
+                  }}
+                  onDelete={(target) => {
+                    void deleteArtifact(target)
                   }}
                 />
               ))}

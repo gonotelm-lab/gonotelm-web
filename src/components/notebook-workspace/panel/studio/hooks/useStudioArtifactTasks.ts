@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  cancelStudioArtifactTask,
+  deleteStudioArtifact,
   generateStudioArtifact,
   getStudioArtifactResult,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
   loadStudioArtifactContentFromUrl,
+  retryStudioArtifactTask,
 } from '@/api/studio'
 import { useAdaptivePollingLoop } from '@/components/notebook-workspace/hooks/useAdaptivePollingLoop'
 import { ApiError } from '@/lib/http'
@@ -17,6 +20,8 @@ import {
   buildTaskFailedMessage,
   isStudioTaskCompleted,
   isStudioTaskFailed,
+  isStudioTaskRetryable,
+  isStudioTaskRunning,
   shouldStudioTaskKeepPolling,
   toArtifactVisualStatus,
 } from '../artifactStatus'
@@ -25,9 +30,15 @@ import type { StudioArtifactItem, StudioToolActionId } from '../types'
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
 const studioArtifactListPageSize = 50
+type StudioArtifactItemAction = 'retry' | 'cancel' | 'delete'
 
 const createLocalArtifactId = () =>
   `studio-local-${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+const buildArtifactActionKey = (
+  itemId: string,
+  action: StudioArtifactItemAction,
+) => `${itemId}:${action}`
 
 const buildStudioErrorMessage = (
   error: unknown,
@@ -40,20 +51,6 @@ const buildStudioErrorMessage = (
     return error.message
   }
   return fallback
-}
-
-const inferArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId => {
-  if (String(kind).toLowerCase() === 'mindmap') {
-    return 'generate-mindmap'
-  }
-  return 'generate-mindmap'
-}
-
-const inferArtifactTitle = (kind: StudioArtifactKind) => {
-  if (String(kind).toLowerCase() === 'mindmap') {
-    return 'Mind Map'
-  }
-  return 'Artifact'
 }
 
 const toHistoryArtifactItem = (
@@ -97,11 +94,6 @@ interface SubmitStudioArtifactTaskParams {
   actionId: StudioToolActionId
 }
 
-interface RetryStudioArtifactTaskParams {
-  item: StudioArtifactItem
-  fallbackSourceIds: string[]
-}
-
 const defaultPreviewState: StudioPreviewState = {
   open: false,
   targetId: '',
@@ -118,6 +110,9 @@ export function useStudioArtifactTasks({
   const [historyError, setHistoryError] = useState('')
   const [pendingActions, setPendingActions] = useState<
     Partial<Record<StudioToolActionId, boolean>>
+  >({})
+  const [pendingArtifactActions, setPendingArtifactActions] = useState<
+    Record<string, boolean>
   >({})
   const [previewState, setPreviewState] = useState<StudioPreviewState>(
     defaultPreviewState,
@@ -140,32 +135,51 @@ export function useStudioArtifactTasks({
     artifactItemsRef.current = artifactItems
   }, [artifactItems])
 
+  const setArtifactActionPending = useCallback(
+    (itemId: string, action: StudioArtifactItemAction, pending: boolean) => {
+      const actionKey = buildArtifactActionKey(itemId, action)
+      setPendingArtifactActions((prev) => {
+        if (pending) {
+          return { ...prev, [actionKey]: true }
+        }
+        if (!prev[actionKey]) {
+          return prev
+        }
+        const next = { ...prev }
+        delete next[actionKey]
+        return next
+      })
+    },
+    [],
+  )
+
   const applyTaskResult = useCallback(
     async (taskId: string, notebookSnapshot: string) => {
       try {
-        const result = await getStudioArtifactResult(taskId)
         if (activeNotebookIdRef.current !== notebookSnapshot) {
           return
         }
-
-        const itemStatus = toArtifactVisualStatus(result.status)
-        setArtifactItems((prev) =>
-          prev.map((item) =>
-            item.id === taskId
-              ? {
-                  ...item,
-                  status: result.status,
-                  error:
-                    itemStatus === 'failed'
-                      ? buildTaskFailedMessage(result.status)
-                      : '',
-                  content: result.content ?? '',
-                  contentUrl: result.content_url ?? '',
-                  contentKind: result.content_kind ?? 'inline',
-                }
-              : item,
-          ),
-        )
+        const result = await getStudioArtifactResult(taskId)
+        if (activeNotebookIdRef.current === notebookSnapshot) {
+          const itemStatus = toArtifactVisualStatus(result.status)
+          setArtifactItems((prev) =>
+            prev.map((item) =>
+              item.id === taskId
+                ? {
+                    ...item,
+                    status: result.status,
+                    error:
+                      itemStatus === 'failed'
+                        ? buildTaskFailedMessage(result.status)
+                        : '',
+                    content: result.content ?? '',
+                    contentUrl: result.content_url ?? '',
+                    contentKind: result.content_kind ?? 'inline',
+                  }
+                : item,
+            ),
+          )
+        }
       } catch (error) {
         if (activeNotebookIdRef.current !== notebookSnapshot) {
           return
@@ -202,40 +216,37 @@ export function useStudioArtifactTasks({
       pendingItems.map(async (item) => {
         try {
           const statusResp = await getStudioArtifactStatus(item.taskId)
-          if (activeNotebookIdRef.current !== notebookSnapshot) {
-            return
-          }
+          if (activeNotebookIdRef.current === notebookSnapshot) {
+            if (isStudioTaskCompleted(statusResp.status)) {
+              return applyTaskResult(item.taskId, notebookSnapshot)
+            }
+            if (isStudioTaskFailed(statusResp.status)) {
+              setArtifactItems((prev) =>
+                prev.map((target) =>
+                  target.id === item.id
+                    ? {
+                        ...target,
+                        status: statusResp.status,
+                        error: buildTaskFailedMessage(statusResp.status),
+                      }
+                    : target,
+                ),
+              )
+              return
+            }
 
-          if (isStudioTaskCompleted(statusResp.status)) {
-            await applyTaskResult(item.taskId, notebookSnapshot)
-            return
-          }
-          if (isStudioTaskFailed(statusResp.status)) {
             setArtifactItems((prev) =>
               prev.map((target) =>
                 target.id === item.id
                   ? {
                       ...target,
                       status: statusResp.status,
-                      error: buildTaskFailedMessage(statusResp.status),
+                      error: '',
                     }
                   : target,
               ),
             )
-            return
           }
-
-          setArtifactItems((prev) =>
-            prev.map((target) =>
-              target.id === item.id
-                ? {
-                    ...target,
-                    status: statusResp.status,
-                    error: '',
-                  }
-                : target,
-            ),
-          )
         } catch (error) {
           setArtifactItems((prev) =>
             prev.map((target) =>
@@ -281,17 +292,19 @@ export function useStudioArtifactTasks({
       let merged: StudioArtifactResult[] = []
       let offset = 0
       while (true) {
+        if (historyLoadSeqRef.current !== requestSeq) {
+          return
+        }
         const page = await listNotebookStudioArtifacts(notebookId, {
           limit: studioArtifactListPageSize,
           offset,
         })
-        if (historyLoadSeqRef.current !== requestSeq) {
-          return
-        }
-        merged = [...merged, ...page.artifacts]
-        offset = merged.length
-        if (!page.has_more || page.artifacts.length === 0) {
-          break
+        if (historyLoadSeqRef.current === requestSeq) {
+          merged = [...merged, ...page.artifacts]
+          offset = merged.length
+          if (!page.has_more || page.artifacts.length === 0) {
+            break
+          }
         }
       }
 
@@ -395,31 +408,116 @@ export function useStudioArtifactTasks({
   )
 
   const retryArtifact = useCallback(
-    ({ item, fallbackSourceIds }: RetryStudioArtifactTaskParams) => {
-      const sourceIds =
-        item.sourceIds.length > 0 ? item.sourceIds : fallbackSourceIds
-      if (!sourceIds.length) {
+    async (item: StudioArtifactItem) => {
+      if (!item.taskId || !isStudioTaskRetryable(item.status)) {
+        return
+      }
+      setArtifactActionPending(item.id, 'retry', true)
+      try {
+        await retryStudioArtifactTask(item.taskId)
         setArtifactItems((prev) =>
           prev.map((target) =>
             target.id === item.id
               ? {
                   ...target,
-                  error: '请先勾选至少一个已就绪来源后再重试。',
+                  status: 'running',
+                  error: '',
+                  content: '',
+                  contentUrl: '',
                 }
               : target,
           ),
         )
+      } catch (error) {
+        setArtifactItems((prev) =>
+          prev.map((target) =>
+            target.id === item.id
+              ? {
+                  ...target,
+                  error: buildStudioErrorMessage(error, '重试任务失败，请稍后重试。'),
+                }
+              : target,
+          ),
+        )
+      } finally {
+        setArtifactActionPending(item.id, 'retry', false)
+      }
+    },
+    [setArtifactActionPending],
+  )
+
+  const cancelArtifact = useCallback(
+    async (item: StudioArtifactItem) => {
+      if (!item.taskId || !isStudioTaskRunning(item.status)) {
         return
       }
-
-      void submitArtifactTask({
-        kind: item.kind,
-        sourceIds,
-        title: item.title || inferArtifactTitle(item.kind),
-        actionId: item.actionId || inferArtifactActionId(item.kind),
-      })
+      setArtifactActionPending(item.id, 'cancel', true)
+      try {
+        await cancelStudioArtifactTask(item.taskId)
+        setArtifactItems((prev) =>
+          prev.map((target) =>
+            target.id === item.id
+              ? {
+                  ...target,
+                  status: 'cancelled',
+                  error: buildTaskFailedMessage('cancelled'),
+                }
+              : target,
+          ),
+        )
+      } catch (error) {
+        setArtifactItems((prev) =>
+          prev.map((target) =>
+            target.id === item.id
+              ? {
+                  ...target,
+                  error: buildStudioErrorMessage(error, '取消任务失败，请稍后重试。'),
+                }
+              : target,
+          ),
+        )
+      } finally {
+        setArtifactActionPending(item.id, 'cancel', false)
+      }
     },
-    [submitArtifactTask],
+    [setArtifactActionPending],
+  )
+
+  const deleteArtifact = useCallback(
+    async (item: StudioArtifactItem) => {
+      if (isStudioTaskRunning(item.status)) {
+        return
+      }
+      if (!item.taskId) {
+        setArtifactItems((prev) => prev.filter((target) => target.id !== item.id))
+        setPreviewState((prev) =>
+          prev.targetId === item.id ? defaultPreviewState : prev,
+        )
+        return
+      }
+      setArtifactActionPending(item.id, 'delete', true)
+      try {
+        await deleteStudioArtifact(item.taskId)
+        setArtifactItems((prev) => prev.filter((target) => target.id !== item.id))
+        setPreviewState((prev) =>
+          prev.targetId === item.id ? defaultPreviewState : prev,
+        )
+      } catch (error) {
+        setArtifactItems((prev) =>
+          prev.map((target) =>
+            target.id === item.id
+              ? {
+                  ...target,
+                  error: buildStudioErrorMessage(error, '删除产物失败，请稍后重试。'),
+                }
+              : target,
+          ),
+        )
+      } finally {
+        setArtifactActionPending(item.id, 'delete', false)
+      }
+    },
+    [setArtifactActionPending],
   )
 
   const openArtifactPreview = useCallback(
@@ -528,6 +626,12 @@ export function useStudioArtifactTasks({
     setPreviewState(defaultPreviewState)
   }, [])
 
+  const isArtifactActionPending = useCallback(
+    (itemId: string, action: StudioArtifactItemAction) =>
+      Boolean(pendingArtifactActions[buildArtifactActionKey(itemId, action)]),
+    [pendingArtifactActions],
+  )
+
   return {
     artifactItems,
     historyLoading,
@@ -538,6 +642,9 @@ export function useStudioArtifactTasks({
     reloadHistoryArtifacts,
     submitArtifactTask,
     retryArtifact,
+    cancelArtifact,
+    deleteArtifact,
+    isArtifactActionPending,
     openArtifactPreview,
     retryPreviewLoad,
     closePreviewOverlay,

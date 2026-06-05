@@ -259,32 +259,37 @@ export function MarkdownRenderer({
         remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], rehypeKatex]}
         components={{
-          a: ({ href, ...props }) => {
+          a: ({ href, children, ...props }) => {
             const citationHref = parseCitationHref(href)
-            if (citationHref) {
+            if (citationHref && onCitationClick) {
+              const fallbackLabel = href ? `打开引用定位 ${href}` : '打开引用'
               return (
                 <a
                   {...props}
                   href={href}
+                  aria-label={props['aria-label'] ?? fallbackLabel}
                   onClick={(event) => {
-                    if (!onCitationClick) {
-                      return
-                    }
                     event.preventDefault()
                     onCitationClick(event, citationHref.sourceIndex, citationHref.docIndex)
                   }}
-                />
+                >
+                  {children ?? href ?? '引用'}
+                </a>
               )
             }
 
             const shouldOpenInNewTab = Boolean(href && !href.startsWith('#'))
+            const fallbackLabel = href ? `打开链接 ${href}` : '打开链接'
             return (
               <a
                 {...props}
                 href={href}
+                aria-label={props['aria-label'] ?? fallbackLabel}
                 target={shouldOpenInNewTab ? '_blank' : undefined}
                 rel={shouldOpenInNewTab ? 'noopener noreferrer' : undefined}
-              />
+              >
+                {children ?? href ?? '链接'}
+              </a>
             )
           },
           code: MarkdownCode,

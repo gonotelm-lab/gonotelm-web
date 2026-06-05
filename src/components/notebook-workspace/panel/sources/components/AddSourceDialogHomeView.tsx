@@ -16,6 +16,19 @@ const maxSourceFilesPerBatch = 20
 const allowedFileExtensions = new Set(['.pdf', '.txt', '.md', '.markdown', '.docx', '.epub'])
 const acceptedFileTypes = '.pdf,.txt,.md,.markdown,.docx,.epub'
 
+const validateSourceFile = (file: File) => {
+  const lowerName = file.name.toLowerCase()
+  const dotIndex = lowerName.lastIndexOf('.')
+  const ext = dotIndex >= 0 ? lowerName.slice(dotIndex) : ''
+  if (!allowedFileExtensions.has(ext)) {
+    return '仅支持 PDF、txt、Markdown、docx、epub 文件'
+  }
+  if (file.size > maxSourceFileSizeBytes) {
+    return '文件大小不能超过 100MB'
+  }
+  return ''
+}
+
 export function AddSourceDialogHomeView({
   disabled,
   onCreateFile,
@@ -26,19 +39,6 @@ export function AddSourceDialogHomeView({
   const [fileError, setFileError] = useState<string>('')
   const [dragActive, setDragActive] = useState(false)
 
-  const validateFile = (file: File) => {
-    const lowerName = file.name.toLowerCase()
-    const dotIndex = lowerName.lastIndexOf('.')
-    const ext = dotIndex >= 0 ? lowerName.slice(dotIndex) : ''
-    if (!allowedFileExtensions.has(ext)) {
-      return '仅支持 PDF、txt、Markdown、docx、epub 文件'
-    }
-    if (file.size > maxSourceFileSizeBytes) {
-      return '文件大小不能超过 100MB'
-    }
-    return ''
-  }
-
   const handleFilesSelected = (files: File[]) => {
     if (files.length === 0 || disabled) return
     if (files.length > maxSourceFilesPerBatch) {
@@ -47,7 +47,7 @@ export function AddSourceDialogHomeView({
     }
 
     for (const file of files) {
-      const errMsg = validateFile(file)
+      const errMsg = validateSourceFile(file)
       if (errMsg) {
         setFileError(`${file.name}: ${errMsg}`)
         return
@@ -148,6 +148,7 @@ export function AddSourceDialogHomeView({
             type="file"
             multiple
             accept={acceptedFileTypes}
+            aria-label="选择要上传的来源文件"
             onChange={(e) => {
               const files = Array.from(e.target.files ?? [])
               handleFilesSelected(files)
