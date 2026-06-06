@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('./hooks', () => ({
+vi.mock('./useChatConversation', () => ({
   useChatConversation: () => ({
     composerValue: '',
     enableThinking: false,
@@ -37,14 +37,20 @@ vi.mock('./hooks', () => ({
   }),
 }))
 
-vi.mock('./components', () => ({
+vi.mock('./ChatComposer', () => ({
   ChatComposer: () => <div data-testid="chat-composer" />,
+}))
+
+vi.mock('./ChatMessagesList', () => ({
   ChatMessagesList: ({ notebookInfoHeader }: { notebookInfoHeader?: ReactNode }) => (
     <div data-testid="chat-messages-list">
       {notebookInfoHeader}
       <div data-testid="chat-messages-list-content" />
     </div>
   ),
+}))
+
+vi.mock('./ChatNotebookInfoHeader', () => ({
   ChatNotebookInfoHeader: ({
     notebookName,
     notebookDescription,
@@ -58,7 +64,13 @@ vi.mock('./components', () => ({
       {`${notebookName}|${notebookDescription}|${String(notebookSourceCount)}`}
     </div>
   ),
+}))
+
+vi.mock('./ChatPanelHeader', () => ({
   ChatPanelHeader: () => <div data-testid="chat-panel-header" />,
+}))
+
+vi.mock('./ChatSettingsDialog', () => ({
   ChatSettingsDialog: () => null,
 }))
 

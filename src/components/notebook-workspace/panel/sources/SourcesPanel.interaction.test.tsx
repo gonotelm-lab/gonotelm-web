@@ -228,7 +228,34 @@ describe('SourcesPanel interaction', () => {
     const subpageTitle = renderer.root.findByProps({
       'data-testid': 'subpage-title',
     })
-    expect(subpageTitle.children.join('')).toContain('展示 · 来源一')
+    expect(subpageTitle.children.join('')).toContain('来源一')
     expect(mockGetSourceParsedTree).toHaveBeenCalledTimes(1)
+  })
+
+  it('tree 视图下点击放大打开 overlay，且 viewType=tree', async () => {
+    const renderer = await renderSourcesPanel()
+
+    const treeButton = renderer.root.findByProps({
+      'data-testid': 'tree-source-1',
+    })
+    await act(async () => {
+      treeButton.props.onClick()
+      await flushMicrotasks()
+    })
+
+    const inlineView = renderer.root.findByProps({ 'data-testid': 'inline-view' })
+    expect(inlineView.children.join('')).toBe('tree')
+
+    const expandButton = renderer.root.findByProps({ 'aria-label': '放大预览' })
+    await act(async () => {
+      expandButton.props.onClick()
+      await flushMicrotasks()
+    })
+
+    const latestOverlayProps = overlaySpy.mock.calls.at(-1)?.[0] as
+      | { open?: boolean; viewType?: string }
+      | undefined
+    expect(latestOverlayProps?.open).toBe(true)
+    expect(latestOverlayProps?.viewType).toBe('tree')
   })
 })

@@ -293,9 +293,7 @@ function SourcesPanelLayout({
             subpage={previewState.inlineOpen
               ? {
                   parentTitle: '来源',
-                  title: previewState.viewType === 'content'
-                    ? previewState.sourceName
-                    : `展示 · ${previewState.sourceName}`,
+                  title: previewState.sourceName,
                   content: (
                     <SourceInlinePreview
                       sourceName={previewState.sourceName}
