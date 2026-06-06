@@ -10,11 +10,15 @@ import {
 interface MindmapCanvasProps {
   mermaid: string
   spacingPreset?: 'default' | 'wide'
+  tone?: 'light' | 'dark'
+  surfaceRadius?: number
+  showBorder?: boolean
   height?: number | string
 }
 
 const buildMindmapGraphOptions = (
   spacingPreset: NonNullable<MindmapCanvasProps['spacingPreset']>,
+  tone: NonNullable<MindmapCanvasProps['tone']>,
 ): Options => ({
   autoResize: true,
   layout: {
@@ -56,15 +60,15 @@ const buildMindmapGraphOptions = (
       left: 12,
     },
     color: {
-      border: '#94A3B8',
-      background: '#F8FAFC',
+      border: tone === 'dark' ? '#64748B' : '#94A3B8',
+      background: tone === 'dark' ? '#1E293B' : '#F8FAFC',
       highlight: {
-        border: '#4F46E5',
-        background: '#EEF2FF',
+        border: tone === 'dark' ? '#818CF8' : '#4F46E5',
+        background: tone === 'dark' ? '#312E81' : '#EEF2FF',
       },
     },
     font: {
-      color: '#0F172A',
+      color: tone === 'dark' ? '#E2E8F0' : '#0F172A',
       size: 14,
       face: 'Inter, Roboto, "Helvetica Neue", Arial, sans-serif',
     },
@@ -72,8 +76,8 @@ const buildMindmapGraphOptions = (
   edges: {
     width: 1.5,
     color: {
-      color: '#94A3B8',
-      highlight: '#4F46E5',
+      color: tone === 'dark' ? '#475569' : '#94A3B8',
+      highlight: tone === 'dark' ? '#818CF8' : '#4F46E5',
     },
     smooth: {
       enabled: true,
@@ -106,29 +110,33 @@ const buildHiddenNodeIds = (
   return hiddenNodeIds
 }
 
-const buildNodeVisualByDepth = (depth: number) => {
+const buildNodeVisualByDepth = (
+  depth: number,
+  tone: NonNullable<MindmapCanvasProps['tone']>,
+) => {
+  const isDarkTone = tone === 'dark'
   if (depth === 0) {
     return {
       border: '#6366F1',
-      background: '#C7D2FE',
-      fontColor: '#1E1B4B',
+      background: isDarkTone ? '#312E81' : '#C7D2FE',
+      fontColor: isDarkTone ? '#E0E7FF' : '#1E1B4B',
       fontSize: 17,
       fontWeight: '800',
     }
   }
   if (depth === 1) {
     return {
-      border: '#1D4ED8',
-      background: '#DBEAFE',
-      fontColor: '#0F172A',
+      border: isDarkTone ? '#0EA5E9' : '#1D4ED8',
+      background: isDarkTone ? '#164E63' : '#DBEAFE',
+      fontColor: isDarkTone ? '#E0F2FE' : '#0F172A',
       fontSize: 14,
       fontWeight: '600',
     }
   }
   return {
-    border: '#94A3B8',
-    background: '#F8FAFC',
-    fontColor: '#0F172A',
+    border: isDarkTone ? '#64748B' : '#94A3B8',
+    background: isDarkTone ? '#1E293B' : '#F8FAFC',
+    fontColor: isDarkTone ? '#E2E8F0' : '#0F172A',
     fontSize: 14,
     fontWeight: '500',
   }
@@ -137,6 +145,9 @@ const buildNodeVisualByDepth = (depth: number) => {
 function MindmapCanvasInner({
   mermaid,
   spacingPreset = 'default',
+  tone = 'light',
+  surfaceRadius = 1.5,
+  showBorder = true,
   height = 440,
 }: MindmapCanvasProps) {
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
@@ -152,8 +163,8 @@ function MindmapCanvasInner({
     [mermaid],
   )
   const graphOptions = useMemo(
-    () => buildMindmapGraphOptions(spacingPreset),
-    [spacingPreset],
+    () => buildMindmapGraphOptions(spacingPreset, tone),
+    [spacingPreset, tone],
   )
   const defaultCollapsedNodeIds = useMemo(() => {
     const next = new Set<string>()
@@ -185,7 +196,7 @@ function MindmapCanvasInner({
       const childCount = parsedMindmap.childIdsByNodeId[node.id]?.length ?? 0
       const hasChildren = childCount > 0
       const collapsed = hasChildren && collapsedNodeIds.has(node.id)
-      const nodeVisual = buildNodeVisualByDepth(node.depth)
+      const nodeVisual = buildNodeVisualByDepth(node.depth, tone)
       const collapsedPrefix = hasChildren
         ? collapsed
           ? '▶ '
@@ -231,6 +242,7 @@ function MindmapCanvasInner({
     parsedMindmap.childIdsByNodeId,
     parsedMindmap.edges,
     parsedMindmap.nodes,
+    tone,
   ])
 
   useEffect(() => {
@@ -366,11 +378,14 @@ function MindmapCanvasInner({
       data-collapsed-node-count={collapsedNodeIds.size}
       sx={{
         height,
-        borderRadius: 1.5,
-        border: '1px dashed',
-        borderColor: 'divider',
+        borderRadius: surfaceRadius,
+        border: showBorder ? '1px dashed' : 'none',
+        borderColor:
+          showBorder
+            ? (tone === 'dark' ? 'rgba(148, 163, 184, 0.34)' : 'divider')
+            : 'transparent',
         overflow: 'hidden',
-        bgcolor: '#F8FAFC',
+        bgcolor: tone === 'dark' ? '#0F172A' : '#F8FAFC',
         position: 'relative',
       }}
     >
@@ -384,11 +399,12 @@ function MindmapCanvasInner({
             top: 8,
             right: 8,
             zIndex: 2,
-            bgcolor: 'background.paper',
+            color: tone === 'dark' ? 'rgba(241, 245, 249, 0.92)' : undefined,
+            bgcolor: tone === 'dark' ? 'rgba(15, 23, 42, 0.84)' : 'background.paper',
             border: '1px solid',
-            borderColor: 'divider',
+            borderColor: tone === 'dark' ? 'rgba(148, 163, 184, 0.38)' : 'divider',
             '&:hover': {
-              bgcolor: 'grey.50',
+              bgcolor: tone === 'dark' ? 'rgba(30, 41, 59, 0.94)' : 'grey.50',
             },
           }}
         >

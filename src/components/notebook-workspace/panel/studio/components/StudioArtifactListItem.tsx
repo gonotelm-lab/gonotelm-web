@@ -2,11 +2,8 @@ import { useState } from 'react'
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded'
-import HourglassBottomRoundedIcon from '@mui/icons-material/HourglassBottomRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
-import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import { FlowLoadingOverlay } from '@/components/notebook-workspace/shared'
 import {
@@ -47,12 +44,29 @@ const statusColorMap: Record<StudioArtifactVisualStatus, string> = {
   failed: 'error.main',
 }
 
-const statusIconMap: Record<StudioArtifactVisualStatus, typeof HourglassBottomRoundedIcon> = {
-  queued: HourglassBottomRoundedIcon,
-  polling: HourglassBottomRoundedIcon,
-  succeeded: TaskAltRoundedIcon,
-  cancelled: CancelRoundedIcon,
-  failed: ErrorOutlineRoundedIcon,
+const minuteMs = 60 * 1_000
+const hourMs = 60 * minuteMs
+const dayMs = 24 * hourMs
+const weekMs = 7 * dayMs
+
+const formatArtifactRelativeTime = (createdAt: number) => {
+  if (!Number.isFinite(createdAt) || createdAt <= 0) {
+    return '刚刚'
+  }
+  const elapsed = Math.max(0, Date.now() - createdAt)
+  if (elapsed < minuteMs) {
+    return '刚刚'
+  }
+  if (elapsed < hourMs) {
+    return `${Math.floor(elapsed / minuteMs)}m前`
+  }
+  if (elapsed < dayMs) {
+    return `${Math.floor(elapsed / hourMs)}h前`
+  }
+  if (elapsed < weekMs) {
+    return `${Math.floor(elapsed / dayMs)}d前`
+  }
+  return `${Math.floor(elapsed / weekMs)}w前`
 }
 
 export function StudioArtifactListItem({
@@ -67,17 +81,12 @@ export function StudioArtifactListItem({
   onDelete,
 }: StudioArtifactListItemProps) {
   const visualStatus = toArtifactVisualStatus(item.status)
-  const StatusIcon = statusIconMap[visualStatus]
   const canPreview = isStudioTaskCompleted(item.status)
   const canRetry = isStudioTaskRetryable(item.status)
   const canCancel = isStudioTaskRunning(item.status)
   const canDelete = !isStudioTaskRunning(item.status)
-  const failedHint = item.error || '任务执行失败，请重试。'
-  const cancelledHint = item.error || '任务已取消。'
-  const statusHint =
-    visualStatus === 'failed'
-      ? failedHint
-      : (visualStatus === 'cancelled' ? cancelledHint : statusLabelMap[visualStatus])
+  const sourceCount = item.sourceIds.length || item.sourceCount
+  const itemMetaLabel = `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {
@@ -98,18 +107,16 @@ export function StudioArtifactListItem({
         p: 1.1,
         cursor: canPreview ? 'pointer' : 'default',
         transition: 'border-color 0.2s ease, background-color 0.2s ease',
+        borderColor: statusColorMap[visualStatus],
         '&:hover': {
-          borderColor: canPreview ? 'primary.main' : 'divider',
+          borderColor: canPreview ? 'primary.main' : statusColorMap[visualStatus],
           backgroundColor: 'action.hover',
         },
         ...(previewLoading ? { borderColor: 'primary.main' } : null),
-        borderStyle:
-          visualStatus === 'failed' || visualStatus === 'cancelled'
-            ? 'dashed'
-            : 'solid',
       }}
       role={canPreview ? 'button' : undefined}
       tabIndex={canPreview ? 0 : -1}
+      aria-label={`${item.title}，${statusLabelMap[visualStatus]}`}
       onClick={() => {
         if (actionMenuOpen) {
           return
@@ -135,39 +142,24 @@ export function StudioArtifactListItem({
       {/* 复用 source 上传中的流光动画，保持异步状态反馈一致性。 */}
       <FlowLoadingOverlay active={shouldStudioTaskKeepPolling(item.status)} />
       <Stack sx={{ position: 'relative', zIndex: 1 }}>
-        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
-            <AccountTreeRoundedIcon sx={{ fontSize: 17, color: 'text.secondary', flexShrink: 0 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-              {item.title}
+        <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <Stack sx={{ minWidth: 0, flex: 1 }}>
+            <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
+              <AccountTreeRoundedIcon sx={{ fontSize: 17, color: 'text.secondary', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                {item.title}
+              </Typography>
+            </Stack>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{ mt: 0.25, ml: 3.15, display: 'block' }}
+            >
+              {itemMetaLabel}
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={0.45} sx={{ alignItems: 'center', flexShrink: 0 }}>
-            <Tooltip title={statusHint}>
-              <StatusIcon
-                sx={{
-                  fontSize: 17,
-                  color: statusColorMap[visualStatus],
-                  flexShrink: 0,
-                  ...(visualStatus === 'polling'
-                    ? {
-                        animation: 'studioArtifactPollingSpin 1s linear infinite',
-                        '@keyframes studioArtifactPollingSpin': {
-                          from: { transform: 'rotate(0deg)' },
-                          to: { transform: 'rotate(360deg)' },
-                        },
-                      }
-                    : null),
-                }}
-              />
-            </Tooltip>
-            <Tooltip title={canPreview ? '点击卡片可预览' : '仅已完成任务可预览'}>
-              <span>
-                <Typography variant="caption" color="text.secondary">
-                  {statusLabelMap[visualStatus]}
-                </Typography>
-              </span>
-            </Tooltip>
+          <Stack direction="row" spacing={0.4} sx={{ alignItems: 'center', flexShrink: 0, ml: 0.6 }}>
             <Tooltip title="更多操作">
               <span>
                 <IconButton

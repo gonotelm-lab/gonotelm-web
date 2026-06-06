@@ -9,6 +9,9 @@ interface StudioTaskSnapshot {
   notebookId: string
   kind: string
   sourceCount: number
+  sourceIds: string[]
+  title: string
+  timestamp: number
   status: string
 }
 
@@ -36,12 +39,16 @@ export const studioHandlers = [
     const sourceCount = Array.isArray(requestBody.source_ids)
       ? requestBody.source_ids.length
       : 0
+    const sourceIds = Array.isArray(requestBody.source_ids) ? requestBody.source_ids : []
     const taskId = `task-${taskSeq}`
     taskSeq += 1
     studioTaskStore.set(taskId, {
       notebookId: requestBody.notebook_id ?? 'unknown',
       kind: requestBody.kind ?? 'mindmap',
       sourceCount,
+      sourceIds,
+      title: requestBody.kind === 'mindmap' ? 'Mind Map' : 'Studio Artifact',
+      timestamp: Math.floor(Date.now() / 1_000),
       status: 'completed',
     })
 
@@ -78,6 +85,9 @@ export const studioHandlers = [
     const snapshot = studioTaskStore.get(taskId)
     const notebookId = snapshot?.notebookId ?? 'notebook-1'
     const sourceCount = snapshot?.sourceCount ?? 0
+    const sourceIds = snapshot?.sourceIds ?? []
+    const title = snapshot?.title ?? 'Mind Map'
+    const timestamp = snapshot?.timestamp ?? Math.floor(Date.now() / 1_000)
 
     return resolveScenarioResponse({
       scenario,
@@ -85,6 +95,9 @@ export const studioHandlers = [
         notebook_id: notebookId,
         task_id: taskId,
         status: snapshot?.status ?? 'completed',
+        title,
+        source_ids: sourceIds,
+        timestamp,
         content: buildMindmapContent(taskId, notebookId, sourceCount),
         content_kind: 'inline',
       },
@@ -92,6 +105,9 @@ export const studioHandlers = [
         notebook_id: notebookId,
         task_id: taskId,
         status: 'completed',
+        title,
+        source_ids: sourceIds,
+        timestamp,
         content: '',
         content_kind: 'inline',
       },
@@ -155,6 +171,9 @@ export const studioHandlers = [
             notebook_id: notebookId,
             task_id: fallbackTaskId,
             status: 'completed',
+            title: 'Mind Map',
+            source_ids: ['source-1', 'source-2'],
+            timestamp: Math.floor(Date.now() / 1_000),
             content: buildMindmapContent(fallbackTaskId, notebookId, 2),
             content_kind: 'inline',
           },

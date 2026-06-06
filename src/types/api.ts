@@ -168,6 +168,9 @@ export interface StudioArtifactResult {
   notebook_id: string
   task_id: string
   status: StudioArtifactTaskStatus
+  title?: string
+  source_ids?: string[]
+  timestamp?: number
   content?: string
   content_url?: string
   content_kind: StudioArtifactContentKind

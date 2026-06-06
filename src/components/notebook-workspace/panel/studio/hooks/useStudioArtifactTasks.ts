@@ -30,6 +30,7 @@ import type { StudioArtifactItem, StudioToolActionId } from '../types'
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
 const studioArtifactListPageSize = 50
+const studioTimestampSecondUpperBound = 10_000_000_000
 type StudioArtifactItemAction = 'retry' | 'cancel' | 'delete'
 
 const createLocalArtifactId = () =>
@@ -53,20 +54,36 @@ const buildStudioErrorMessage = (
   return fallback
 }
 
+const resolveArtifactTitle = (title: string | undefined, fallbackTitle: string) => {
+  const normalized = String(title ?? '').trim()
+  return normalized || fallbackTitle
+}
+
+const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp) || timestamp <= 0) {
+    return null
+  }
+  return timestamp < studioTimestampSecondUpperBound ? timestamp * 1_000 : timestamp
+}
+
 const toHistoryArtifactItem = (
   artifact: StudioArtifactResult,
   index: number,
 ): StudioArtifactItem => {
   const itemStatus = toArtifactVisualStatus(artifact.status)
+  const sourceIds = Array.isArray(artifact.source_ids)
+    ? artifact.source_ids.map((sourceId) => String(sourceId))
+    : []
+  const createdAt = normalizeStudioTimestampMs(artifact.timestamp) ?? Date.now() - index
   return {
     id: artifact.task_id,
     taskId: artifact.task_id,
     kind: 'mindmap',
     actionId: 'generate-mindmap',
-    title: 'Mind Map',
+    title: resolveArtifactTitle(artifact.title, 'Mind Map'),
     status: artifact.status,
-    sourceCount: 0,
-    sourceIds: [],
+    sourceCount: sourceIds.length,
+    sourceIds,
     content: artifact.content ?? '',
     contentUrl: artifact.content_url ?? '',
     contentKind: artifact.content_kind ?? 'inline',
@@ -74,7 +91,7 @@ const toHistoryArtifactItem = (
       itemStatus === 'failed' || itemStatus === 'cancelled'
         ? buildTaskFailedMessage(artifact.status)
         : '',
-    createdAt: Date.now() - index,
+    createdAt,
   }
 }
 
@@ -163,24 +180,35 @@ export function useStudioArtifactTasks({
           return
         }
         const result = await getStudioArtifactResult(taskId)
+        const sourceIdsFromResult = Array.isArray(result.source_ids)
+          ? result.source_ids.map((sourceId) => String(sourceId))
+          : null
+        const resultTimestampMs = normalizeStudioTimestampMs(result.timestamp)
+        const resultTitle = String(result.title ?? '').trim()
         if (activeNotebookIdRef.current === notebookSnapshot) {
           const itemStatus = toArtifactVisualStatus(result.status)
           setArtifactItems((prev) =>
-            prev.map((item) =>
-              item.id === taskId
-                ? {
-                    ...item,
-                    status: result.status,
-                    error:
-                      itemStatus === 'failed' || itemStatus === 'cancelled'
-                        ? buildTaskFailedMessage(result.status)
-                        : '',
-                    content: result.content ?? '',
-                    contentUrl: result.content_url ?? '',
-                    contentKind: result.content_kind ?? 'inline',
-                  }
-                : item,
-            ),
+            prev.map((item) => {
+              if (item.id !== taskId) {
+                return item
+              }
+              const nextSourceIds = sourceIdsFromResult ?? item.sourceIds
+              return {
+                ...item,
+                status: result.status,
+                title: resultTitle || item.title,
+                sourceIds: nextSourceIds,
+                sourceCount: nextSourceIds.length,
+                createdAt: resultTimestampMs ?? item.createdAt,
+                error:
+                  itemStatus === 'failed' || itemStatus === 'cancelled'
+                    ? buildTaskFailedMessage(result.status)
+                    : '',
+                content: result.content ?? '',
+                contentUrl: result.content_url ?? '',
+                contentKind: result.content_kind ?? 'inline',
+              }
+            }),
           )
         }
       } catch (error) {
@@ -542,27 +570,38 @@ export function useStudioArtifactTasks({
 
           if (!content && !contentUrl && item.taskId) {
             const result = await getStudioArtifactResult(item.taskId)
+            const sourceIdsFromResult = Array.isArray(result.source_ids)
+              ? result.source_ids.map((sourceId) => String(sourceId))
+              : null
+            const resultTimestampMs = normalizeStudioTimestampMs(result.timestamp)
+            const resultTitle = String(result.title ?? '').trim()
             content = result.content ?? ''
             contentUrl = result.content_url ?? ''
             taskStatus = result.status
             itemStatus = toArtifactVisualStatus(result.status)
             contentKind = result.content_kind ?? 'inline'
             setArtifactItems((prev) =>
-              prev.map((target) =>
-                target.id === item.id
-                  ? {
-                      ...target,
-                      status: taskStatus,
-                      content,
-                      contentUrl,
-                      contentKind,
-                      error:
-                        itemStatus === 'failed' || itemStatus === 'cancelled'
-                          ? buildTaskFailedMessage(taskStatus)
-                          : '',
-                    }
-                  : target,
-              ),
+              prev.map((target) => {
+                if (target.id !== item.id) {
+                  return target
+                }
+                const nextSourceIds = sourceIdsFromResult ?? target.sourceIds
+                return {
+                  ...target,
+                  status: taskStatus,
+                  title: resultTitle || target.title,
+                  sourceIds: nextSourceIds,
+                  sourceCount: nextSourceIds.length,
+                  createdAt: resultTimestampMs ?? target.createdAt,
+                  content,
+                  contentUrl,
+                  contentKind,
+                  error:
+                    itemStatus === 'failed' || itemStatus === 'cancelled'
+                      ? buildTaskFailedMessage(taskStatus)
+                      : '',
+                }
+              }),
             )
           }
 
