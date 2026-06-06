@@ -80,7 +80,7 @@ const toHistoryArtifactItem = (
     taskId: artifact.task_id,
     kind: 'mindmap',
     actionId: 'generate-mindmap',
-    title: resolveArtifactTitle(artifact.title, 'Mind Map'),
+    title: resolveArtifactTitle(artifact.title, '思维导图'),
     status: artifact.status,
     sourceCount: sourceIds.length,
     sourceIds,

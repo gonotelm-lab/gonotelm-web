@@ -40,7 +40,7 @@ const statusColorMap: Record<StudioArtifactVisualStatus, string> = {
   queued: 'warning.main',
   polling: 'warning.main',
   succeeded: 'success.main',
-  cancelled: 'text.secondary',
+  cancelled: 'text.disabled',
   failed: 'error.main',
 }
 
@@ -81,6 +81,8 @@ export function StudioArtifactListItem({
   onDelete,
 }: StudioArtifactListItemProps) {
   const visualStatus = toArtifactVisualStatus(item.status)
+  const isCancelled = visualStatus === 'cancelled'
+  const cancelledItemTextColor = isCancelled ? 'text.disabled' : 'text.secondary'
   const canPreview = isStudioTaskCompleted(item.status)
   const canRetry = isStudioTaskRetryable(item.status)
   const canCancel = isStudioTaskRunning(item.status)
@@ -145,16 +147,19 @@ export function StudioArtifactListItem({
         <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Stack sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
-              <AccountTreeRoundedIcon sx={{ fontSize: 17, color: 'text.secondary', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+              <AccountTreeRoundedIcon sx={{ fontSize: 17, color: cancelledItemTextColor, flexShrink: 0 }} />
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: isCancelled ? 'text.disabled' : 'text.primary' }}
+                noWrap
+              >
                 {item.title}
               </Typography>
             </Stack>
             <Typography
               variant="caption"
-              color="text.secondary"
               noWrap
-              sx={{ mt: 0.25, ml: 3.15, display: 'block' }}
+              sx={{ mt: 0.25, ml: 3.15, display: 'block', color: cancelledItemTextColor }}
             >
               {itemMetaLabel}
             </Typography>

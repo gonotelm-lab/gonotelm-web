@@ -72,7 +72,7 @@ export function StudioPanel({
     void submitArtifactTask({
       kind: 'mindmap',
       sourceIds: selectedReadySourceIds,
-      title: 'Mind Map',
+      title: '思维导图',
       actionId: 'generate-mindmap',
     })
   }
