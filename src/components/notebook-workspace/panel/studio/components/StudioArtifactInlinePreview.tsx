@@ -11,6 +11,10 @@ import {
 } from '@mui/material'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
+import {
+  inlinePreviewActionIconButtonSx,
+  inlinePreviewActionIconSx,
+} from '../../../shared/ui/previewActionStyles'
 
 interface StudioArtifactInlinePreviewProps {
   artifact: StudioArtifactItem
@@ -37,8 +41,6 @@ export function StudioArtifactInlinePreview({
   const hasDownloadableContent = Boolean(content.trim())
   const canDownload = !loading && !error && hasDownloadableContent
   const isMindmapArtifact = artifact.kind === 'mindmap'
-  const actionIconButtonSx = { p: 0.45 }
-  const actionIconSx = { fontSize: 17 }
 
   return (
     <Stack sx={{ height: '100%', minHeight: 0 }}>
@@ -59,9 +61,9 @@ export function StudioArtifactInlinePreview({
                   size="small"
                   aria-label="放大预览"
                   onClick={onOpenOverlay}
-                  sx={actionIconButtonSx}
+                  sx={inlinePreviewActionIconButtonSx}
                 >
-                  <ZoomOutMapRoundedIcon sx={actionIconSx} />
+                  <ZoomOutMapRoundedIcon sx={inlinePreviewActionIconSx} />
                 </IconButton>
               </span>
             </Tooltip>
@@ -73,9 +75,9 @@ export function StudioArtifactInlinePreview({
                 aria-label="下载预览内容"
                 onClick={onDownload}
                 disabled={!canDownload}
-                sx={actionIconButtonSx}
+                sx={inlinePreviewActionIconButtonSx}
               >
-                <DownloadRoundedIcon sx={actionIconSx} />
+                <DownloadRoundedIcon sx={inlinePreviewActionIconSx} />
               </IconButton>
             </span>
           </Tooltip>
