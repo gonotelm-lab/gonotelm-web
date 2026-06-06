@@ -25,6 +25,7 @@ describe('studio api with msw mock', () => {
 
     const resultResp = await getStudioArtifactResult(submitResp.task_id)
     expect(resultResp.status).toBe('completed')
+    expect(resultResp.kind).toBe('mindmap')
     expect(resultResp.content_kind).toBe('inline')
     expect(resultResp.content).toContain('```mermaid')
     expect(resultResp.content).toContain('来源数量 2')

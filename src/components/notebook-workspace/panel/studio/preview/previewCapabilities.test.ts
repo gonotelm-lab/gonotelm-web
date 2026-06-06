@@ -9,8 +9,15 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
+  it('returns inline+overlay for report', () => {
+    expect(getStudioArtifactPreviewCapability('report')).toEqual({
+      inline: true,
+      overlay: true,
+    })
+  })
+
   it('falls back to overlay-only for unknown kinds', () => {
-    expect(getStudioArtifactPreviewCapability('reports')).toEqual({
+    expect(getStudioArtifactPreviewCapability('unknown-kind')).toEqual({
       inline: false,
       overlay: true,
     })

@@ -84,6 +84,7 @@ export const studioHandlers = [
     const taskId = String(params.taskId ?? '')
     const snapshot = studioTaskStore.get(taskId)
     const notebookId = snapshot?.notebookId ?? 'notebook-1'
+    const artifactKind = snapshot?.kind ?? 'mindmap'
     const sourceCount = snapshot?.sourceCount ?? 0
     const sourceIds = snapshot?.sourceIds ?? []
     const title = snapshot?.title ?? 'Mind Map'
@@ -94,6 +95,7 @@ export const studioHandlers = [
       successData: {
         notebook_id: notebookId,
         task_id: taskId,
+        kind: artifactKind,
         status: snapshot?.status ?? 'completed',
         title,
         source_ids: sourceIds,
@@ -104,6 +106,7 @@ export const studioHandlers = [
       emptyData: {
         notebook_id: notebookId,
         task_id: taskId,
+        kind: artifactKind,
         status: 'completed',
         title,
         source_ids: sourceIds,
@@ -170,6 +173,7 @@ export const studioHandlers = [
           {
             notebook_id: notebookId,
             task_id: fallbackTaskId,
+            kind: 'mindmap',
             status: 'completed',
             title: 'Mind Map',
             source_ids: ['source-1', 'source-2'],

@@ -64,7 +64,11 @@ export function StudioArtifactPreviewOverlay({
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'
-    const extension = artifact.kind === 'mindmap' ? 'mmd' : 'txt'
+    const extension = artifact.kind === 'mindmap'
+      ? 'mmd'
+      : artifact.kind === 'report'
+        ? 'md'
+        : 'txt'
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
     const blobUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')

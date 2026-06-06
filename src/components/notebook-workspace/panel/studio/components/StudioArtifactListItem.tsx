@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
@@ -89,6 +90,7 @@ export function StudioArtifactListItem({
   const canDelete = !isStudioTaskRunning(item.status)
   const sourceCount = item.sourceIds.length || item.sourceCount
   const itemMetaLabel = `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
+  const KindIcon = item.kind === 'report' ? DescriptionRoundedIcon : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {
@@ -147,7 +149,7 @@ export function StudioArtifactListItem({
         <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Stack sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
-              <AccountTreeRoundedIcon sx={{ fontSize: 17, color: cancelledItemTextColor, flexShrink: 0 }} />
+              <KindIcon sx={{ fontSize: 17, color: cancelledItemTextColor, flexShrink: 0 }} />
               <Typography
                 variant="body2"
                 sx={{ fontWeight: 600, color: isCancelled ? 'text.disabled' : 'text.primary' }}

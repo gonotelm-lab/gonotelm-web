@@ -1,5 +1,12 @@
 import { isValidElement, type ReactElement } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+vi.mock('react-syntax-highlighter', () => ({
+  Prism: () => null,
+}))
+vi.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
+  oneLight: {},
+}))
+import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdown'
 import type { StudioArtifactItem } from '../types'
 import { MindmapCanvas } from '../components/MindmapCanvas'
 import { renderStudioArtifactPreviewContent } from './previewRenderRegistry'
@@ -43,10 +50,27 @@ describe('renderStudioArtifactPreviewContent', () => {
     }
   })
 
+  it('uses markdown renderer for report in overlay mode', () => {
+    const content = 'fallback-content'
+    const node = renderStudioArtifactPreviewContent({
+      artifact: createArtifact('report'),
+      content,
+      mode: 'overlay',
+    })
+    expect(isValidElement(node)).toBe(true)
+    if (isValidElement(node)) {
+      const reportElement = node as ReactElement<{
+        children?: ReactElement<{ content?: string }>
+      }>
+      expect(reportElement.props.children?.type).toBe(MarkdownRenderer)
+      expect(reportElement.props.children?.props?.content).toBe(content)
+    }
+  })
+
   it('falls back to text renderer for unknown kinds', () => {
     const content = 'fallback-content'
     const node = renderStudioArtifactPreviewContent({
-      artifact: createArtifact('reports'),
+      artifact: createArtifact('unknown-kind'),
       content,
       mode: 'overlay',
     })

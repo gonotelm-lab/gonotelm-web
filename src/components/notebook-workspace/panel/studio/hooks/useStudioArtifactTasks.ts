@@ -64,11 +64,21 @@ const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
   return timestamp < studioTimestampSecondUpperBound ? timestamp * 1_000 : timestamp
 }
 
+const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind =>
+  kind === 'report' ? 'report' : 'mindmap'
+
+const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId =>
+  kind === 'report' ? 'generate-report' : 'generate-mindmap'
+
+const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) =>
+  kind === 'report' ? '报告' : '思维导图'
+
 const toHistoryArtifactItem = (
   artifact: StudioArtifactResult,
   index: number,
 ): StudioArtifactItem => {
   const itemStatus = toArtifactVisualStatus(artifact.status)
+  const artifactKind = resolveStudioArtifactKind(artifact.kind)
   const sourceIds = Array.isArray(artifact.source_ids)
     ? artifact.source_ids.map((sourceId) => String(sourceId))
     : []
@@ -76,9 +86,9 @@ const toHistoryArtifactItem = (
   return {
     id: artifact.task_id,
     taskId: artifact.task_id,
-    kind: 'mindmap',
-    actionId: 'generate-mindmap',
-    title: resolveArtifactTitle(artifact.title, '思维导图'),
+    kind: artifactKind,
+    actionId: resolveStudioArtifactActionId(artifactKind),
+    title: resolveArtifactTitle(artifact.title, resolveStudioArtifactFallbackTitle(artifactKind)),
     status: artifact.status,
     sourceCount: sourceIds.length,
     sourceIds,
@@ -158,6 +168,8 @@ export function useStudioArtifactTasks({
           ? result.source_ids.map((sourceId) => String(sourceId))
           : null
         const resultTimestampMs = normalizeStudioTimestampMs(result.timestamp)
+        const hasResultKind = typeof result.kind === 'string' && result.kind.trim().length > 0
+        const resultKind = hasResultKind ? resolveStudioArtifactKind(result.kind) : null
         const resultTitle = String(result.title ?? '').trim()
         if (activeNotebookIdRef.current === notebookSnapshot) {
           const itemStatus = toArtifactVisualStatus(result.status)
@@ -167,10 +179,14 @@ export function useStudioArtifactTasks({
                 return item
               }
               const nextSourceIds = sourceIdsFromResult ?? item.sourceIds
+              const nextKind = resultKind ?? item.kind
+              const fallbackTitle = item.title || resolveStudioArtifactFallbackTitle(nextKind)
               return {
                 ...item,
+                kind: nextKind,
+                actionId: resolveStudioArtifactActionId(nextKind),
                 status: result.status,
-                title: resultTitle || item.title,
+                title: resultTitle || fallbackTitle,
                 sourceIds: nextSourceIds,
                 sourceCount: nextSourceIds.length,
                 createdAt: resultTimestampMs ?? item.createdAt,

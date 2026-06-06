@@ -20,10 +20,19 @@ describe('resolveStudioPreviewEntryMode', () => {
     ).toBe('inline')
   })
 
+  it('routes completed report to inline mode', () => {
+    expect(
+      resolveStudioPreviewEntryMode({
+        kind: 'report',
+        status: 'completed',
+      }),
+    ).toBe('inline')
+  })
+
   it('routes completed unknown kinds to overlay mode', () => {
     expect(
       resolveStudioPreviewEntryMode({
-        kind: 'reports',
+        kind: 'unknown-kind',
         status: 'completed',
       }),
     ).toBe('overlay')

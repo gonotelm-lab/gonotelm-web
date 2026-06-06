@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Box, Paper, Typography } from '@mui/material'
+import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdown'
 import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
 import { MindmapCanvas } from '../components/MindmapCanvas'
@@ -66,6 +67,18 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
           showBorder={false}
           height="100%"
         />
+      </Box>
+    ),
+  },
+  report: {
+    renderInline: ({ content }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <MarkdownRenderer content={content} />
+      </Box>
+    ),
+    renderOverlay: ({ content }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <MarkdownRenderer content={content} />
       </Box>
     ),
   },

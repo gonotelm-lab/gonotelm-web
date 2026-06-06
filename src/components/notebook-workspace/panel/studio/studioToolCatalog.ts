@@ -34,11 +34,13 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     artifactKind: 'mindmap',
   },
   {
-    id: 'reports',
+    id: 'report',
     title: '报告',
-    description: '即将支持',
+    description: '基于勾选来源生成报告',
     icon: DescriptionRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-report',
+    artifactKind: 'report',
   },
   {
     id: 'flashcards',

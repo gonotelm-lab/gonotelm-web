@@ -227,7 +227,11 @@ export function useStudioPreviewController({
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'
-    const extension = previewTarget.kind === 'mindmap' ? 'mmd' : 'txt'
+    const extension = previewTarget.kind === 'mindmap'
+      ? 'mmd'
+      : previewTarget.kind === 'report'
+        ? 'md'
+        : 'txt'
     const blob = new Blob([previewState.content], { type: 'text/plain;charset=utf-8' })
     const blobUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')

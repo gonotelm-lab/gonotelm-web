@@ -136,7 +136,7 @@ export interface GetSourceParsedTreeResponse {
   height: number
 }
 
-export type StudioArtifactKind = 'mindmap' | string
+export type StudioArtifactKind = 'mindmap' | 'report'
 
 export type StudioArtifactTaskStatus =
   | 'pending'
@@ -145,7 +145,6 @@ export type StudioArtifactTaskStatus =
   | 'failed'
   | 'cancelled'
   | 'expired'
-  | string
 
 export type StudioArtifactContentKind = 'inline' | 'storage'
 
@@ -167,6 +166,7 @@ export interface GetStudioArtifactStatusResponse {
 export interface StudioArtifactResult {
   notebook_id: string
   task_id: string
+  kind: StudioArtifactKind
   status: StudioArtifactTaskStatus
   title?: string
   source_ids?: string[]

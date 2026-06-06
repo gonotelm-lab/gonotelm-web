@@ -47,7 +47,7 @@ export function StudioPanel({
     () => selectedSourceIds.filter((sourceId) => readySourceIdSet.has(sourceId)),
     [readySourceIdSet, selectedSourceIds],
   )
-  const canCreateMindmap =
+  const canSubmitArtifactTask =
     Boolean(notebookId) && selectedReadySourceIds.length > 0
 
   const {
@@ -75,7 +75,7 @@ export function StudioPanel({
   } = useStudioPreviewController({ artifactItems })
 
   const handleCreateMindmap = () => {
-    if (!canCreateMindmap) {
+    if (!canSubmitArtifactTask) {
       return
     }
     void submitArtifactTask({
@@ -86,8 +86,21 @@ export function StudioPanel({
     })
   }
 
+  const handleCreateReport = () => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    void submitArtifactTask({
+      kind: 'report',
+      sourceIds: selectedReadySourceIds,
+      title: '报告',
+      actionId: 'generate-report',
+    })
+  }
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': handleCreateMindmap,
+    'generate-report': handleCreateReport,
   }
 
   const primaryContent = (
@@ -107,7 +120,7 @@ export function StudioPanel({
         </IconButton>
       </Stack>
 
-      {!canCreateMindmap ? (
+      {!canSubmitArtifactTask ? (
         <Alert severity="info" sx={{ mt: 0.6, mb: 0.9, py: 0.25 }}>
           请先在左侧来源面板勾选至少一个已就绪来源。
         </Alert>
@@ -123,7 +136,9 @@ export function StudioPanel({
       >
         {studioToolCatalog.map((tool) => {
           const actionId = tool.actionId
-          const disabled = tool.availability !== 'available' || (tool.artifactKind === 'mindmap' && !canCreateMindmap)
+          const disabled =
+            tool.availability !== 'available'
+            || (Boolean(tool.artifactKind) && !canSubmitArtifactTask)
           const pending = Boolean(actionId && pendingActions[actionId])
           return (
             <StudioToolCard
