@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   cancelStudioArtifactTask,
   deleteStudioArtifact,
@@ -6,7 +6,6 @@ import {
   getStudioArtifactResult,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
-  loadStudioArtifactContentFromUrl,
   retryStudioArtifactTask,
 } from '@/api/studio'
 import { useAdaptivePollingLoop } from '@/components/notebook-workspace/hooks/useAdaptivePollingLoop'
@@ -14,7 +13,6 @@ import { ApiError } from '@/lib/http'
 import type {
   StudioArtifactKind,
   StudioArtifactResult,
-  StudioArtifactTaskStatus,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -95,14 +93,6 @@ const toHistoryArtifactItem = (
   }
 }
 
-export interface StudioPreviewState {
-  open: boolean
-  targetId: string
-  loading: boolean
-  content: string
-  error: string
-}
-
 interface UseStudioArtifactTasksParams {
   notebookId: string
 }
@@ -112,14 +102,6 @@ interface SubmitStudioArtifactTaskParams {
   sourceIds: string[]
   title: string
   actionId: StudioToolActionId
-}
-
-const defaultPreviewState: StudioPreviewState = {
-  open: false,
-  targetId: '',
-  loading: false,
-  content: '',
-  error: '',
 }
 
 export function useStudioArtifactTasks({
@@ -134,18 +116,10 @@ export function useStudioArtifactTasks({
   const [pendingArtifactActions, setPendingArtifactActions] = useState<
     Record<string, boolean>
   >({})
-  const [previewState, setPreviewState] = useState<StudioPreviewState>(
-    defaultPreviewState,
-  )
 
   const activeNotebookIdRef = useRef(notebookId)
   const artifactItemsRef = useRef(artifactItems)
   const historyLoadSeqRef = useRef(0)
-
-  const previewTarget = useMemo(
-    () => artifactItems.find((item) => item.id === previewState.targetId) ?? null,
-    [artifactItems, previewState.targetId],
-  )
 
   useEffect(() => {
     activeNotebookIdRef.current = notebookId
@@ -521,18 +495,12 @@ export function useStudioArtifactTasks({
       }
       if (!item.taskId) {
         setArtifactItems((prev) => prev.filter((target) => target.id !== item.id))
-        setPreviewState((prev) =>
-          prev.targetId === item.id ? defaultPreviewState : prev,
-        )
         return
       }
       setArtifactActionPending(item.id, 'delete', true)
       try {
         await deleteStudioArtifact(item.taskId)
         setArtifactItems((prev) => prev.filter((target) => target.id !== item.id))
-        setPreviewState((prev) =>
-          prev.targetId === item.id ? defaultPreviewState : prev,
-        )
       } catch (error) {
         setArtifactItems((prev) =>
           prev.map((target) =>
@@ -551,123 +519,6 @@ export function useStudioArtifactTasks({
     [setArtifactActionPending],
   )
 
-  const openArtifactPreview = useCallback(
-    (item: StudioArtifactItem) => {
-      const loadPreview = async () => {
-        setPreviewState({
-          open: true,
-          targetId: item.id,
-          loading: true,
-          content: '',
-          error: '',
-        })
-        try {
-          let content = item.content
-          let contentUrl = item.contentUrl
-          let taskStatus: StudioArtifactTaskStatus = item.status
-          let itemStatus = toArtifactVisualStatus(item.status)
-          let contentKind = item.contentKind
-
-          if (!content && !contentUrl && item.taskId) {
-            const result = await getStudioArtifactResult(item.taskId)
-            const sourceIdsFromResult = Array.isArray(result.source_ids)
-              ? result.source_ids.map((sourceId) => String(sourceId))
-              : null
-            const resultTimestampMs = normalizeStudioTimestampMs(result.timestamp)
-            const resultTitle = String(result.title ?? '').trim()
-            content = result.content ?? ''
-            contentUrl = result.content_url ?? ''
-            taskStatus = result.status
-            itemStatus = toArtifactVisualStatus(result.status)
-            contentKind = result.content_kind ?? 'inline'
-            setArtifactItems((prev) =>
-              prev.map((target) => {
-                if (target.id !== item.id) {
-                  return target
-                }
-                const nextSourceIds = sourceIdsFromResult ?? target.sourceIds
-                return {
-                  ...target,
-                  status: taskStatus,
-                  title: resultTitle || target.title,
-                  sourceIds: nextSourceIds,
-                  sourceCount: nextSourceIds.length,
-                  createdAt: resultTimestampMs ?? target.createdAt,
-                  content,
-                  contentUrl,
-                  contentKind,
-                  error:
-                    itemStatus === 'failed' || itemStatus === 'cancelled'
-                      ? buildTaskFailedMessage(taskStatus)
-                      : '',
-                }
-              }),
-            )
-          }
-
-          if (shouldStudioTaskKeepPolling(taskStatus)) {
-            setPreviewState((prev) => ({
-              ...prev,
-              loading: false,
-              error: '任务尚未完成，请稍后再试。',
-            }))
-            return
-          }
-
-          if (itemStatus === 'failed' || itemStatus === 'cancelled') {
-            setPreviewState((prev) => ({
-              ...prev,
-              loading: false,
-              error: buildTaskFailedMessage(taskStatus),
-            }))
-            return
-          }
-
-          if (!content && contentUrl) {
-            content = await loadStudioArtifactContentFromUrl(contentUrl)
-            setArtifactItems((prev) =>
-              prev.map((target) =>
-                target.id === item.id
-                  ? {
-                      ...target,
-                      content,
-                    }
-                  : target,
-              ),
-            )
-          }
-
-          setPreviewState((prev) => ({
-            ...prev,
-            loading: false,
-            content,
-            error: content ? '' : '当前产物没有可预览内容。',
-          }))
-        } catch (error) {
-          setPreviewState((prev) => ({
-            ...prev,
-            loading: false,
-            error: buildStudioErrorMessage(error, '加载预览内容失败，请重试。'),
-          }))
-        }
-      }
-      void loadPreview()
-    },
-    [],
-  )
-
-  const retryPreviewLoad = useCallback(() => {
-    const target = artifactItems.find((item) => item.id === previewState.targetId)
-    if (!target) {
-      return
-    }
-    openArtifactPreview(target)
-  }, [artifactItems, openArtifactPreview, previewState.targetId])
-
-  const closePreviewOverlay = useCallback(() => {
-    setPreviewState(defaultPreviewState)
-  }, [])
-
   const isArtifactActionPending = useCallback(
     (itemId: string, action: StudioArtifactItemAction) =>
       Boolean(pendingArtifactActions[buildArtifactActionKey(itemId, action)]),
@@ -679,16 +530,11 @@ export function useStudioArtifactTasks({
     historyLoading,
     historyError,
     pendingActions,
-    previewState,
-    previewTarget,
     reloadHistoryArtifacts,
     submitArtifactTask,
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
     isArtifactActionPending,
-    openArtifactPreview,
-    retryPreviewLoad,
-    closePreviewOverlay,
   }
 }

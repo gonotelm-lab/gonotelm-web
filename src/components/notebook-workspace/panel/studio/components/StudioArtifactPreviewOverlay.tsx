@@ -7,12 +7,11 @@ import {
   Button,
   Dialog,
   IconButton,
-  Paper,
   Stack,
   Typography,
 } from '@mui/material'
 import type { StudioArtifactItem } from '../types'
-import { MindmapCanvas } from './MindmapCanvas'
+import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 
 interface StudioArtifactPreviewOverlayProps {
   open: boolean
@@ -169,41 +168,14 @@ export function StudioArtifactPreviewOverlay({
                 暂无可预览内容。
               </Typography>
             </Stack>
-          ) : isMindmapArtifact ? (
-            <Box sx={{ height: '100%', minHeight: 0 }}>
-              <MindmapCanvas
-                mermaid={content}
-                spacingPreset="wide"
-                surfaceRadius={0}
-                showBorder={false}
-                height="100%"
-              />
-            </Box>
           ) : (
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 1.2,
-                borderStyle: 'dashed',
-                bgcolor: 'background.default',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography
-                component="pre"
-                sx={{
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: 'text.primary',
-                }}
-              >
-                {content || '当前产物没有可展示内容。'}
-              </Typography>
-            </Paper>
+            <Box sx={{ height: '100%', minHeight: 0 }}>
+              {renderStudioArtifactPreviewContent({
+                artifact,
+                content,
+                mode: 'overlay',
+              })}
+            </Box>
           )}
         </Box>
       </Box>
