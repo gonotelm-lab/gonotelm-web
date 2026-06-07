@@ -11,8 +11,7 @@ import type { ChatCitationJumpRequest } from '../../chat/types'
 import type { SourceListItem } from '../types/sourceTypes'
 import {
   expandHighlightRangeToLineBoundaries,
-  resolveHighlightRangeByRunePosition,
-  resolveHighlightRangeBySnippet,
+  resolveHighlightRange,
   type SourceHighlightRange,
 } from './sourcePreviewMarkdown'
 import { getSourcePreviewCapability } from './sourcePreviewCapabilities'
@@ -45,7 +44,6 @@ export interface SourcePreviewState {
   loading: boolean
   rawMarkdown: string
   markdown: string
-  highlightSnippet: string
   focusRange: SourceHighlightRange | null
   notice: string
   error: string
@@ -62,7 +60,6 @@ const defaultSourcePreviewState: SourcePreviewState = {
   loading: false,
   rawMarkdown: '',
   markdown: '',
-  highlightSnippet: '',
   focusRange: null,
   notice: '',
   error: '',
@@ -117,7 +114,6 @@ export function useSourcePreviewController({
       loading: true,
       rawMarkdown: '',
       markdown: '',
-      highlightSnippet: locator?.snippet?.trim() ?? '',
       focusRange: null,
       notice: '',
       error: '',
@@ -203,10 +199,7 @@ export function useSourcePreviewController({
         return
       }
 
-      let focusRange = resolveHighlightRangeByRunePosition(markdown, locator?.position)
-      if (!focusRange) {
-        focusRange = resolveHighlightRangeBySnippet(markdown, locator?.snippet)
-      }
+      const focusRange = resolveHighlightRange(markdown, locator)
       const expandedFocusRange = expandHighlightRangeToLineBoundaries(markdown, focusRange)
 
       setPreviewState((prev) =>

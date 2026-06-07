@@ -302,7 +302,6 @@ function SourcesPanelLayout({
                       error={previewState.error}
                       notice={previewState.notice}
                       markdown={previewState.markdown}
-                      highlightSnippet={previewState.highlightSnippet}
                       focusRange={previewState.focusRange}
                       tree={previewState.tree}
                       canOpenOverlay={canOpenOverlay}
@@ -330,7 +329,6 @@ function SourcesPanelLayout({
         error={previewState.error}
         notice={previewState.notice}
         markdown={previewState.markdown}
-        highlightSnippet={previewState.highlightSnippet}
         focusRange={previewState.focusRange}
         tree={previewState.tree}
         canDownload={canDownload}
@@ -351,6 +349,14 @@ const usePreviewInitialFocus = ({
   previewBodyRef: RefObject<HTMLDivElement | null>
   previewInitialFocusPendingRef: MutableRefObject<boolean>
 }) => {
+  const resolveCitationScrollContainer = (container: HTMLElement) => {
+    const nestedScrollable = container.querySelector('[data-source-preview-scroll-root="true"]')
+    if (nestedScrollable instanceof HTMLElement) {
+      return nestedScrollable
+    }
+    return container
+  }
+
   useEffect(() => {
     if (
       !previewState.inlineOpen ||
@@ -364,7 +370,7 @@ const usePreviewInitialFocus = ({
     if (!previewInitialFocusPendingRef.current) {
       return
     }
-    if (!previewState.locator?.position && !previewState.focusRange && !previewState.highlightSnippet) {
+    if (!previewState.locator?.position && !previewState.focusRange) {
       previewInitialFocusPendingRef.current = false
       return
     }
@@ -372,25 +378,23 @@ const usePreviewInitialFocus = ({
     if (!container) {
       return
     }
+    const scrollContainer = resolveCitationScrollContainer(container)
 
     const frameId = window.requestAnimationFrame(() => {
       const scrollElementToVerticalCenter = (element: HTMLElement) => {
-        const containerRect = container.getBoundingClientRect()
+        const containerRect = scrollContainer.getBoundingClientRect()
         const elementRect = element.getBoundingClientRect()
         const deltaTop = elementRect.top - containerRect.top
-        const targetTop = container.scrollTop + deltaTop - container.clientHeight / 2 + elementRect.height / 2
-        const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0)
-        container.scrollTop = Math.min(Math.max(Math.round(targetTop), 0), maxScrollTop)
-        container.scrollLeft = 0
+        const targetTop = scrollContainer.scrollTop +
+          deltaTop -
+          scrollContainer.clientHeight / 2 +
+          elementRect.height / 2
+        const maxScrollTop = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0)
+        scrollContainer.scrollTop = Math.min(Math.max(Math.round(targetTop), 0), maxScrollTop)
+        scrollContainer.scrollLeft = 0
       }
 
-      const rangeHighlightBlock = container.querySelector('[data-citation-range-highlight="true"]')
-      if (rangeHighlightBlock instanceof HTMLElement) {
-        scrollElementToVerticalCenter(rangeHighlightBlock)
-        previewInitialFocusPendingRef.current = false
-        return
-      }
-      const highlight = container.querySelector('mark')
+      const highlight = scrollContainer.querySelector('mark')
       if (highlight instanceof HTMLElement) {
         scrollElementToVerticalCenter(highlight)
         previewInitialFocusPendingRef.current = false
@@ -401,14 +405,14 @@ const usePreviewInitialFocus = ({
       if (typeof start !== 'number' || !Number.isFinite(start)) {
         return
       }
-      const maxScrollTop = container.scrollHeight - container.clientHeight
+      const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight
       if (maxScrollTop <= 0) {
         return
       }
       const totalRunes = Math.max(Array.from(previewState.rawMarkdown).length, 1)
       const ratio = Math.min(Math.max(start / totalRunes, 0), 1)
-      container.scrollTop = Math.round(maxScrollTop * ratio)
-      container.scrollLeft = 0
+      scrollContainer.scrollTop = Math.round(maxScrollTop * ratio)
+      scrollContainer.scrollLeft = 0
       previewInitialFocusPendingRef.current = false
     })
 

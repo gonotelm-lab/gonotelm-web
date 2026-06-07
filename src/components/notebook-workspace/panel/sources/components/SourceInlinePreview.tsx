@@ -25,7 +25,6 @@ interface SourceInlinePreviewProps {
   error: string
   notice: string
   markdown: string
-  highlightSnippet: string
   focusRange: SourceHighlightRange | null
   tree: GetSourceParsedTreeResponse | null
   canOpenOverlay: boolean
@@ -48,7 +47,6 @@ export function SourceInlinePreview({
   error,
   notice,
   markdown,
-  highlightSnippet,
   focusRange,
   tree,
   canOpenOverlay,
@@ -104,7 +102,10 @@ export function SourceInlinePreview({
         </Stack>
       </Stack>
 
-      <Box sx={{ mt: 1.2, flex: 1, minHeight: 0, overflow: isTreeView ? 'hidden' : 'auto' }}>
+      <Box
+        data-source-preview-scroll-root={isTreeView ? undefined : 'true'}
+        sx={{ mt: 1.2, flex: 1, minHeight: 0, overflow: isTreeView ? 'hidden' : 'auto' }}
+      >
         {degradedByResizing ? (
           <Box
             sx={{
@@ -141,7 +142,6 @@ export function SourceInlinePreview({
           renderSourcePreviewContent({
             viewType,
             markdown,
-            highlightSnippet,
             focusRange,
             tree,
           })

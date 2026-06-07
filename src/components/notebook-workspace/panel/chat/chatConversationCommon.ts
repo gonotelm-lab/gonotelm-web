@@ -7,7 +7,12 @@ import type {
   MessageStreamPhaseContentAction,
   SourceDocPosition,
 } from '@/types/api'
-import type { ChatUiCitationDetail, ChatUiCitationPosition, ChatUiMessage } from './types'
+import type {
+  ChatCitationJumpRequest,
+  ChatUiCitationDetail,
+  ChatUiCitationPosition,
+  ChatUiMessage,
+} from './types'
 
 export const chatMessagesPageLimit = 20
 export const showScrollToBottomButtonThresholdPx = 80
@@ -141,6 +146,21 @@ export const formatCitationPositionText = (
   }
   return `${normalizedPosition.start} - ${normalizedPosition.end}`
 }
+
+interface CitationJumpButtonVisibilityInput {
+  onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
+  sourceId?: string
+  position?: ChatUiCitationPosition | null
+  isOriginalCitation: boolean
+}
+
+export const canShowCitationJumpButton = ({
+  onOpenCitationJump,
+  sourceId,
+  position,
+  isOriginalCitation,
+}: CitationJumpButtonVisibilityInput) =>
+  Boolean(onOpenCitationJump && sourceId && position && isOriginalCitation)
 
 const toCitationDetailsFromMessageCitation = (
   citation?: ChatMessageCitation,

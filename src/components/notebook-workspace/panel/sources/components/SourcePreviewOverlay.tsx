@@ -23,7 +23,6 @@ interface SourcePreviewOverlayProps {
   error: string
   notice: string
   markdown: string
-  highlightSnippet: string
   focusRange: SourceHighlightRange | null
   tree: GetSourceParsedTreeResponse | null
   canDownload: boolean
@@ -45,7 +44,6 @@ export function SourcePreviewOverlay({
   error,
   notice,
   markdown,
-  highlightSnippet,
   focusRange,
   tree,
   canDownload,
@@ -155,7 +153,6 @@ export function SourcePreviewOverlay({
             renderSourcePreviewContent({
               viewType,
               markdown,
-              highlightSnippet,
               focusRange,
               tree,
             })

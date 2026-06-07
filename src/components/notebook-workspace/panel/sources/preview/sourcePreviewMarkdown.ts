@@ -3,6 +3,11 @@ export interface SourceHighlightRange {
   end: number
 }
 
+export interface SourceHighlightLocator {
+  position?: { start?: number; end?: number }
+  snippet?: string
+}
+
 const toCodeUnitOffsetByRune = (text: string, runeOffset: number) => {
   if (runeOffset <= 0) {
     return 0
@@ -84,6 +89,17 @@ export const resolveHighlightRangeByRunePosition = (
   const startCodeUnitOffset = toCodeUnitOffsetByRune(text, safeStart)
   const endCodeUnitOffset = toCodeUnitOffsetByRune(text, rawEnd)
   return normalizeHighlightRange(text, startCodeUnitOffset, endCodeUnitOffset)
+}
+
+export const resolveHighlightRange = (
+  text: string,
+  locator?: SourceHighlightLocator | null,
+): SourceHighlightRange | null => {
+  const rangeByPosition = resolveHighlightRangeByRunePosition(text, locator?.position)
+  if (rangeByPosition) {
+    return rangeByPosition
+  }
+  return resolveHighlightRangeBySnippet(text, locator?.snippet)
 }
 
 const escapeHtml = (text: string) =>

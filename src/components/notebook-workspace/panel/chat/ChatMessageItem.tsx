@@ -17,6 +17,7 @@ import { buildSourceDocQueryOptions } from '@/api/source'
 import type { GetSourceDocResponse } from '@/types/api'
 import { AssistantMarkdown } from './AssistantMarkdown'
 import {
+  canShowCitationJumpButton,
   formatCitationPositionText,
   normalizeCitationPosition,
   resolveCitationTypeLabel,
@@ -138,9 +139,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
       ),
     [activeCitationPosition, citationSummary],
   )
-  const canJumpToSourcePreview = Boolean(
-    onOpenCitationJump && activeCitationSourceId && isOriginalCitation,
-  )
+  const canJumpToSourcePreview = canShowCitationJumpButton({
+    onOpenCitationJump,
+    sourceId: activeCitationSourceId,
+    position: activeCitationPosition,
+    isOriginalCitation,
+  })
 
   /**
    * Fetches citation document content for the currently selected marker.
@@ -210,7 +214,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   }, [])
 
   const handleJumpToSourcePreview = useCallback(() => {
-    if (!onOpenCitationJump || !activeCitationSourceId || !isOriginalCitation) {
+    if (!onOpenCitationJump || !activeCitationSourceId || !isOriginalCitation || !activeCitationPosition) {
       return
     }
     onOpenCitationJump({

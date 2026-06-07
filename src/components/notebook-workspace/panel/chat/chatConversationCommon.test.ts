@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canShowCitationJumpButton,
   formatCitationPositionText,
   getFinishReasonNotice,
   mergeDistinctCitationDetails,
@@ -94,6 +95,28 @@ describe('citation metadata helpers', () => {
   it('maps summary label from boolean', () => {
     expect(resolveCitationTypeLabel(true)).toBe('总结性引用')
     expect(resolveCitationTypeLabel(false)).toBe('原文片段引用')
+  })
+
+  it('hides citation jump button when position is missing', () => {
+    expect(
+      canShowCitationJumpButton({
+        onOpenCitationJump: () => undefined,
+        sourceId: 'source-1',
+        position: null,
+        isOriginalCitation: true,
+      }),
+    ).toBe(false)
+  })
+
+  it('shows citation jump button when source and position are available', () => {
+    expect(
+      canShowCitationJumpButton({
+        onOpenCitationJump: () => undefined,
+        sourceId: 'source-1',
+        position: { start: 11, end: 28 },
+        isOriginalCitation: true,
+      }),
+    ).toBe(true)
   })
 })
 
