@@ -1,5 +1,6 @@
 import { http } from 'msw'
 import {
+  createGetSourceResponseFixture,
   createSourceParsedTreeFixture,
   createPollSourceStatusFixture,
   createSourceResponseFixture,
@@ -14,6 +15,22 @@ import {
 const apiBaseUrl = 'http://127.0.0.1:4173'
 
 export const sourceHandlers = [
+  http.get('https://preview.example/:filename', async ({ params }) =>
+    new Response(`# ${String(params.filename ?? 'source')}\n\nMock preview content.`, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+      },
+    }),
+  ),
+  http.get('https://download.example/:filename', async ({ params }) =>
+    new Response(`# ${String(params.filename ?? 'source')}\n\nMock download content.`, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+      },
+    }),
+  ),
   http.post(`${apiBaseUrl}/api/v1/source`, async () => {
     const scenario = getMockScenario('source')
     return resolveScenarioResponse({
@@ -62,6 +79,28 @@ export const sourceHandlers = [
   http.put(`${apiBaseUrl}/api/v1/source/:sourceId/title`, async () =>
     createSuccessResponse(null),
   ),
+  http.get(`${apiBaseUrl}/api/v1/source/:sourceId`, async ({ params, request }) => {
+    const scenario = getMockScenario('source')
+    const sourceId = String(params.sourceId ?? 'source-1')
+    const download = new URL(request.url).searchParams.get('download') === 'true'
+    return resolveScenarioResponse({
+      scenario,
+      successData: createGetSourceResponseFixture({
+        id: sourceId,
+        parsed_content: {
+          url: download
+            ? `https://download.example/${sourceId}.md?download=1`
+            : `https://preview.example/${sourceId}.md`,
+        },
+      }),
+      emptyData: createGetSourceResponseFixture({
+        id: sourceId,
+        parsed_content: {
+          url: '',
+        },
+      }),
+    })
+  }),
   http.get(`${apiBaseUrl}/api/v1/source/:sourceId/parsed/tree`, async () => {
     const scenario = getMockScenario('source')
     return resolveScenarioResponse({

@@ -20,4 +20,5 @@ export interface SourceListItem {
   urlContent?: string
   fileFormat?: string
   fileUrl?: string
+  parsedContentUrl?: string
 }

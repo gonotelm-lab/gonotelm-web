@@ -10,6 +10,7 @@ export interface SourceCard {
   urlContent?: string
   fileFormat?: string
   fileUrl?: string
+  parsedContentUrl?: string
 }
 
 export interface NotebookMeta {

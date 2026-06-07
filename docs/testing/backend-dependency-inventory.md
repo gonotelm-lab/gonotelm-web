@@ -29,12 +29,12 @@
 
 - `src/api/source.ts`
   - `POST /api/v1/source`
+  - `GET /api/v1/source/:id`
   - `POST /api/v1/source/:id/file/upload`
   - `POST /api/v1/source/:id/status`
   - `POST /api/v1/source/:id/reload`
   - `PUT /api/v1/source/:id/title`
   - `DELETE /api/v1/source/:id`
-  - `GET /api/v1/source/:id/parsed/content`
 
 ## 已迁移到 mock 驱动的关键路径
 
@@ -48,5 +48,5 @@
 ## 后续迁移优先级
 
 1. 补齐 `stream` SSE 场景化 mock（正常流、中断、重连）。
-2. 补齐 `source parsed content` 的空内容和错误分支回归。
+2. 补齐 `GET /source/:id`（含 `download=true`）的空内容和错误分支回归。
 3. 对高频 API 调用（创建/删除来源、重命名、清上下文）继续补齐 mock 场景。

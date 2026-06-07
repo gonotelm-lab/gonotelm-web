@@ -1,9 +1,9 @@
 import { ApiError, request } from '../lib/http'
 import type {
-  ApiResult,
   CreateSourceRequest,
   CreateSourceResponse,
   GetSourceDocResponse,
+  GetSourceResponse,
   GetSourceParsedContentResponse,
   GetSourceParsedTreeResponse,
   PollSourceStatusResponse,
@@ -11,7 +11,6 @@ import type {
   UploadFileSourceResponse,
 } from '../types/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 const sourceDocCacheTtlMs = 5 * 60 * 1000
 const sourceDocQueryKey = (sourceId: string, docId: string) =>
   ['source-doc', sourceId, docId] as const
@@ -29,6 +28,33 @@ export const buildSourceDocQueryOptions = (sourceId: string, docId: string) => (
   staleTime: sourceDocCacheTtlMs,
   gcTime: sourceDocCacheTtlMs,
 })
+
+interface GetSourceParams {
+  download?: boolean
+}
+
+const buildGetSourcePath = (
+  sourceId: string,
+  params: GetSourceParams = {},
+) => {
+  const normalizedSourceId = sourceId.trim().replace(/\/+$/, '')
+  const query = new URLSearchParams()
+  if (params.download) {
+    query.set('download', 'true')
+  }
+
+  const suffix = query.toString()
+  const encodedSourceId = encodeURIComponent(normalizedSourceId)
+  return suffix
+    ? `/api/v1/source/${encodedSourceId}?${suffix}`
+    : `/api/v1/source/${encodedSourceId}`
+}
+
+export function getSource(sourceId: string, params: GetSourceParams = {}) {
+  return request<GetSourceResponse>(buildGetSourcePath(sourceId, params), {
+    method: 'GET',
+  })
+}
 
 const sourceParsedContentQueryKey = (sourceId: string) =>
   ['source-parsed-content', sourceId] as const
@@ -83,46 +109,26 @@ export function updateSourceTitle(sourceId: string, payload: UpdateSourceTitleRe
   })
 }
 
-async function getSourceParsedContent(sourceId: string) {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/source/${encodeURIComponent(sourceId)}/parsed/content`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  )
+interface GetSourceParsedContentParams {
+  download?: boolean
+}
 
-  if (response.status === 204) {
+async function getSourceParsedContent(
+  sourceId: string,
+  params: GetSourceParsedContentParams = {},
+) {
+  const source = await getSource(sourceId, params)
+  const parsedContentUrl = source.parsed_content?.url?.trim()
+  if (!parsedContentUrl) {
     return null
   }
-
-  let body: ApiResult<GetSourceParsedContentResponse> | null = null
-  try {
-    body = (await response.json()) as ApiResult<GetSourceParsedContentResponse>
-  } catch {
-    // keep body null, handled below
-  }
-
-  if (!response.ok) {
-    throw new ApiError(
-      body?.msg ?? `HTTP request failed: ${response.status}`,
-      body?.code ?? -1,
-      response.status,
-    )
-  }
-
-  if (!body) {
-    throw new ApiError('Empty response body', -1, response.status)
-  }
-
-  if (body.code !== 0) {
-    throw new ApiError(body.msg, body.code, response.status)
-  }
-
-  return body.data
+  return {
+    url: parsedContentUrl,
+  } satisfies GetSourceParsedContentResponse
 }
+
+export const getSourceParsedContentForDownload = (sourceId: string) =>
+  getSourceParsedContent(sourceId, { download: true })
 
 export function getSourceParsedTree(sourceId: string) {
   return request<GetSourceParsedTreeResponse>(

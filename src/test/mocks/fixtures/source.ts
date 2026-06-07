@@ -1,5 +1,6 @@
 import type {
   CreateSourceResponse,
+  GetSourceResponse,
   GetSourceParsedTreeResponse,
   PollSourceStatusResponse,
 } from '@/types/api'
@@ -17,6 +18,25 @@ export const createPollSourceStatusFixture = (
   status: 'ready',
   ...overrides,
 })
+
+export const createGetSourceResponseFixture = (
+  overrides: Partial<GetSourceResponse> = {},
+): GetSourceResponse => {
+  const sourceId = overrides.id ?? 'source-1'
+  return {
+    id: sourceId,
+    kind: 'text',
+    status: 'ready',
+    title: 'Ownership 速记',
+    text: {
+      text: 'Ownership 是 Rust 的核心概念',
+    },
+    parsed_content: {
+      url: `https://preview.example/${sourceId}.md`,
+    },
+    ...overrides,
+  }
+}
 
 export const createSourceParsedTreeFixture = (
   overrides: Partial<GetSourceParsedTreeResponse> = {},

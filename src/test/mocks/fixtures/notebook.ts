@@ -30,16 +30,22 @@ export const createNotebookFixture = (
 
 export const createNotebookSourceFixture = (
   overrides: Partial<NotebookSource> = {},
-): NotebookSource => ({
-  id: 'source-1',
-  kind: 'text',
-  status: 'ready',
-  title: 'Ownership 速记',
-  text: {
-    text: 'Ownership 是 Rust 的核心概念',
-  },
-  ...overrides,
-})
+): NotebookSource => {
+  const sourceId = overrides.id ?? 'source-1'
+  return {
+    id: sourceId,
+    kind: 'text',
+    status: 'ready',
+    title: 'Ownership 速记',
+    text: {
+      text: 'Ownership 是 Rust 的核心概念',
+    },
+    parsed_content: {
+      url: `https://preview.example/${sourceId}.md`,
+    },
+    ...overrides,
+  }
+}
 
 export const createListNotebooksResponseFixture = (
   notebooks: NotebookSummary[],

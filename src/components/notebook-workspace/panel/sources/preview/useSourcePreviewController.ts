@@ -155,31 +155,48 @@ export function useSourcePreviewController({
     }
 
     try {
-      const parsedContent = await queryClient.fetchQuery(
-        buildSourceParsedContentQueryOptions(sourceId),
-      )
+      const fetchMarkdownByUrl = async (url: string) => {
+        const markdownFromUrl = await queryClient.fetchQuery(
+          buildSourceParsedContentUrlQueryOptions(url),
+        )
+        return markdownFromUrl.trim()
+      }
+
+      let markdown = ''
+      const inlineParsedContentUrl = item.parsedContentUrl?.trim() ?? ''
+      if (inlineParsedContentUrl) {
+        try {
+          markdown = await fetchMarkdownByUrl(inlineParsedContentUrl)
+        } catch {
+          markdown = ''
+        }
+      }
+
       if (requestSeqRef.current !== requestSeq) {
         return
       }
-      if (!parsedContent) {
-        setPreviewState((prev) =>
-          prev.sourceId === sourceId
-            ? {
-                ...prev,
-                loading: false,
-                notice: sourcePreviewEmptyNotice,
-              }
-            : prev,
-        )
-        return
-      }
 
-      let markdown = parsedContent.content?.trim() ?? ''
-      if (!markdown && parsedContent.url) {
-        markdown = await queryClient.fetchQuery(
-          buildSourceParsedContentUrlQueryOptions(parsedContent.url),
+      if (!markdown) {
+        const parsedContent = await queryClient.fetchQuery(
+          buildSourceParsedContentQueryOptions(sourceId),
         )
-        markdown = markdown.trim()
+        if (requestSeqRef.current !== requestSeq) {
+          return
+        }
+        const parsedContentUrl = parsedContent?.url?.trim() ?? ''
+        if (!parsedContentUrl) {
+          setPreviewState((prev) =>
+            prev.sourceId === sourceId
+              ? {
+                  ...prev,
+                  loading: false,
+                  notice: sourcePreviewEmptyNotice,
+                }
+              : prev,
+          )
+          return
+        }
+        markdown = await fetchMarkdownByUrl(parsedContentUrl)
       }
 
       if (requestSeqRef.current !== requestSeq) {

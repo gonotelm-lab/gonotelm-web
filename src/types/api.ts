@@ -2,6 +2,10 @@ export type SourceKind = 'text' | 'url' | 'file'
 
 export type SourceStatus = 'inited' | 'uploading' | 'preparing' | 'ready' | 'failed'
 
+export interface SourceParsedContent {
+  url?: string
+}
+
 export interface ApiResult<T> {
   code: number
   msg: string
@@ -42,6 +46,7 @@ export interface NotebookSource {
     filename: string
     format: string
   }
+  parsed_content?: SourceParsedContent
 }
 
 export interface CreateNotebookRequest {
@@ -117,8 +122,9 @@ export interface GetSourceDocResponse {
   summarized_from?: string[]
 }
 
+export type GetSourceResponse = NotebookSource
+
 export interface GetSourceParsedContentResponse {
-  content?: string
   url?: string
 }
 

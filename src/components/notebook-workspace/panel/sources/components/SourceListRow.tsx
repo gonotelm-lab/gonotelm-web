@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { startTransition, useEffect, useState } from 'react'
 import AddLinkIcon from '@mui/icons-material/AddLink'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
@@ -31,6 +31,7 @@ import {
   Typography,
 } from '@mui/material'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
+import { downloadSourceItemParsedContent } from './sourceItemDownload'
 import type { SourceListItem } from '../types/sourceTypes'
 
 const sourceTitleMaxChars = 64
@@ -70,12 +71,16 @@ export function SourceListRow({
   const isAwaitingReady =
     item.status === 'inited' || item.status === 'uploading' || item.status === 'preparing'
   const rowSelectable = !isProcessing && !removing
-  const isFileSource = item.kind === 'file'
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(item.title)
   const [titleErrorText, setTitleErrorText] = useState('')
   const [isUpdatingTitle, setIsUpdatingTitle] = useState(false)
+  const [optimisticChecked, setOptimisticChecked] = useState(checked)
+
+  useEffect(() => {
+    setOptimisticChecked(checked)
+  }, [checked])
 
   const actionMenuOpen = Boolean(actionAnchorEl)
   const actionMenuItemSx = {
@@ -87,10 +92,17 @@ export function SourceListRow({
   const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
   const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
 
+  const commitToggleSelection = (nextChecked: boolean) => {
+    setOptimisticChecked(nextChecked)
+    startTransition(() => {
+      onToggleItem(item.id, nextChecked)
+    })
+  }
+
   const handleToggleRow = () => {
     if (editDialogOpen) return
     if (!rowSelectable) return
-    onToggleItem(item.id, !checked)
+    commitToggleSelection(!optimisticChecked)
   }
 
   const openActionMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -114,8 +126,10 @@ export function SourceListRow({
 
   const handleDownloadSource = () => {
     closeActionMenu()
-    if (!item.fileUrl) return
-    window.open(item.fileUrl, '_blank', 'noopener,noreferrer')
+    if (!isReady || isBusy || removing) {
+      return
+    }
+    void downloadSourceItemParsedContent(item.id).catch(() => undefined)
   }
 
   const handleOpenSourceUrl = () => {
@@ -277,13 +291,13 @@ export function SourceListRow({
           ) : (
             <Checkbox
               size="small"
-              checked={checked}
+              checked={optimisticChecked}
               disableRipple
               icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
               checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
               sx={{ p: 0, m: 0 }}
               onClick={(e) => e.stopPropagation()}
-              onChange={(e) => onToggleItem(item.id, e.target.checked)}
+              onChange={(e) => commitToggleSelection(e.target.checked)}
             />
           )}
         </Box>
@@ -321,16 +335,14 @@ export function SourceListRow({
             <Typography sx={actionMenuTextSx}>打开链接</Typography>
           </MenuItem>
         ) : null}
-        {isFileSource ? (
-          <MenuItem
-            disabled={!item.fileUrl}
-            onClick={handleDownloadSource}
-            sx={actionMenuItemSx}
-          >
-            <DownloadIcon sx={actionMenuIconSx} />
-            <Typography sx={actionMenuTextSx}>下载</Typography>
-          </MenuItem>
-        ) : null}
+        <MenuItem
+          disabled={!isReady || isBusy || removing}
+          onClick={handleDownloadSource}
+          sx={actionMenuItemSx}
+        >
+          <DownloadIcon sx={actionMenuIconSx} />
+          <Typography sx={actionMenuTextSx}>下载</Typography>
+        </MenuItem>
         {isFailed ? (
           <MenuItem
             disabled={isBusy || removing}

@@ -332,6 +332,7 @@ export function NotebookWorkspacePage() {
             urlContent: source.url?.url,
             fileFormat: source.file?.format,
             fileUrl: source.file?.url,
+            parsedContentUrl: source.parsed_content?.url,
           })),
         ]
         offset = merged.length
@@ -407,6 +408,7 @@ export function NotebookWorkspacePage() {
       urlContent: source.urlContent,
       fileFormat: source.fileFormat,
       fileUrl: source.fileUrl,
+      parsedContentUrl: source.parsedContentUrl,
     }))
   }, [sources])
 
