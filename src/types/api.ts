@@ -223,6 +223,7 @@ export interface ChatCreateMessageRequest {
   enable_thinking?: boolean
   style?: ChatStyle
   answer_length?: ChatAnswerLength
+  enhanced_retrieval?: boolean
 }
 
 export interface ChatCreateMessageResponse {

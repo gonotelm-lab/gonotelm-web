@@ -1,6 +1,7 @@
 import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ManageSearchIcon from '@mui/icons-material/ManageSearch'
 import StopCircleIcon from '@mui/icons-material/StopCircle'
 import {
   Box,
@@ -17,6 +18,8 @@ export interface ChatInputInteractionState {
   isAbortDisabled: boolean
   enableThinking: boolean
   isThinkingToggleDisabled: boolean
+  enableEnhancedRetrieval: boolean
+  isEnhancedRetrievalToggleDisabled: boolean
 }
 
 interface ChatInputBoxProps {
@@ -27,6 +30,7 @@ interface ChatInputBoxProps {
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
   onThinkingToggle: (enabled: boolean) => void
+  onEnhancedRetrievalToggle: (enabled: boolean) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
@@ -65,6 +69,23 @@ const thinkingButtonTokens = {
 }
 const rightControlRowGap = 0.5
 
+const buildCapsuleToggleButtonSx = (enabled: boolean) => ({
+  borderRadius: thinkingButtonTokens.borderRadius,
+  textTransform: 'none',
+  fontSize: thinkingButtonTokens.fontSize,
+  fontWeight: 600,
+  minHeight: thinkingButtonTokens.minHeight,
+  px: thinkingButtonTokens.paddingX,
+  color: enabled ? 'primary.contrastText' : 'text.secondary',
+  borderColor: enabled ? 'primary.main' : 'divider',
+  '& .MuiSvgIcon-root': {
+    fontSize: thinkingButtonTokens.iconSize,
+  },
+  '&:hover': {
+    borderColor: enabled ? 'primary.main' : 'text.secondary',
+  },
+})
+
 export function ChatInputBox({
   value,
   inputRef,
@@ -73,6 +94,7 @@ export function ChatInputBox({
   rightControlsExtra,
   onValueChange,
   onThinkingToggle,
+  onEnhancedRetrievalToggle,
   onKeyDown,
   onSend,
   onAbort,
@@ -84,6 +106,8 @@ export function ChatInputBox({
     isAbortDisabled,
     enableThinking,
     isThinkingToggleDisabled,
+    enableEnhancedRetrieval,
+    isEnhancedRetrievalToggleDisabled,
   } = interactionState
 
   return (
@@ -164,22 +188,23 @@ export function ChatInputBox({
               onThinkingToggle(!enableThinking)
             }}
             disabled={isThinkingToggleDisabled}
-            startIcon={<AutoAwesomeIcon sx={{ fontSize: thinkingButtonTokens.iconSize }} />}
-            sx={{
-              borderRadius: thinkingButtonTokens.borderRadius,
-              textTransform: 'none',
-              fontSize: thinkingButtonTokens.fontSize,
-              fontWeight: 600,
-              minHeight: thinkingButtonTokens.minHeight,
-              px: thinkingButtonTokens.paddingX,
-              color: enableThinking ? 'primary.contrastText' : 'text.secondary',
-              borderColor: enableThinking ? 'primary.main' : 'divider',
-              '&:hover': {
-                borderColor: enableThinking ? 'primary.main' : 'text.secondary',
-              },
-            }}
+            startIcon={<AutoAwesomeIcon />}
+            sx={buildCapsuleToggleButtonSx(enableThinking)}
           >
             深度思考
+          </Button>
+          <Button
+            size="small"
+            variant={enableEnhancedRetrieval ? 'contained' : 'outlined'}
+            color={enableEnhancedRetrieval ? 'primary' : 'inherit'}
+            onClick={() => {
+              onEnhancedRetrievalToggle(!enableEnhancedRetrieval)
+            }}
+            disabled={isEnhancedRetrievalToggleDisabled}
+            startIcon={<ManageSearchIcon />}
+            sx={buildCapsuleToggleButtonSx(enableEnhancedRetrieval)}
+          >
+            增强检索
           </Button>
           {leftControlsExtra}
         </Box>

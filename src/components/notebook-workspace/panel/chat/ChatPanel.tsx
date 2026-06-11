@@ -148,6 +148,7 @@ function ChatPanelContent({
   const {
     composerValue,
     enableThinking,
+    enableEnhancedRetrieval,
     displayMessages,
     streamStatus,
     streamPhaseType,
@@ -166,9 +167,11 @@ function ChatPanelContent({
     isInputDisabled,
     isAbortDisabled,
     isThinkingToggleDisabled,
+    isEnhancedRetrievalToggleDisabled,
     messageListRef,
     setComposerValue,
     setEnableThinking,
+    setEnableEnhancedRetrieval,
     onMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,
@@ -322,9 +325,12 @@ function ChatPanelContent({
             isAbortDisabled,
             enableThinking,
             isThinkingToggleDisabled,
+            enableEnhancedRetrieval,
+            isEnhancedRetrievalToggleDisabled,
           }}
           onValueChange={setComposerValue}
           onThinkingToggle={setEnableThinking}
+          onEnhancedRetrievalToggle={setEnableEnhancedRetrieval}
           onKeyDown={onComposerKeyDown}
           onSend={onSendMessage}
           onAbort={onAbortStream}

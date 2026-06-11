@@ -45,6 +45,7 @@ interface UseChatConversationParams {
 interface UseChatConversationResult {
   composerValue: string
   enableThinking: boolean
+  enableEnhancedRetrieval: boolean
   displayMessages: ChatUiMessage[]
   streamStatus: string
   streamPhaseType: MessageStreamPhaseType | null
@@ -63,9 +64,11 @@ interface UseChatConversationResult {
   isInputDisabled: boolean
   isAbortDisabled: boolean
   isThinkingToggleDisabled: boolean
+  isEnhancedRetrievalToggleDisabled: boolean
   messageListRef: RefObject<HTMLDivElement | null>
   setComposerValue: (value: string) => void
   setEnableThinking: (enabled: boolean) => void
+  setEnableEnhancedRetrieval: (enabled: boolean) => void
   onMessageListScroll: () => void
   onCopyUserMessage: (messageId: string, text: string) => void
   onComposerKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
@@ -126,6 +129,7 @@ export function useChatConversation({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
   const [enableThinking, setEnableThinking] = useState(false)
+  const [enableEnhancedRetrieval, setEnableEnhancedRetrieval] = useState(false)
   const [isClearingContext, setIsClearingContext] = useState(false)
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
@@ -519,6 +523,7 @@ export function useChatConversation({
         enable_thinking: enableThinking,
         style: chatStyle,
         answer_length: answerLength,
+        enhanced_retrieval: enableEnhancedRetrieval,
       })
       await runStreamSession(created.task_id, assistantMessageId)
     } catch (error) {
@@ -541,6 +546,7 @@ export function useChatConversation({
     scrollToBottom,
     selectedSourceIds,
     enableThinking,
+    enableEnhancedRetrieval,
     chatStyle,
     answerLength,
   ])
@@ -695,6 +701,7 @@ export function useChatConversation({
   return {
     composerValue,
     enableThinking,
+    enableEnhancedRetrieval,
     displayMessages,
     streamStatus,
     streamPhaseType,
@@ -713,9 +720,11 @@ export function useChatConversation({
     isInputDisabled: !chatId || isStreaming,
     isAbortDisabled: abortStreamMutation.isPending || !activeTaskId,
     isThinkingToggleDisabled: isStreaming || createMessageMutation.isPending,
+    isEnhancedRetrievalToggleDisabled: isStreaming || createMessageMutation.isPending,
     messageListRef,
     setComposerValue,
     setEnableThinking,
+    setEnableEnhancedRetrieval,
     onMessageListScroll: handleMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,

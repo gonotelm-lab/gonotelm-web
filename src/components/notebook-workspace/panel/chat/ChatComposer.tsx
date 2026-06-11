@@ -12,6 +12,7 @@ interface ChatComposerProps {
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
   onThinkingToggle: (enabled: boolean) => void
+  onEnhancedRetrievalToggle: (enabled: boolean) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
@@ -25,6 +26,7 @@ export function ChatComposer({
   rightControlsExtra,
   onValueChange,
   onThinkingToggle,
+  onEnhancedRetrievalToggle,
   onKeyDown,
   onSend,
   onAbort,
@@ -42,6 +44,7 @@ export function ChatComposer({
         onSend={onSend}
         onAbort={onAbort}
         onThinkingToggle={onThinkingToggle}
+        onEnhancedRetrievalToggle={onEnhancedRetrievalToggle}
       />
     </Box>
   )
