@@ -1,4 +1,5 @@
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded'
+import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import HourglassBottomRoundedIcon from '@mui/icons-material/HourglassBottomRounded'
 import { alpha } from '@mui/material/styles'
 import { Box, ButtonBase, Stack, Tooltip, Typography } from '@mui/material'
@@ -10,6 +11,7 @@ interface StudioToolCardProps {
   disabled?: boolean
   pending?: boolean
   onClick?: () => void
+  onAdvancedClick?: () => void
 }
 
 export function StudioToolCard({
@@ -18,6 +20,7 @@ export function StudioToolCard({
   disabled = false,
   pending = false,
   onClick,
+  onAdvancedClick,
 }: StudioToolCardProps) {
   const interactive = Boolean(onClick) && !disabled && !pending
   const Icon = tool.icon
@@ -29,6 +32,7 @@ export function StudioToolCard({
   const tooltipLabel = tool.availability === 'available'
     ? tool.description
     : statusLabel
+  const showAdvancedEntry = Boolean(tool.hasAdvancedConfig && onAdvancedClick)
 
   return (
     <Tooltip title={tooltipLabel} arrow placement="top" enterDelay={240}
@@ -95,7 +99,50 @@ export function StudioToolCard({
               {pending ? (
                 <HourglassBottomRoundedIcon sx={{ fontSize: 14.5, color: 'warning.main', flexShrink: 0 }} />
               ) : interactive ? (
-                <ArrowOutwardRoundedIcon sx={{ fontSize: 14.5, color: 'text.disabled', flexShrink: 0 }} />
+                showAdvancedEntry ? (
+                  <Box
+                    component="span"
+                    role="button"
+                    tabIndex={0}
+                    data-testid="studio-tool-card-advanced-entry"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAdvancedClick?.()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') {
+                        return
+                      }
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onAdvancedClick?.()
+                    }}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      color: 'text.secondary',
+                      '&:hover': { color: 'primary.main', bgcolor: 'transparent' },
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: 'primary.main',
+                        outlineOffset: 1,
+                      },
+                    }}
+                  >
+                    <EditRoundedIcon sx={{ fontSize: 14.5 }} />
+                  </Box>
+                ) : (
+                  <ArrowOutwardRoundedIcon sx={{ fontSize: 14.5, color: 'text.disabled' }} />
+                )
               ) : null}
             </Stack>
           </Box>
