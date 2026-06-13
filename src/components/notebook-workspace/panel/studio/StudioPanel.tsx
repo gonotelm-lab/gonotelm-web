@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import {
@@ -11,12 +11,15 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import type { GenerateInfoGraphicParameters } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactInlinePreview } from './components/StudioArtifactInlinePreview'
 import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
+import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
+import { defaultInfoGraphicParameters } from './infoGraphicSettings'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
@@ -74,6 +77,12 @@ export function StudioPanel({
     downloadPreviewContent,
   } = useStudioPreviewController({ artifactItems })
 
+  const [infoGraphicDialogOpen, setInfoGraphicDialogOpen] = useState(false)
+  const [infoGraphicDialogKey, setInfoGraphicDialogKey] = useState(0)
+  const [infoGraphicParams, setInfoGraphicParams] = useState<GenerateInfoGraphicParameters>(
+    defaultInfoGraphicParameters,
+  )
+
   const handleCreateMindmap = () => {
     if (!canSubmitArtifactTask) {
       return
@@ -98,9 +107,40 @@ export function StudioPanel({
     })
   }
 
+  const handleCreateInfoGraphic = useCallback((params?: GenerateInfoGraphicParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    if (params) {
+      setInfoGraphicParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'info_graphic',
+      sourceIds: selectedReadySourceIds,
+      title: '信息图',
+      actionId: 'generate-info_graphic',
+      infoGraphic: params,
+    })
+    setInfoGraphicDialogOpen(false)
+  }, [canSubmitArtifactTask, selectedReadySourceIds, submitArtifactTask])
+
+  const handleCloseInfoGraphicDialog = useCallback(() => {
+    setInfoGraphicDialogOpen(false)
+  }, [])
+
+  const handleOpenInfoGraphicDialog = useCallback(() => {
+    setInfoGraphicDialogKey((prev) => prev + 1)
+    setInfoGraphicDialogOpen(true)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': handleCreateMindmap,
     'generate-report': handleCreateReport,
+    'generate-info_graphic': () => handleCreateInfoGraphic(),
+  }
+
+  const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
+    'generate-info_graphic': handleOpenInfoGraphicDialog,
   }
 
   const primaryContent = (
@@ -148,6 +188,7 @@ export function StudioPanel({
               disabled={disabled}
               pending={pending}
               onClick={actionId ? actionHandlers[actionId] : undefined}
+              onAdvancedClick={actionId ? advancedActionHandlers[actionId] : undefined}
             />
           )
         })}
@@ -262,6 +303,14 @@ export function StudioPanel({
         content={previewState.content}
         onClose={closeOverlayPreview}
         onRetryLoad={retryPreviewLoad}
+      />
+
+      <InfoGraphicSettingsDialog
+        key={infoGraphicDialogKey}
+        open={infoGraphicDialogOpen}
+        initialParams={infoGraphicParams}
+        onClose={handleCloseInfoGraphicDialog}
+        onGenerate={handleCreateInfoGraphic}
       />
     </Paper>
   )

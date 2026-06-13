@@ -12,6 +12,8 @@ import {
 } from '../artifactStatus'
 import type { StudioArtifactItem } from '../types'
 import { getStudioArtifactPreviewCapability } from './previewCapabilities'
+import { hasStudioArtifactPreviewContent } from './previewContent'
+import { downloadFileFromUrl } from './downloadFile'
 import { resolveStudioPreviewEntryMode } from './previewRouting'
 
 export interface StudioPreviewState {
@@ -20,6 +22,7 @@ export interface StudioPreviewState {
   targetId: string
   loading: boolean
   content: string
+  contentUrl: string
   error: string
 }
 
@@ -29,6 +32,7 @@ const defaultStudioPreviewState: StudioPreviewState = {
   targetId: '',
   loading: false,
   content: '',
+  contentUrl: '',
   error: '',
 }
 
@@ -55,12 +59,23 @@ export function useStudioPreviewController({
   const [previewState, setPreviewState] = useState<StudioPreviewState>(
     defaultStudioPreviewState,
   )
+  const artifactItemsRef = useRef(artifactItems)
   const previewLoadSeqRef = useRef(0)
 
-  const previewTarget = useMemo(
-    () => artifactItems.find((item) => item.id === previewState.targetId) ?? null,
-    [artifactItems, previewState.targetId],
-  )
+  useEffect(() => {
+    artifactItemsRef.current = artifactItems
+  }, [artifactItems])
+
+  const previewTarget = useMemo(() => {
+    const item = artifactItems.find((artifact) => artifact.id === previewState.targetId) ?? null
+    if (!item) {
+      return null
+    }
+    if (previewState.targetId === item.id && previewState.contentUrl) {
+      return { ...item, contentUrl: previewState.contentUrl }
+    }
+    return item
+  }, [artifactItems, previewState.contentUrl, previewState.targetId])
 
   const previewCapability = useMemo(
     () => (previewTarget ? getStudioArtifactPreviewCapability(previewTarget.kind) : null),
@@ -71,6 +86,7 @@ export function useStudioPreviewController({
     item: StudioArtifactItem,
     nextVisibility: Pick<StudioPreviewState, 'inlineOpen' | 'overlayOpen'>,
   ) => {
+    const latestItem = artifactItemsRef.current.find((target) => target.id === item.id) ?? item
     const requestSeq = previewLoadSeqRef.current + 1
     previewLoadSeqRef.current = requestSeq
 
@@ -78,20 +94,21 @@ export function useStudioPreviewController({
       ...prev,
       inlineOpen: nextVisibility.inlineOpen,
       overlayOpen: nextVisibility.overlayOpen,
-      targetId: item.id,
+      targetId: latestItem.id,
       loading: true,
-      content: prev.targetId === item.id ? prev.content : '',
+      content: prev.targetId === latestItem.id ? prev.content : '',
+      contentUrl: prev.targetId === latestItem.id ? prev.contentUrl : '',
       error: '',
     }))
 
     try {
-      let content = item.content
-      let contentUrl = item.contentUrl
-      let taskStatus: StudioArtifactTaskStatus = item.status
-      let itemStatus = toArtifactVisualStatus(item.status)
+      let content = latestItem.content
+      let contentUrl = latestItem.contentUrl
+      let taskStatus: StudioArtifactTaskStatus = latestItem.status
+      let itemStatus = toArtifactVisualStatus(latestItem.status)
 
-      if (!content && !contentUrl && item.taskId) {
-        const result = await getStudioArtifactResult(item.taskId)
+      if (!content && !contentUrl && latestItem.taskId) {
+        const result = await getStudioArtifactResult(latestItem.taskId)
         if (previewLoadSeqRef.current !== requestSeq) {
           return
         }
@@ -103,7 +120,7 @@ export function useStudioPreviewController({
 
       if (shouldStudioTaskKeepPolling(taskStatus)) {
         setPreviewState((prev) =>
-          prev.targetId === item.id
+          prev.targetId === latestItem.id
             ? {
                 ...prev,
                 loading: false,
@@ -116,7 +133,7 @@ export function useStudioPreviewController({
 
       if (itemStatus === 'failed' || itemStatus === 'cancelled') {
         setPreviewState((prev) =>
-          prev.targetId === item.id
+          prev.targetId === latestItem.id
             ? {
                 ...prev,
                 loading: false,
@@ -127,7 +144,7 @@ export function useStudioPreviewController({
         return
       }
 
-      if (!content && contentUrl) {
+      if (!content && contentUrl && latestItem.kind !== 'info_graphic') {
         content = await loadStudioArtifactContentFromUrl(contentUrl)
         if (previewLoadSeqRef.current !== requestSeq) {
           return
@@ -135,18 +152,21 @@ export function useStudioPreviewController({
       }
 
       setPreviewState((prev) =>
-        prev.targetId === item.id
+        prev.targetId === latestItem.id
           ? {
               ...prev,
               loading: false,
               content,
-              error: content ? '' : '当前产物没有可预览内容。',
+              contentUrl,
+              error: hasStudioArtifactPreviewContent(latestItem.kind, content, contentUrl)
+                ? ''
+                : '当前产物没有可预览内容。',
             }
           : prev,
       )
     } catch (error) {
       setPreviewState((prev) =>
-        prev.targetId === item.id
+        prev.targetId === latestItem.id
           ? {
               ...prev,
               loading: false,
@@ -179,7 +199,11 @@ export function useStudioPreviewController({
       previewState.targetId === previewTarget.id &&
       !previewState.loading &&
       !previewState.error &&
-      Boolean(previewState.content.trim())
+      hasStudioArtifactPreviewContent(
+        previewTarget.kind,
+        previewState.content,
+        previewState.contentUrl || previewTarget.contentUrl,
+      )
     ) {
       setPreviewState((prev) => ({ ...prev, overlayOpen: true }))
       return
@@ -192,6 +216,7 @@ export function useStudioPreviewController({
     loadPreviewForItem,
     previewCapability?.overlay,
     previewState.content,
+    previewState.contentUrl,
     previewState.error,
     previewState.inlineOpen,
     previewState.loading,
@@ -219,7 +244,7 @@ export function useStudioPreviewController({
   }, [loadPreviewForItem, previewState.inlineOpen, previewState.overlayOpen, previewTarget])
 
   const downloadPreviewContent = useCallback(() => {
-    if (!previewTarget || !previewState.content.trim()) {
+    if (!previewTarget) {
       return
     }
     const safeName = previewTarget.title
@@ -227,6 +252,27 @@ export function useStudioPreviewController({
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'
+
+    if (previewTarget.kind === 'info_graphic') {
+      const imageUrl = previewState.contentUrl || previewTarget.contentUrl
+      if (!imageUrl.trim()) {
+        return
+      }
+      void downloadFileFromUrl(imageUrl, `${safeName}.png`).catch(() => {
+        // Fallback keeps current behavior when cross-origin download is blocked.
+        const anchor = document.createElement('a')
+        anchor.href = imageUrl
+        anchor.download = `${safeName}.png`
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+      })
+      return
+    }
+
+    if (!previewState.content.trim()) {
+      return
+    }
     const extension = previewTarget.kind === 'mindmap'
       ? 'mmd'
       : previewTarget.kind === 'report'
@@ -241,7 +287,7 @@ export function useStudioPreviewController({
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(blobUrl)
-  }, [previewState.content, previewTarget])
+  }, [previewState.content, previewState.contentUrl, previewTarget])
 
   useEffect(() => {
     if (!previewState.targetId) {

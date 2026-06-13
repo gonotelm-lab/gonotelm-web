@@ -19,6 +19,10 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     inline: true,
     overlay: true,
   },
+  info_graphic: {
+    inline: false,
+    overlay: true,
+  },
 }
 
 export const getStudioArtifactPreviewCapability = (

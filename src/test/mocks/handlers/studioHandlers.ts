@@ -28,6 +28,54 @@ const buildMindmapContent = (taskId: string, notebookId: string, sourceCount: nu
     '```',
   ].join('\n')
 
+const buildArtifactTitle = (kind: string) => {
+  if (kind === 'mindmap') return 'Mind Map'
+  if (kind === 'report') return 'Report'
+  if (kind === 'info_graphic') return '信息图'
+  return 'Studio Artifact'
+}
+
+const buildArtifactResultPayload = (
+  taskId: string,
+  notebookId: string,
+  artifactKind: string,
+  sourceCount: number,
+  sourceIds: string[],
+  title: string,
+  timestamp: number,
+) => {
+  if (artifactKind === 'info_graphic') {
+    return {
+      notebook_id: notebookId,
+      task_id: taskId,
+      kind: artifactKind,
+      status: 'completed',
+      title,
+      source_ids: sourceIds,
+      timestamp,
+      content_url: 'https://example.com/mock-infographic.png',
+      content_kind: 'storage',
+      extras: {
+        prompt: 'mock prompt',
+        text_language: 'zh-cn(简体中文)',
+        orientation: 'portrait',
+      },
+    }
+  }
+
+  return {
+    notebook_id: notebookId,
+    task_id: taskId,
+    kind: artifactKind,
+    status: 'completed',
+    title,
+    source_ids: sourceIds,
+    timestamp,
+    content: buildMindmapContent(taskId, notebookId, sourceCount),
+    content_kind: 'inline',
+  }
+}
+
 export const studioHandlers = [
   http.post(`${apiBaseUrl}/api/v1/studio/artifact/generate`, async ({ request }) => {
     const scenario = getMockScenario('studio')
@@ -35,6 +83,12 @@ export const studioHandlers = [
       notebook_id?: string
       kind?: string
       source_ids?: string[]
+      info_graphic?: {
+        orientation?: string
+        text_language?: string
+        extra_prompt?: string
+        detail_level?: string
+      }
     }
     const sourceCount = Array.isArray(requestBody.source_ids)
       ? requestBody.source_ids.length
@@ -47,7 +101,7 @@ export const studioHandlers = [
       kind: requestBody.kind ?? 'mindmap',
       sourceCount,
       sourceIds,
-      title: requestBody.kind === 'mindmap' ? 'Mind Map' : 'Studio Artifact',
+      title: buildArtifactTitle(requestBody.kind ?? 'mindmap'),
       timestamp: Math.floor(Date.now() / 1_000),
       status: 'completed',
     })
@@ -92,17 +146,15 @@ export const studioHandlers = [
 
     return resolveScenarioResponse({
       scenario,
-      successData: {
-        notebook_id: notebookId,
-        task_id: taskId,
-        kind: artifactKind,
-        status: snapshot?.status ?? 'completed',
+      successData: buildArtifactResultPayload(
+        taskId,
+        notebookId,
+        artifactKind,
+        sourceCount,
+        sourceIds,
         title,
-        source_ids: sourceIds,
         timestamp,
-        content: buildMindmapContent(taskId, notebookId, sourceCount),
-        content_kind: 'inline',
-      },
+      ),
       emptyData: {
         notebook_id: notebookId,
         task_id: taskId,

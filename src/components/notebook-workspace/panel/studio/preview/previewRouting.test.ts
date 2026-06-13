@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { StudioArtifactKind } from '@/types/api'
 import { resolveStudioPreviewEntryMode } from './previewRouting'
 
 describe('resolveStudioPreviewEntryMode', () => {
@@ -32,7 +33,7 @@ describe('resolveStudioPreviewEntryMode', () => {
   it('routes completed unknown kinds to overlay mode', () => {
     expect(
       resolveStudioPreviewEntryMode({
-        kind: 'unknown-kind',
+        kind: 'unknown-kind' as StudioArtifactKind,
         status: 'completed',
       }),
     ).toBe('overlay')

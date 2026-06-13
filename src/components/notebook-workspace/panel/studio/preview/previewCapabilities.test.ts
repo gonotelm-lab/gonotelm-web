@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { StudioArtifactKind } from '@/types/api'
 import { getStudioArtifactPreviewCapability } from './previewCapabilities'
 
 describe('getStudioArtifactPreviewCapability', () => {
@@ -17,7 +18,7 @@ describe('getStudioArtifactPreviewCapability', () => {
   })
 
   it('falls back to overlay-only for unknown kinds', () => {
-    expect(getStudioArtifactPreviewCapability('unknown-kind')).toEqual({
+    expect(getStudioArtifactPreviewCapability('unknown-kind' as StudioArtifactKind)).toEqual({
       inline: false,
       overlay: true,
     })

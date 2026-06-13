@@ -12,6 +12,8 @@ import {
 } from '@mui/material'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
+import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
+import { downloadFileFromUrl } from '../preview/downloadFile'
 
 interface StudioArtifactPreviewOverlayProps {
   open: boolean
@@ -46,8 +48,11 @@ export function StudioArtifactPreviewOverlay({
   const title = artifact?.title || '产物预览'
   const subtitle = artifact ? `基于 ${sourceCount} 个来源` : '暂无来源信息'
   const isMindmapArtifact = artifact?.kind === 'mindmap'
+  const isInfographicArtifact = artifact?.kind === 'info_graphic'
 
-  const hasDownloadableContent = Boolean(content.trim())
+  const hasDownloadableContent = artifact
+    ? hasStudioArtifactPreviewContent(artifact.kind, content, artifact.contentUrl)
+    : false
   const overlayActionButtonSx = {
     color: 'text.secondary',
     '&:hover': {
@@ -64,6 +69,20 @@ export function StudioArtifactPreviewOverlay({
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'
+
+    if (artifact.kind === 'info_graphic') {
+      void downloadFileFromUrl(artifact.contentUrl, `${safeName}.png`).catch(() => {
+        // Fallback keeps current behavior when cross-origin download is blocked.
+        const anchor = document.createElement('a')
+        anchor.href = artifact.contentUrl
+        anchor.download = `${safeName}.png`
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+      })
+      return
+    }
+
     const extension = artifact.kind === 'mindmap'
       ? 'mmd'
       : artifact.kind === 'report'
@@ -150,7 +169,7 @@ export function StudioArtifactPreviewOverlay({
           </Stack>
         </Stack>
 
-        <Box sx={{ flex: 1, minHeight: 0, p: isMindmapArtifact ? 0 : 1.4, overflow: 'auto' }}>
+        <Box sx={{ flex: 1, minHeight: 0, p: isMindmapArtifact || isInfographicArtifact ? 0 : 1.4, overflow: 'auto' }}>
           {loading ? (
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Typography variant="body2" color="text.secondary">

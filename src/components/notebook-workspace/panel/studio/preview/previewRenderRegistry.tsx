@@ -82,6 +82,30 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
       </Box>
     ),
   },
+  info_graphic: {
+    renderOverlay: ({ artifact }) => (
+      <Box
+        sx={{
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'background.default',
+        }}
+      >
+        <Box
+          component="img"
+          src={artifact.contentUrl}
+          alt={artifact.title || '信息图预览'}
+          sx={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+          }}
+        />
+      </Box>
+    ),
+  },
 }
 
 export const renderStudioArtifactPreviewContent = ({

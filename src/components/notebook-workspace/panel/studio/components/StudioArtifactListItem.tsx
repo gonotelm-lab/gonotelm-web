@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
@@ -90,7 +91,11 @@ export function StudioArtifactListItem({
   const canDelete = !isStudioTaskRunning(item.status)
   const sourceCount = item.sourceIds.length || item.sourceCount
   const itemMetaLabel = `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
-  const KindIcon = item.kind === 'report' ? DescriptionRoundedIcon : AccountTreeRoundedIcon
+  const KindIcon = item.kind === 'report'
+    ? DescriptionRoundedIcon
+    : item.kind === 'info_graphic'
+      ? BarChartRoundedIcon
+      : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {

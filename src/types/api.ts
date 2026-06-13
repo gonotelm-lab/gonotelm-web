@@ -142,7 +142,7 @@ export interface GetSourceParsedTreeResponse {
   height: number
 }
 
-export type StudioArtifactKind = 'mindmap' | 'report'
+export type StudioArtifactKind = 'mindmap' | 'report' | 'info_graphic'
 
 export type StudioArtifactTaskStatus =
   | 'pending'
@@ -154,10 +154,28 @@ export type StudioArtifactTaskStatus =
 
 export type StudioArtifactContentKind = 'inline' | 'storage'
 
+export type StudioArtifactInfoGraphicOrientation = 'portrait' | 'landscape' | 'square'
+export type StudioArtifactInfoGraphicDetailLevel = 'concise' | 'standard' | 'detailed'
+
+export interface GenerateInfoGraphicParameters {
+  orientation?: StudioArtifactInfoGraphicOrientation
+  text_language?: string
+  extra_prompt?: string
+  detail_level?: StudioArtifactInfoGraphicDetailLevel
+}
+
+export interface InfoGraphicArtifactExtras {
+  prompt?: string
+  text_language?: string
+  orientation?: StudioArtifactInfoGraphicOrientation
+  detail_level?: StudioArtifactInfoGraphicDetailLevel
+}
+
 export interface GenerateStudioArtifactRequest {
   notebook_id: string
   kind: StudioArtifactKind
   source_ids: string[]
+  info_graphic?: GenerateInfoGraphicParameters
 }
 
 export interface GenerateStudioArtifactResponse {
@@ -180,6 +198,7 @@ export interface StudioArtifactResult {
   content?: string
   content_url?: string
   content_kind: StudioArtifactContentKind
+  extras?: InfoGraphicArtifactExtras
 }
 
 export interface ListNotebookStudioArtifactsResponse {

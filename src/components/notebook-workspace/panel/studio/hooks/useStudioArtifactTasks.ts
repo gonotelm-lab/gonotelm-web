@@ -11,8 +11,10 @@ import {
 import { useAdaptivePollingLoop } from '@/components/notebook-workspace/hooks/useAdaptivePollingLoop'
 import { ApiError } from '@/lib/http'
 import type {
+  InfoGraphicArtifactExtras,
   StudioArtifactKind,
   StudioArtifactResult,
+  GenerateInfoGraphicParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -24,6 +26,7 @@ import {
   toArtifactVisualStatus,
 } from '../artifactStatus'
 import type { StudioArtifactItem, StudioToolActionId } from '../types'
+import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
@@ -64,14 +67,33 @@ const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
   return timestamp < studioTimestampSecondUpperBound ? timestamp * 1_000 : timestamp
 }
 
-const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind =>
-  kind === 'report' ? 'report' : 'mindmap'
+const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => {
+  if (kind === 'report') return 'report'
+  if (kind === 'info_graphic') return 'info_graphic'
+  return 'mindmap'
+}
 
-const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId =>
-  kind === 'report' ? 'generate-report' : 'generate-mindmap'
+const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId => {
+  if (kind === 'report') return 'generate-report'
+  if (kind === 'info_graphic') return 'generate-info_graphic'
+  return 'generate-mindmap'
+}
 
-const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) =>
-  kind === 'report' ? '报告' : '思维导图'
+const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => {
+  if (kind === 'report') return '报告'
+  if (kind === 'info_graphic') return '信息图'
+  return '思维导图'
+}
+
+const resolveInfoGraphicExtras = (
+  kind: StudioArtifactKind,
+  extras: StudioArtifactResult['extras'],
+): InfoGraphicArtifactExtras | undefined => {
+  if (kind !== 'info_graphic' || !extras) {
+    return undefined
+  }
+  return extras
+}
 
 const toHistoryArtifactItem = (
   artifact: StudioArtifactResult,
@@ -95,6 +117,7 @@ const toHistoryArtifactItem = (
     content: artifact.content ?? '',
     contentUrl: artifact.content_url ?? '',
     contentKind: artifact.content_kind ?? 'inline',
+    infoGraphicExtras: resolveInfoGraphicExtras(artifactKind, artifact.extras),
     error:
       itemStatus === 'failed' || itemStatus === 'cancelled'
         ? buildTaskFailedMessage(artifact.status)
@@ -112,6 +135,7 @@ interface SubmitStudioArtifactTaskParams {
   sourceIds: string[]
   title: string
   actionId: StudioToolActionId
+  infoGraphic?: GenerateInfoGraphicParameters
 }
 
 export function useStudioArtifactTasks({
@@ -197,6 +221,7 @@ export function useStudioArtifactTasks({
                 content: result.content ?? '',
                 contentUrl: result.content_url ?? '',
                 contentKind: result.content_kind ?? 'inline',
+                infoGraphicExtras: resolveInfoGraphicExtras(nextKind, result.extras),
               }
             }),
           )
@@ -360,6 +385,7 @@ export function useStudioArtifactTasks({
       sourceIds,
       title,
       actionId,
+      infoGraphic,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
@@ -390,6 +416,9 @@ export function useStudioArtifactTasks({
           notebook_id: notebookId,
           kind,
           source_ids: sourceIds,
+          ...(kind === 'info_graphic'
+            ? { info_graphic: buildInfoGraphicRequestParams(infoGraphic) }
+            : {}),
         })
 
         const taskId = response.task_id

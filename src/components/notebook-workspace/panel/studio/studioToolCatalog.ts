@@ -57,11 +57,14 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     availability: 'coming-soon',
   },
   {
-    id: 'infographic',
+    id: 'info_graphic',
     title: '信息图',
-    description: '即将支持',
+    description: '基于勾选来源生成信息图',
     icon: BarChartRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-info_graphic',
+    artifactKind: 'info_graphic',
+    hasAdvancedConfig: true,
   },
   {
     id: 'slide-deck',

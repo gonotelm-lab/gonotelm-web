@@ -7,6 +7,7 @@ vi.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   oneLight: {},
 }))
 import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdown'
+import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
 import { MindmapCanvas } from '../components/MindmapCanvas'
 import { renderStudioArtifactPreviewContent } from './previewRenderRegistry'
@@ -67,10 +68,28 @@ describe('renderStudioArtifactPreviewContent', () => {
     }
   })
 
+  it('uses image renderer for info_graphic in overlay mode', () => {
+    const node = renderStudioArtifactPreviewContent({
+      artifact: {
+        ...createArtifact('info_graphic'),
+        contentUrl: 'https://example.com/infographic.png',
+      },
+      content: '',
+      mode: 'overlay',
+    })
+    expect(isValidElement(node)).toBe(true)
+    if (isValidElement(node)) {
+      const container = node as ReactElement<{
+        children?: ReactElement<{ src?: string }>
+      }>
+      expect(container.props.children?.props?.src).toBe('https://example.com/infographic.png')
+    }
+  })
+
   it('falls back to text renderer for unknown kinds', () => {
     const content = 'fallback-content'
     const node = renderStudioArtifactPreviewContent({
-      artifact: createArtifact('unknown-kind'),
+      artifact: createArtifact('unknown-kind' as StudioArtifactKind),
       content,
       mode: 'overlay',
     })
