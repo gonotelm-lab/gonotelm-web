@@ -4,7 +4,7 @@ import { buildInfoGraphicRequestParams, defaultInfoGraphicParameters } from './i
 describe('buildInfoGraphicRequestParams', () => {
   it('fills backend-required defaults when params are omitted', () => {
     expect(buildInfoGraphicRequestParams()).toEqual({
-      orientation: 'portrait',
+      orientation: 'landscape',
       text_language: 'zh-cn(简体中文)',
       detail_level: 'standard',
     })
@@ -27,7 +27,7 @@ describe('buildInfoGraphicRequestParams', () => {
   })
 
   it('keeps dialog defaults aligned with request defaults', () => {
-    expect(defaultInfoGraphicParameters.orientation).toBe('portrait')
+    expect(defaultInfoGraphicParameters.orientation).toBe('landscape')
     expect(defaultInfoGraphicParameters.text_language).toBe('zh-cn(简体中文)')
     expect(defaultInfoGraphicParameters.detail_level).toBe('standard')
   })

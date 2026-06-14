@@ -5,7 +5,7 @@ import type {
 } from '@/types/api'
 
 export const defaultInfoGraphicParameters: GenerateInfoGraphicParameters = {
-  orientation: 'portrait',
+  orientation: 'landscape',
   text_language: 'zh-cn(简体中文)',
   detail_level: 'standard',
   extra_prompt: '',

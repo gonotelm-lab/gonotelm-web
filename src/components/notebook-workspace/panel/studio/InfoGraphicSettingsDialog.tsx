@@ -42,7 +42,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
 }: InfoGraphicSettingsDialogProps) {
   const [draftParams, setDraftParams] = useState<GenerateInfoGraphicParameters>(initialParams)
 
-  const orientation = draftParams.orientation || 'portrait'
+  const orientation = draftParams.orientation || defaultInfoGraphicParameters.orientation
   const textLanguage = draftParams.text_language || defaultInfoGraphicParameters.text_language
   const detailLevel = draftParams.detail_level || defaultInfoGraphicParameters.detail_level || 'standard'
 
