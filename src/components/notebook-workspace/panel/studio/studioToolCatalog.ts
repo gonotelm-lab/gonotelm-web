@@ -1,7 +1,7 @@
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
-import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
 import SlideshowRoundedIcon from '@mui/icons-material/SlideshowRounded'
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
@@ -60,7 +60,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     id: 'info_graphic',
     title: '信息图',
     description: '基于勾选来源生成信息图',
-    icon: BarChartRoundedIcon,
+    icon: ImageRoundedIcon,
     availability: 'available',
     actionId: 'generate-info_graphic',
     artifactKind: 'info_graphic',

@@ -111,6 +111,7 @@ export function StudioPanel({
     if (!canSubmitArtifactTask) {
       return
     }
+    const submitParams = params ?? infoGraphicParams
     if (params) {
       setInfoGraphicParams(params)
     }
@@ -119,10 +120,10 @@ export function StudioPanel({
       sourceIds: selectedReadySourceIds,
       title: '信息图',
       actionId: 'generate-info_graphic',
-      infoGraphic: params,
+      infoGraphic: submitParams,
     })
     setInfoGraphicDialogOpen(false)
-  }, [canSubmitArtifactTask, selectedReadySourceIds, submitArtifactTask])
+  }, [canSubmitArtifactTask, infoGraphicParams, selectedReadySourceIds, submitArtifactTask])
 
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)

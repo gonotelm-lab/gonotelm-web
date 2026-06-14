@@ -1,4 +1,4 @@
-import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded'
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 import { StudioToolCard } from './StudioToolCard'
@@ -8,7 +8,7 @@ const toolWithAdvancedConfig: StudioToolDefinition = {
   id: 'info_graphic',
   title: '信息图',
   description: '基于勾选来源生成信息图',
-  icon: BarChartRoundedIcon,
+  icon: ImageRoundedIcon,
   availability: 'available',
   actionId: 'generate-info_graphic',
   hasAdvancedConfig: true,

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
-import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
@@ -84,17 +84,18 @@ export function StudioArtifactListItem({
 }: StudioArtifactListItemProps) {
   const visualStatus = toArtifactVisualStatus(item.status)
   const isCancelled = visualStatus === 'cancelled'
+  const isRunning = isStudioTaskRunning(item.status)
   const cancelledItemTextColor = isCancelled ? 'text.disabled' : 'text.secondary'
   const canPreview = isStudioTaskCompleted(item.status)
   const canRetry = isStudioTaskRetryable(item.status)
-  const canCancel = isStudioTaskRunning(item.status)
-  const canDelete = !isStudioTaskRunning(item.status)
+  const canCancel = isRunning
+  const canDelete = !isRunning
   const sourceCount = item.sourceIds.length || item.sourceCount
   const itemMetaLabel = `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
   const KindIcon = item.kind === 'report'
     ? DescriptionRoundedIcon
     : item.kind === 'info_graphic'
-      ? BarChartRoundedIcon
+      ? ImageRoundedIcon
       : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
@@ -116,9 +117,13 @@ export function StudioArtifactListItem({
         p: 1.1,
         cursor: canPreview ? 'pointer' : 'default',
         transition: 'border-color 0.2s ease, background-color 0.2s ease',
-        borderColor: statusColorMap[visualStatus],
+        borderColor: isRunning ? 'primary.main' : statusColorMap[visualStatus],
         '&:hover': {
-          borderColor: canPreview ? 'primary.main' : statusColorMap[visualStatus],
+          borderColor: canPreview
+            ? 'primary.main'
+            : isRunning
+              ? 'primary.main'
+              : statusColorMap[visualStatus],
           backgroundColor: 'action.hover',
         },
         ...(previewLoading ? { borderColor: 'primary.main' } : null),
