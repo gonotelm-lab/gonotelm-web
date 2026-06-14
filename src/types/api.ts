@@ -171,6 +171,11 @@ export interface InfoGraphicArtifactExtras {
   detail_level?: StudioArtifactInfoGraphicDetailLevel
 }
 
+export interface StudioArtifactImageInfo {
+  width: number
+  height: number
+}
+
 export interface GenerateStudioArtifactRequest {
   notebook_id: string
   kind: StudioArtifactKind
@@ -198,6 +203,8 @@ export interface StudioArtifactResult {
   content?: string
   content_url?: string
   content_kind: StudioArtifactContentKind
+  mime_type?: string
+  image_info?: StudioArtifactImageInfo
   extras?: InfoGraphicArtifactExtras
 }
 
