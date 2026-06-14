@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Link } from 'react-router-dom'
+import { workspaceTransitionPresets } from '../shared/ui/motionTokens'
 
 interface WorkspaceHeaderProps {
   notebookName: string
@@ -129,19 +130,25 @@ export function WorkspaceHeader({
             px: 1.1,
             py: 0.25,
             borderRadius: 1,
+            border: 1,
+            borderColor: 'transparent',
+            bgcolor: 'background.paper',
             cursor: 'text',
             fontSize: '0.95rem',
             lineHeight: 1.35,
             fontWeight: 500,
+            transition: workspaceTransitionPresets.borderBg,
             '& input': {
               cursor: 'text',
               textOverflow: 'ellipsis',
             },
             '&:hover': {
-              bgcolor: 'action.hover',
+              bgcolor: 'background.default',
+              borderColor: 'divider',
             },
             '&.Mui-focused': {
               bgcolor: 'action.selected',
+              borderColor: 'primary.main',
             },
           }}
         />
@@ -178,7 +185,14 @@ export function WorkspaceHeader({
             删除后将移除该笔记本及其相关聊天与来源数据，此操作不可恢复。
           </Typography>
           {deleteErrorMessage ? (
-            <Typography variant="caption" color="error.main" sx={{ mt: 1, display: 'block' }}>
+            <Typography
+              variant="caption"
+              sx={(theme) => ({
+                mt: 1,
+                display: 'block',
+                color: theme.workspacePalette.status.error,
+              })}
+            >
               {deleteErrorMessage}
             </Typography>
           ) : null}
@@ -189,9 +203,14 @@ export function WorkspaceHeader({
           </Button>
           <Button
             variant="contained"
-            color="error"
             onClick={handleConfirmDelete}
             disabled={isDeletingNotebook}
+            sx={(theme) => ({
+              bgcolor: theme.workspacePalette.status.error,
+              '&:hover': {
+                bgcolor: theme.palette.error.dark,
+              },
+            })}
           >
             {isDeletingNotebook ? '删除中...' : '删除'}
           </Button>

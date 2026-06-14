@@ -4,6 +4,7 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { panelTitleSx, panelTitleVariant } from '../../shared/ui/panelStyles'
+import { workspaceAnimation } from '../../shared/ui/motionTokens'
 
 const chatHeaderStackSpacing = 0.5
 const sidePanelToggleButtonTokens = {
@@ -114,7 +115,9 @@ export function ChatPanelHeader({
                   whiteSpace: 'nowrap',
                   '& .chat-refresh-icon': {
                     transformOrigin: 'center',
-                    animation: isClearingContext ? 'chat-refresh-spin 0.9s linear infinite' : 'none',
+                    animation: isClearingContext
+                      ? `chat-refresh-spin ${workspaceAnimation.refreshSpinDurationMs}ms linear infinite`
+                      : 'none',
                   },
                   '@keyframes chat-refresh-spin': {
                     from: { transform: 'rotate(0deg)' },

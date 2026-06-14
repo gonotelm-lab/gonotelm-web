@@ -223,7 +223,15 @@ export function StudioPanel({
         </Alert>
       ) : null}
 
-      <Box sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', ...subtleScrollbarSx }}>
+      <Box
+        sx={(theme) => ({
+          mt: 1,
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          ...subtleScrollbarSx(theme),
+        })}
+      >
         {historyLoading && artifactItems.length === 0 ? (
           <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
             <Typography variant="body2" color="text.secondary">
@@ -288,7 +296,15 @@ export function StudioPanel({
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 2, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      sx={{
+        p: 2,
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        bgcolor: 'background.paper',
+      }}
     >
       <PanelSubpageLayout
         primaryContent={primaryContent}

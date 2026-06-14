@@ -5,6 +5,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 
 interface MarkdownCodeProps {
   inline?: boolean
@@ -169,23 +170,27 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
                   }
                 })()
               }}
-              sx={{
+              sx={(theme) => ({
                 p: 0,
                 borderRadius: 0,
-                color: copied ? 'success.main' : 'text.disabled',
+                color: copied ? theme.workspacePalette.status.success : 'text.disabled',
                 bgcolor: 'transparent',
+                transition: workspaceTransitionPresets.colorBorderBgWithTransform,
                 '&:hover': {
                   bgcolor: 'transparent',
-                  color: copied ? 'success.main' : 'text.secondary',
+                  color: copied ? theme.workspacePalette.status.success : 'text.secondary',
                 },
-              }}
+                '&:active': {
+                  transform: 'scale(0.96)',
+                },
+              })}
             >
               {copied ? (
                 <CheckIcon
-                  sx={{
+                  sx={(theme) => ({
                     fontSize: codeInteractionTokens.actionIconSize,
-                    color: 'success.main',
-                  }}
+                    color: theme.workspacePalette.status.success,
+                  })}
                 />
               ) : (
                 <ContentCopyIcon sx={{ fontSize: codeInteractionTokens.actionIconSize }} />

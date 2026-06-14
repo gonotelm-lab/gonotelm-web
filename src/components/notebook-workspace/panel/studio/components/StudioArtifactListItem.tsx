@@ -7,7 +7,8 @@ import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
-import { FlowLoadingOverlay } from '@/components/notebook-workspace/shared'
+import type { Theme } from '@mui/material/styles'
+import { FlowLoadingOverlay, workspaceTransitionPresets } from '@/components/notebook-workspace/shared'
 import {
   isStudioTaskCompleted,
   isStudioTaskRetryable,
@@ -38,12 +39,14 @@ const statusLabelMap: Record<StudioArtifactVisualStatus, string> = {
   failed: '失败',
 }
 
-const statusColorMap: Record<StudioArtifactVisualStatus, string> = {
-  queued: 'warning.main',
-  polling: 'warning.main',
-  succeeded: 'success.main',
-  cancelled: 'text.disabled',
-  failed: 'error.main',
+const resolveArtifactStatusTone = (
+  visualStatus: StudioArtifactVisualStatus,
+  theme: Theme,
+) => {
+  const artifactPalette = theme.palette.mode === 'dark'
+    ? theme.workspacePalette.artifactList.dark
+    : theme.workspacePalette.artifactList.light
+  return artifactPalette[visualStatus]
 }
 
 const minuteMs = 60 * 1_000
@@ -85,7 +88,6 @@ export function StudioArtifactListItem({
   const visualStatus = toArtifactVisualStatus(item.status)
   const isCancelled = visualStatus === 'cancelled'
   const isRunning = isStudioTaskRunning(item.status)
-  const cancelledItemTextColor = isCancelled ? 'text.disabled' : 'text.secondary'
   const canPreview = isStudioTaskCompleted(item.status)
   const canRetry = isStudioTaskRetryable(item.status)
   const canCancel = isRunning
@@ -111,23 +113,31 @@ export function StudioArtifactListItem({
   return (
     <Paper
       variant="outlined"
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        p: 1.1,
-        cursor: canPreview ? 'pointer' : 'default',
-        transition: 'border-color 0.2s ease, background-color 0.2s ease',
-        borderColor: isRunning ? 'primary.main' : statusColorMap[visualStatus],
-        '&:hover': {
-          borderColor: canPreview
-            ? 'primary.main'
-            : isRunning
-              ? 'primary.main'
-              : statusColorMap[visualStatus],
-          backgroundColor: 'action.hover',
-        },
-        ...(previewLoading ? { borderColor: 'primary.main' } : null),
-      }}
+      sx={(theme) => ({
+        ...(() => {
+          const statusTone = resolveArtifactStatusTone(visualStatus, theme)
+          return {
+            position: 'relative',
+            overflow: 'hidden',
+            p: 1.1,
+            cursor: canPreview ? 'pointer' : 'default',
+            bgcolor: 'background.paper',
+            transition: workspaceTransitionPresets.borderBg,
+            borderColor: statusTone.border,
+            '&:hover': {
+              borderColor: statusTone.accent,
+              backgroundColor: canPreview ? 'background.default' : 'background.paper',
+            },
+            '&:active': canPreview
+              ? {
+                  borderColor: statusTone.accent,
+                  backgroundColor: 'action.selected',
+                }
+              : undefined,
+            ...(previewLoading ? { borderColor: statusTone.accent } : null),
+          }
+        })(),
+      })}
       role={canPreview ? 'button' : undefined}
       tabIndex={canPreview ? 0 : -1}
       aria-label={`${item.title}，${statusLabelMap[visualStatus]}`}
@@ -159,7 +169,16 @@ export function StudioArtifactListItem({
         <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Stack sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
-              <KindIcon sx={{ fontSize: 17, color: cancelledItemTextColor, flexShrink: 0 }} />
+              <KindIcon
+                sx={(theme) => {
+                  const statusTone = resolveArtifactStatusTone(visualStatus, theme)
+                  return {
+                    fontSize: 17,
+                    color: isCancelled ? 'text.disabled' : statusTone.icon,
+                    flexShrink: 0,
+                  }
+                }}
+              />
               <Typography
                 variant="body2"
                 sx={{ fontWeight: 600, color: isCancelled ? 'text.disabled' : 'text.primary' }}
@@ -171,12 +190,19 @@ export function StudioArtifactListItem({
             <Typography
               variant="caption"
               noWrap
-              sx={{ mt: 0.25, ml: 3.15, display: 'block', color: cancelledItemTextColor }}
+              sx={() => {
+                return {
+                  mt: 0.25,
+                  ml: 3.15,
+                  display: 'block',
+                  color: isCancelled ? 'text.disabled' : 'text.secondary',
+                }
+              }}
             >
               {itemMetaLabel}
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={0.4} sx={{ alignItems: 'center', flexShrink: 0, ml: 0.6 }}>
+          <Stack direction="row" spacing={0.55} sx={{ alignItems: 'center', flexShrink: 0, ml: 0.6 }}>
             <Tooltip title="更多操作">
               <span>
                 <IconButton

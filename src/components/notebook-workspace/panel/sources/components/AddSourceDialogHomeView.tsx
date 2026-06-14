@@ -3,6 +3,7 @@ import AddLinkIcon from '@mui/icons-material/AddLink'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import NotesIcon from '@mui/icons-material/Notes'
 import { Box, Paper, Stack, Typography } from '@mui/material'
+import { workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
 
 interface AddSourceDialogHomeViewProps {
   disabled: boolean
@@ -79,7 +80,7 @@ export function AddSourceDialogHomeView({
             textAlign: 'center',
             cursor: disabled ? 'default' : 'pointer',
             bgcolor: dragActive ? 'action.hover' : 'transparent',
-            transition: 'border-color 160ms ease, background-color 160ms ease',
+            transition: workspaceTransitionPresets.borderBg,
           }}
           onClick={() => {
             if (!disabled) {
@@ -128,8 +129,12 @@ export function AddSourceDialogHomeView({
             </Typography>
             <Typography
               variant="caption"
-              color="warning.main"
-              sx={{ display: 'block', mt: 0.75, fontWeight: 600 }}
+              sx={(theme) => ({
+                display: 'block',
+                mt: 0.75,
+                fontWeight: 600,
+                color: theme.workspacePalette.status.warning,
+              })}
             >
               单个文件最大 100MB
             </Typography>
@@ -137,7 +142,14 @@ export function AddSourceDialogHomeView({
               一次最多选择 20 个文件
             </Typography>
             {fileError && (
-              <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+              <Typography
+                variant="caption"
+                sx={(theme) => ({
+                  display: 'block',
+                  mt: 1,
+                  color: theme.workspacePalette.status.error,
+                })}
+              >
                 {fileError}
               </Typography>
             )}

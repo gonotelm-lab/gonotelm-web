@@ -30,14 +30,22 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import { downloadSourceItemParsedContent } from './sourceItemDownload'
 import type { SourceListItem } from '../types/sourceTypes'
+import { workspaceMotion, workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
 
 const sourceTitleMaxChars = 64
+const sourceExitTransition = `opacity ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, transform ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, max-height ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, padding ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, margin ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}`
+const sourceTypeIconSx = (theme: Theme) => ({
+  color: theme.workspacePalette?.source?.typeIcon ?? 'text.secondary',
+  fontSize: 18,
+})
 
 interface SourceListRowProps {
   item: SourceListItem
+  selectionColumnWidth?: number
   checked: boolean
   removing: boolean
   isBusy: boolean
@@ -53,6 +61,7 @@ interface SourceListRowProps {
 
 export function SourceListRow({
   item,
+  selectionColumnWidth = 22,
   checked,
   removing,
   isBusy,
@@ -79,8 +88,13 @@ export function SourceListRow({
   const [optimisticChecked, setOptimisticChecked] = useState(checked)
 
   useEffect(() => {
-    setOptimisticChecked(checked)
-  }, [checked])
+    if (optimisticChecked === checked) {
+      return
+    }
+    queueMicrotask(() => {
+      setOptimisticChecked(checked)
+    })
+  }, [checked, optimisticChecked])
 
   const actionMenuOpen = Boolean(actionAnchorEl)
   const actionMenuItemSx = {
@@ -199,35 +213,44 @@ export function SourceListRow({
 
   const sourceTypeIcon =
     item.iconType === 'url' ? (
-      <AddLinkIcon sx={{ color: '#0288D1', fontSize: 18 }} />
+      <AddLinkIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'text' ? (
-      <NotesIcon sx={{ color: '#2E7D32', fontSize: 18 }} />
+      <NotesIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'pdf' ? (
-      <PictureAsPdfIcon sx={{ color: '#E53935', fontSize: 18 }} />
+      <PictureAsPdfIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'epub' ? (
-      <MenuBookIcon sx={{ color: '#8E24AA', fontSize: 18 }} />
+      <MenuBookIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'txt' ? (
-      <DescriptionIcon sx={{ color: '#26A69A', fontSize: 18 }} />
+      <DescriptionIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'markdown' ? (
-      <DescriptionIcon sx={{ color: '#7E57C2', fontSize: 18 }} />
+      <DescriptionIcon sx={sourceTypeIconSx} />
     ) : (
-      <DescriptionIcon sx={{ color: '#1E88E5', fontSize: 18 }} />
+      <DescriptionIcon sx={sourceTypeIconSx} />
     )
 
   return (
     <Box
       onClick={handleToggleRow}
       sx={{
+        my: removing ? 0 : 0.3,
         py: removing ? 0 : 1,
         maxHeight: removing ? 0 : 58,
         opacity: removing ? 0 : 1,
-        transform: removing ? 'translateX(-8px)' : 'translateX(0)',
+        transform: removing ? 'translateX(-4px)' : 'translateX(0)',
         position: 'relative',
         overflow: 'hidden',
+        borderRadius: 0.9,
+        bgcolor: 'transparent',
         transition: removing
-          ? 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), transform 300ms cubic-bezier(0.22, 1, 0.36, 1), max-height 300ms cubic-bezier(0.22, 1, 0.36, 1), padding 300ms cubic-bezier(0.22, 1, 0.36, 1)'
-          : 'none',
+          ? sourceExitTransition
+          : workspaceTransitionPresets.colorBorderBg,
         pointerEvents: removing ? 'none' : 'auto',
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+        '&:active': {
+          bgcolor: 'action.selected',
+        },
         '&:hover .source-type-icon, &:focus-within .source-type-icon': {
           opacity: { xs: 1, md: 0 },
         },
@@ -239,10 +262,16 @@ export function SourceListRow({
     >
       <FlowLoadingOverlay active={isAwaitingReady && !removing} />
 
-      <Stack
-        direction="row"
-        spacing={0.75}
-        sx={{ minWidth: 0, alignItems: 'center', position: 'relative', zIndex: 1 }}
+      <Box
+        sx={{
+          minWidth: 0,
+          alignItems: 'center',
+          position: 'relative',
+          zIndex: 1,
+          display: 'grid',
+          gridTemplateColumns: `minmax(0, 1fr) ${selectionColumnWidth}px`,
+          columnGap: 0.75,
+        }}
       >
         <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}>
           <Box sx={{ position: 'relative', width: 18, height: 18 }}>
@@ -255,7 +284,7 @@ export function SourceListRow({
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: 1,
-                transition: 'opacity 160ms ease',
+                transition: workspaceTransitionPresets.opacityOnly,
               }}
             >
               {sourceTypeIcon}
@@ -271,7 +300,7 @@ export function SourceListRow({
                 opacity: { xs: 1, md: 0 },
                 pointerEvents: { xs: 'auto', md: 'none' },
                 p: 0,
-                transition: 'opacity 160ms ease',
+                transition: workspaceTransitionPresets.opacityOnly,
               }}
             >
               <MoreHorizIcon sx={{ fontSize: 18 }} />
@@ -280,12 +309,25 @@ export function SourceListRow({
           <Typography
             variant="body2"
             noWrap
-            sx={{ fontSize: 13.5 }}
+            sx={(theme) => ({
+              fontSize: 13.5,
+                color: isFailed
+                  ? (theme.workspacePalette?.status?.error ?? 'error.main')
+                  : 'text.primary',
+            })}
           >
             {item.name}
           </Typography>
         </Stack>
-        <Box sx={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+        <Box
+          sx={{
+            width: selectionColumnWidth,
+            display: 'inline-flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
           {isProcessing ? (
             <CircularProgress size={16} thickness={5} />
           ) : (
@@ -301,7 +343,7 @@ export function SourceListRow({
             />
           )}
         </Box>
-      </Stack>
+      </Box>
 
       <Menu
         anchorEl={actionAnchorEl}

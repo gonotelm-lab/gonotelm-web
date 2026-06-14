@@ -1,4 +1,6 @@
 import { Box } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import { workspaceAnimation } from './motionTokens'
 
 interface FlowLoadingOverlayProps {
   active: boolean
@@ -9,10 +11,14 @@ interface FlowLoadingOverlayProps {
 
 export function FlowLoadingOverlay({
   active,
-  rgbColor = '30, 136, 229',
-  peakOpacity = 0.14,
-  durationMs = 1500,
+  rgbColor,
+  peakOpacity,
+  durationMs = workspaceAnimation.flowLoadingWaveDurationMs,
 }: FlowLoadingOverlayProps) {
+  const theme = useTheme()
+  const resolvedRgbColor = rgbColor ?? theme.workspacePalette.flowLoading.rgbColor
+  const resolvedPeakOpacity = peakOpacity ?? theme.workspacePalette.flowLoading.peakOpacity
+
   if (!active) return null
 
   return (
@@ -22,7 +28,7 @@ export function FlowLoadingOverlay({
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
-        background: `linear-gradient(90deg, rgba(${rgbColor}, 0) 0%, rgba(${rgbColor}, ${peakOpacity}) 48%, rgba(${rgbColor}, 0) 100%)`,
+        background: `linear-gradient(90deg, rgba(${resolvedRgbColor}, 0) 0%, rgba(${resolvedRgbColor}, ${resolvedPeakOpacity}) 48%, rgba(${resolvedRgbColor}, 0) 100%)`,
         backgroundSize: '220% 100%',
         animation: `flow-loading-wave ${durationMs}ms linear infinite`,
         '@keyframes flow-loading-wave': {

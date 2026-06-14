@@ -30,6 +30,7 @@ import {
   WorkspaceHeader,
   type SourceListItem,
 } from '../components/notebook-workspace'
+import { workspaceTransitionPresets } from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
@@ -42,12 +43,9 @@ const workspacePanelAutoCollapseWidthPx = 170
 const workspacePanelMaxWidthRatio = 0.5
 const workspaceCenterMinWidthPx = 420
 const workspaceResizeHandleWidthPx = 10
-const workspacePanelTransitionMs = 220
-const workspacePanelFadeTransitionMs = 160
-const workspacePanelTransitionCurve = 'cubic-bezier(0.2, 0, 0, 1)'
-const workspacePanelGridTransition = `grid-template-columns ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
-const workspacePanelWidthTransition = `width ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}`
-const workspacePanelContentTransition = `transform ${workspacePanelTransitionMs}ms ${workspacePanelTransitionCurve}, opacity ${workspacePanelFadeTransitionMs}ms ease`
+const workspacePanelGridTransition = workspaceTransitionPresets.panelGridColumns
+const workspacePanelWidthTransition = workspaceTransitionPresets.panelWidth
+const workspacePanelContentTransition = workspaceTransitionPresets.panelTransformWithFade
 const workspaceSourcesColumnVar = '--workspace-sources-column'
 const workspaceInsightsColumnVar = '--workspace-insights-column'
 const workspaceLeftHandleColumnVar = '--workspace-left-handle-column'
@@ -1027,7 +1025,16 @@ export function NotebookWorkspacePage() {
   }, [handleExpandSourcesPanel])
 
   return (
-    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        bgcolor: 'background.default',
+        color: 'text.primary',
+      }}
+    >
       <SourceSelectionController
         notebookId={id}
         sourceListItems={sourceListItems}
@@ -1049,7 +1056,17 @@ export function NotebookWorkspacePage() {
         onDeleteNotebook={handleDeleteNotebook}
       />
 
-      <Box sx={{ width: '100%', flex: 1, minHeight: 0, px: 1, py: 1, overflow: 'hidden' }}>
+      <Box
+        sx={{
+          width: '100%',
+          flex: 1,
+          minHeight: 0,
+          px: 1,
+          py: 1,
+          overflow: 'hidden',
+          bgcolor: 'background.default',
+        }}
+      >
         <Box
           ref={workspacePanelsRef}
           sx={{
@@ -1119,10 +1136,10 @@ export function NotebookWorkspacePage() {
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
                 bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'divider',
-                transition: 'background-color 160ms ease',
+                transition: workspaceTransitionPresets.backgroundOnly,
               },
               '&:hover::before': {
-                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'text.disabled',
+                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'text.secondary',
               },
             }}
           />
@@ -1163,10 +1180,10 @@ export function NotebookWorkspacePage() {
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
                 bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'divider',
-                transition: 'background-color 160ms ease',
+                transition: workspaceTransitionPresets.backgroundOnly,
               },
               '&:hover::before': {
-                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'text.disabled',
+                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'text.secondary',
               },
             }}
           />

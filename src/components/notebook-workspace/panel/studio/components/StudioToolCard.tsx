@@ -4,6 +4,7 @@ import HourglassBottomRoundedIcon from '@mui/icons-material/HourglassBottomRound
 import { alpha } from '@mui/material/styles'
 import { Box, ButtonBase, Stack, Tooltip, Typography } from '@mui/material'
 import type { StudioToolDefinition } from '../types'
+import { workspaceMotion } from '../../../shared/ui/motionTokens'
 
 interface StudioToolCardProps {
   tool: StudioToolDefinition
@@ -60,18 +61,25 @@ export function StudioToolCard({
                 selected
                   ? alpha(theme.palette.primary.main, 0.12)
                   : tool.availability === 'available'
-                    ? alpha(theme.palette.primary.main, 0.05)
-                    : alpha(theme.palette.text.primary, 0.02),
+                    ? alpha(theme.palette.primary.main, 0.04)
+                    : theme.palette.background.default,
               transition:
-                'border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease',
+                `border-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+                `background-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+                `box-shadow ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+                `opacity ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
               boxShadow: selected ? `0 0 0 1px ${alpha(theme.palette.primary.main, 0.1)}` : 'none',
               ...(interactive
                 ? {
                     cursor: 'pointer',
                     '&:hover': {
                       borderColor: 'primary.main',
-                      bgcolor: alpha(theme.palette.primary.main, 0.12),
-                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.16)}`,
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.14)}`,
+                    },
+                    '&:active': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      boxShadow: `0 2px 6px ${alpha(theme.palette.primary.main, 0.1)}`,
                     },
                   }
                 : null),
@@ -97,7 +105,13 @@ export function StudioToolCard({
                 </Typography>
               </Stack>
               {pending ? (
-                <HourglassBottomRoundedIcon sx={{ fontSize: 14.5, color: 'warning.main', flexShrink: 0 }} />
+                <HourglassBottomRoundedIcon
+                  sx={(theme) => ({
+                    fontSize: 14.5,
+                    color: theme.workspacePalette.status.warning,
+                    flexShrink: 0,
+                  })}
+                />
               ) : interactive ? (
                 showAdvancedEntry ? (
                   <Box
@@ -130,7 +144,7 @@ export function StudioToolCard({
                       borderRadius: '50%',
                       cursor: 'pointer',
                       color: 'text.secondary',
-                      '&:hover': { color: 'primary.main', bgcolor: 'transparent' },
+                      '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
                       '&:focus-visible': {
                         outline: '2px solid',
                         outlineColor: 'primary.main',

@@ -10,6 +10,8 @@ import {
   Paper,
   TextField,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
+import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 
 export interface ChatInputInteractionState {
   isStreaming: boolean
@@ -57,7 +59,6 @@ const inputTextareaScrollbarTokens = {
   width: 5,
   height: 5,
   thumbRadius: 999,
-  hoverThumbColor: 'rgba(120, 120, 120, 0.16)',
 }
 const thinkingButtonTokens = {
   controlsGap: 0.55,
@@ -78,11 +79,15 @@ const buildCapsuleToggleButtonSx = (enabled: boolean) => ({
   px: thinkingButtonTokens.paddingX,
   color: enabled ? 'primary.contrastText' : 'text.secondary',
   borderColor: enabled ? 'primary.main' : 'divider',
+  transition: workspaceTransitionPresets.colorBorderBg,
   '& .MuiSvgIcon-root': {
     fontSize: thinkingButtonTokens.iconSize,
   },
   '&:hover': {
     borderColor: enabled ? 'primary.main' : 'text.secondary',
+  },
+  '&:active': {
+    transform: 'scale(0.985)',
   },
 })
 
@@ -122,6 +127,7 @@ export function ChatInputBox({
         flexDirection: 'column',
         gap: inputBoxLayoutTokens.gap,
         borderRadius: inputBoxLayoutTokens.borderRadius,
+        bgcolor: 'background.paper',
       }}
     >
       <TextField
@@ -141,7 +147,7 @@ export function ChatInputBox({
             disableUnderline: true,
           },
         }}
-        sx={{
+        sx={(theme) => ({
           '& .MuiInputBase-root': {
             fontSize: inputTextTokens.fontSize,
             lineHeight: inputTextTokens.lineHeight,
@@ -163,12 +169,12 @@ export function ChatInputBox({
             backgroundColor: 'transparent',
           },
           '& textarea:hover': {
-            scrollbarColor: `${inputTextareaScrollbarTokens.hoverThumbColor} transparent`,
+            scrollbarColor: `${alpha(theme.palette.primary.main, 0.2)} transparent`,
           },
           '& textarea:hover::-webkit-scrollbar-thumb': {
-            backgroundColor: inputTextareaScrollbarTokens.hoverThumbColor,
+            backgroundColor: alpha(theme.palette.primary.main, 0.2),
           },
-        }}
+        })}
       />
 
       <Box
@@ -226,10 +232,17 @@ export function ChatInputBox({
               border: 1,
               borderColor: 'primary.main',
               flexShrink: 0,
+              transition: workspaceTransitionPresets.colorBorderBgWithTransform,
               cursor:
                 isStreaming
                   ? (isAbortDisabled ? 'not-allowed' : 'pointer')
                   : (isSubmitDisabled ? 'not-allowed' : 'pointer'),
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+              '&:active': {
+                transform: 'scale(0.97)',
+              },
             }}
           >
             {isStreaming ? <StopCircleIcon fontSize="small" /> : <ArrowUpwardIcon fontSize="small" />}

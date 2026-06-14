@@ -1,9 +1,11 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded'
 import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
 import { panelTitleToBodySpacing } from '../../shared/ui/panelStyles'
+import { workspaceAnimation } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
@@ -19,7 +21,7 @@ const messageListLayoutTokens = {
   marginTop: panelTitleToBodySpacing,
   innerPaddingX: chatMessageContentTokens.scrollInnerPaddingX,
   notebookDividerMarginY: 2.5,
-  notebookDividerColor: 'transparent',
+  notebookDividerColor: 'divider',
 }
 const streamStatusRowTokens = {
   marginRight: chatMessageContentTokens.sideMarginX,
@@ -27,13 +29,11 @@ const streamStatusRowTokens = {
   gap: 0.5,
   textFontSize: 14.3,
   textLetterSpacing: 0.1,
-  color: 'rgba(96,96,96,0.86)',
+  color: 'text.secondary',
 }
 const streamStatusFlowTokens = {
-  gradient:
-    'linear-gradient(90deg, rgba(96,96,96,0.9) 0%, rgba(96,96,96,0.9) 10%, rgba(108,108,108,0.9) 20%, rgba(120,120,120,0.9) 30%, rgba(140,140,140,0.92) 40%, rgba(196,196,196,0.96) 50%, rgba(140,140,140,0.92) 60%, rgba(120,120,120,0.9) 70%, rgba(108,108,108,0.9) 80%, rgba(96,96,96,0.9) 90%, rgba(96,96,96,0.9) 100%)',
   backgroundSize: '240% 100%',
-  animationDurationSec: 3.1,
+  animationDurationSec: workspaceAnimation.streamStatusFlowDurationSec,
   backgroundStartPosition: '160% 0',
   backgroundEndPosition: '-160% 0',
 }
@@ -78,6 +78,13 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   onCopyUserMessage,
   onOpenCitationJump,
 }: ChatMessagesListProps) {
+  const theme = useTheme()
+  const streamStatusFlowGradient = useMemo(
+    () =>
+      `linear-gradient(90deg, ${alpha(theme.palette.primary.main, 0.72)} 0%, ${alpha(theme.palette.primary.main, 0.72)} 10%, ${alpha(theme.palette.primary.main, 0.78)} 25%, ${alpha(theme.palette.primary.main, 0.88)} 40%, ${alpha(theme.palette.primary.dark, 0.98)} 50%, ${alpha(theme.palette.primary.main, 0.88)} 60%, ${alpha(theme.palette.primary.main, 0.78)} 75%, ${alpha(theme.palette.primary.main, 0.72)} 90%, ${alpha(theme.palette.primary.main, 0.72)} 100%)`,
+    [theme.palette.primary.dark, theme.palette.primary.main],
+  )
+
   // Status icon intentionally mirrors backend stream phase to make retrieval/thinking states glanceable.
   const streamStatusIcon =
     streamPhaseType === 'retrieving' ? (
@@ -96,20 +103,20 @@ export const ChatMessagesList = memo(function ChatMessagesList({
       className="chat-messages-scroll"
       spacing={0}
       onScroll={onScrollTopCheck}
-      sx={{
+      sx={(theme) => ({
         mt: messageListLayoutTokens.marginTop,
         flex: 1,
         minHeight: 0,
         overflowY: 'auto',
         overflowAnchor: 'none',
         px: 0,
-        ...subtleScrollbarSx,
+        ...subtleScrollbarSx(theme),
         scrollbarWidth: 'auto',
         scrollbarColor: 'auto',
         '&:hover': {
           scrollbarColor: 'auto',
         },
-      }}
+      })}
     >
       <Box sx={{ px: messageListLayoutTokens.innerPaddingX }}>
         {notebookInfoHeader}
@@ -165,7 +172,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
                     ...(showStreamFlowAnimation
                       ? {
                           color: 'transparent',
-                          background: streamStatusFlowTokens.gradient,
+                          background: streamStatusFlowGradient,
                           backgroundSize: streamStatusFlowTokens.backgroundSize,
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',

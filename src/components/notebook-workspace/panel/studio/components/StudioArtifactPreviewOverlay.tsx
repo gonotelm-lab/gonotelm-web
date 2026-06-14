@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
@@ -48,6 +49,7 @@ export function StudioArtifactPreviewOverlay({
   const title = artifact?.title || '产物预览'
   const subtitle = artifact ? `基于 ${sourceCount} 个来源` : '暂无来源信息'
   const isMindmapArtifact = artifact?.kind === 'mindmap'
+  const isReportArtifact = artifact?.kind === 'report'
   const isInfographicArtifact = artifact?.kind === 'info_graphic'
 
   const hasDownloadableContent = artifact
@@ -107,9 +109,12 @@ export function StudioArtifactPreviewOverlay({
       maxWidth={false}
       slotProps={{
         backdrop: {
-          sx: {
-            bgcolor: 'rgba(15, 23, 42, 0.42)',
-          },
+          sx: (theme) => ({
+            bgcolor: alpha(
+              theme.palette.primary.dark,
+              theme.workspacePalette.overlay.backdropAlpha,
+            ),
+          }),
         },
         paper: {
           sx: {
@@ -169,7 +174,18 @@ export function StudioArtifactPreviewOverlay({
           </Stack>
         </Stack>
 
-        <Box sx={{ flex: 1, minHeight: 0, p: isMindmapArtifact || isInfographicArtifact ? 0 : 1.4, overflow: 'auto' }}>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto',
+            ...(isMindmapArtifact || isInfographicArtifact
+              ? { p: 0 }
+              : isReportArtifact
+                ? { px: 5, py: 1.4 }
+                : { p: 1.4 }),
+          }}
+        >
           {loading ? (
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Typography variant="body2" color="text.secondary">

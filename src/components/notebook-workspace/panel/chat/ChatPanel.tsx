@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { ChatComposer } from './ChatComposer'
 import { ChatMessagesList } from './ChatMessagesList'
 import { ChatNotebookInfoHeader } from './ChatNotebookInfoHeader'
@@ -19,7 +20,6 @@ import { chatPanelLayoutTokens } from './layoutTokens'
 const scrollToBottomButtonTokens = {
   size: 32,
   marginBottom: 1.15,
-  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
   zIndex: 2,
 }
 
@@ -237,6 +237,7 @@ function ChatPanelContent({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        bgcolor: 'background.paper',
       }}
     >
       <Box sx={{ px: chatPanelLayoutTokens.horizontalPadding }}>
@@ -281,8 +282,11 @@ function ChatPanelContent({
       {finishReasonNotice ? (
         <Typography
           variant="caption"
-          color="warning.main"
-          sx={{ mt: 1, px: chatPanelLayoutTokens.horizontalPadding }}
+          sx={(theme) => ({
+            mt: 1,
+            px: chatPanelLayoutTokens.horizontalPadding,
+            color: theme.workspacePalette.status.warning,
+          })}
         >
           {finishReasonNotice}
         </Typography>
@@ -304,7 +308,7 @@ function ChatPanelContent({
               border: 1,
               borderColor: 'divider',
               bgcolor: 'background.paper',
-              boxShadow: scrollToBottomButtonTokens.boxShadow,
+              boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.dark, 0.16)}`,
               zIndex: scrollToBottomButtonTokens.zIndex,
               '&:hover': {
                 bgcolor: 'background.default',
@@ -366,8 +370,8 @@ function ChatPanelContent({
             py: 0.6,
             borderRadius: 1.5,
             border: '1px solid',
-            borderColor: '#334155',
-            bgcolor: '#1E293B',
+            borderColor: 'primary.main',
+            bgcolor: 'primary.dark',
             maxWidth: 420,
           }}
         >
@@ -377,7 +381,7 @@ function ChatPanelContent({
               display: 'block',
               fontSize: 12.2,
               lineHeight: 1.35,
-              color: '#F8FAFC',
+              color: 'background.default',
             }}
           >
             {errorToast?.message ?? ''}

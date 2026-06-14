@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded'
 import { Alert, Box, IconButton, Tooltip } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import type { Theme } from '@mui/material/styles'
 import type { Edge, Network as VisNetwork, Node, Options } from 'vis-network'
+import { workspaceAnimation } from '../../../shared/ui/motionTokens'
 import {
   parseMermaidMindmap,
   type ParsedMindmapResult,
@@ -16,76 +19,85 @@ interface MindmapCanvasProps {
   height?: number | string
 }
 
+type MindmapTonePalette = Theme['workspacePalette']['mindmap']
+
 const buildMindmapGraphOptions = (
   spacingPreset: NonNullable<MindmapCanvasProps['spacingPreset']>,
   tone: NonNullable<MindmapCanvasProps['tone']>,
+  mindmapTonePalette: MindmapTonePalette,
 ): Options => ({
-  autoResize: true,
-  layout: {
-    hierarchical: {
-      enabled: true,
-      direction: 'LR',
-      sortMethod: 'directed',
-      levelSeparation: spacingPreset === 'wide' ? 210 : 170,
-      nodeSpacing: spacingPreset === 'wide' ? 120 : 200,
-      treeSpacing: spacingPreset === 'wide' ? 150 : 220,
-      blockShifting: true,
-      edgeMinimization: true,
-      parentCentralization: true,
-    },
-  },
-  interaction: {
-    hover: false,
-    dragNodes: true,
-    dragView: true,
-    zoomView: true,
-    navigationButtons: true,
-    keyboard: {
-      enabled: true,
-      bindToWindow: false,
-    },
-  },
-  physics: {
-    enabled: false,
-  },
-  nodes: {
-    shape: 'box',
-    borderWidth: 1.2,
-    borderWidthSelected: 1.2,
-    chosen: false,
-    margin: {
-      top: 10,
-      right: 12,
-      bottom: 10,
-      left: 12,
-    },
-    color: {
-      border: tone === 'dark' ? '#64748B' : '#94A3B8',
-      background: tone === 'dark' ? '#1E293B' : '#F8FAFC',
-      highlight: {
-        border: tone === 'dark' ? '#818CF8' : '#4F46E5',
-        background: tone === 'dark' ? '#312E81' : '#EEF2FF',
+  // Align vis-network node/edge tone with Indigo Porcelain tokens.
+  ...(() => {
+    const tonePalette = mindmapTonePalette[tone]
+    return {
+      autoResize: true,
+      layout: {
+        hierarchical: {
+          enabled: true,
+          direction: 'LR',
+          sortMethod: 'directed',
+          levelSeparation: spacingPreset === 'wide' ? 210 : 170,
+          nodeSpacing: spacingPreset === 'wide' ? 120 : 200,
+          treeSpacing: spacingPreset === 'wide' ? 150 : 220,
+          blockShifting: true,
+          edgeMinimization: true,
+          parentCentralization: true,
+        },
       },
-    },
-    font: {
-      color: tone === 'dark' ? '#E2E8F0' : '#0F172A',
-      size: 14,
-      face: 'Inter, Roboto, "Helvetica Neue", Arial, sans-serif',
-    },
-  },
-  edges: {
-    width: 1.5,
-    color: {
-      color: tone === 'dark' ? '#475569' : '#94A3B8',
-      highlight: tone === 'dark' ? '#818CF8' : '#4F46E5',
-    },
-    smooth: {
-      enabled: true,
-      type: 'cubicBezier',
-      forceDirection: 'horizontal',
-      roundness: 0.45,
-    },
-  },
+      interaction: {
+        hover: false,
+        dragNodes: true,
+        dragView: true,
+        zoomView: true,
+        navigationButtons: true,
+        keyboard: {
+          enabled: true,
+          bindToWindow: false,
+        },
+      },
+      physics: {
+        enabled: false,
+      },
+      nodes: {
+        shape: 'box',
+        borderWidth: 1.2,
+        borderWidthSelected: 1.2,
+        chosen: false,
+        margin: {
+          top: 10,
+          right: 12,
+          bottom: 10,
+          left: 12,
+        },
+        color: {
+          border: tonePalette.nodeBorder,
+          background: tonePalette.nodeBackground,
+          highlight: {
+            border: tonePalette.nodeHighlightBorder,
+            background: tonePalette.nodeHighlightBackground,
+          },
+        },
+        font: {
+          color: tonePalette.textPrimary,
+          size: 14,
+          face: '"Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        },
+      },
+      edges: {
+        width: 1.5,
+        color: {
+          color: tonePalette.edge,
+          highlight: tonePalette.edgeHighlight,
+        },
+        smooth: {
+          enabled: true,
+          type: 'cubicBezier',
+          forceDirection: 'horizontal',
+          roundness: 0.45,
+        },
+      },
+    } satisfies Options
+  })(),
 })
 
 const buildHiddenNodeIds = (
@@ -113,30 +125,31 @@ const buildHiddenNodeIds = (
 const buildNodeVisualByDepth = (
   depth: number,
   tone: NonNullable<MindmapCanvasProps['tone']>,
+  mindmapTonePalette: MindmapTonePalette,
 ) => {
-  const isDarkTone = tone === 'dark'
+  const tonePalette = mindmapTonePalette[tone]
   if (depth === 0) {
     return {
-      border: '#6366F1',
-      background: isDarkTone ? '#312E81' : '#C7D2FE',
-      fontColor: isDarkTone ? '#E0E7FF' : '#1E1B4B',
+      border: tonePalette.level0Border,
+      background: tonePalette.level0Background,
+      fontColor: tonePalette.level0Text,
       fontSize: 17,
       fontWeight: '800',
     }
   }
   if (depth === 1) {
     return {
-      border: isDarkTone ? '#0EA5E9' : '#1D4ED8',
-      background: isDarkTone ? '#164E63' : '#DBEAFE',
-      fontColor: isDarkTone ? '#E0F2FE' : '#0F172A',
+      border: tonePalette.level1Border,
+      background: tonePalette.level1Background,
+      fontColor: tonePalette.level1Text,
       fontSize: 14,
       fontWeight: '600',
     }
   }
   return {
-    border: isDarkTone ? '#64748B' : '#94A3B8',
-    background: isDarkTone ? '#1E293B' : '#F8FAFC',
-    fontColor: isDarkTone ? '#E2E8F0' : '#0F172A',
+    border: tonePalette.nodeBorder,
+    background: tonePalette.nodeBackground,
+    fontColor: tonePalette.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   }
@@ -150,6 +163,9 @@ function MindmapCanvasInner({
   showBorder = true,
   height = 440,
 }: MindmapCanvasProps) {
+  const theme = useTheme()
+  const mindmapTonePalette = theme.workspacePalette.mindmap
+  const tonePalette = mindmapTonePalette[tone]
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const networkRef = useRef<VisNetwork | null>(null)
   const hasInitializedViewportRef = useRef(false)
@@ -163,8 +179,8 @@ function MindmapCanvasInner({
     [mermaid],
   )
   const graphOptions = useMemo(
-    () => buildMindmapGraphOptions(spacingPreset, tone),
-    [spacingPreset, tone],
+    () => buildMindmapGraphOptions(spacingPreset, tone, mindmapTonePalette),
+    [mindmapTonePalette, spacingPreset, tone],
   )
   const defaultCollapsedNodeIds = useMemo(() => {
     const next = new Set<string>()
@@ -196,7 +212,7 @@ function MindmapCanvasInner({
       const childCount = parsedMindmap.childIdsByNodeId[node.id]?.length ?? 0
       const hasChildren = childCount > 0
       const collapsed = hasChildren && collapsedNodeIds.has(node.id)
-      const nodeVisual = buildNodeVisualByDepth(node.depth, tone)
+      const nodeVisual = buildNodeVisualByDepth(node.depth, tone, mindmapTonePalette)
       const collapsedPrefix = hasChildren
         ? collapsed
           ? '▶ '
@@ -242,6 +258,7 @@ function MindmapCanvasInner({
     parsedMindmap.childIdsByNodeId,
     parsedMindmap.edges,
     parsedMindmap.nodes,
+    mindmapTonePalette,
     tone,
   ])
 
@@ -343,15 +360,15 @@ function MindmapCanvasInner({
       network.focus(parsedMindmap.rootId, {
         scale: 1,
         animation: {
-          duration: 340,
-          easingFunction: 'easeInOutCubic',
+          duration: workspaceAnimation.mindmapViewportDurationMs,
+          easingFunction: workspaceAnimation.mindmapViewportEasing,
         },
       })
     } else {
       network.fit({
         animation: {
-          duration: 340,
-          easingFunction: 'easeInOutCubic',
+          duration: workspaceAnimation.mindmapViewportDurationMs,
+          easingFunction: workspaceAnimation.mindmapViewportEasing,
         },
       })
     }
@@ -380,12 +397,9 @@ function MindmapCanvasInner({
         height,
         borderRadius: surfaceRadius,
         border: showBorder ? '1px dashed' : 'none',
-        borderColor:
-          showBorder
-            ? (tone === 'dark' ? 'rgba(148, 163, 184, 0.34)' : 'divider')
-            : 'transparent',
+        borderColor: showBorder ? tonePalette.surfaceBorder : 'transparent',
         overflow: 'hidden',
-        bgcolor: tone === 'dark' ? '#0F172A' : '#F8FAFC',
+        bgcolor: tonePalette.surface,
         position: 'relative',
       }}
     >
@@ -399,12 +413,12 @@ function MindmapCanvasInner({
             top: 8,
             right: 8,
             zIndex: 2,
-            color: tone === 'dark' ? 'rgba(241, 245, 249, 0.92)' : undefined,
-            bgcolor: tone === 'dark' ? 'rgba(15, 23, 42, 0.84)' : 'background.paper',
+            color: tonePalette.toolbarText,
+            bgcolor: tonePalette.toolbarBackground,
             border: '1px solid',
-            borderColor: tone === 'dark' ? 'rgba(148, 163, 184, 0.38)' : 'divider',
+            borderColor: tonePalette.toolbarBorder,
             '&:hover': {
-              bgcolor: tone === 'dark' ? 'rgba(30, 41, 59, 0.94)' : 'grey.50',
+              bgcolor: tonePalette.toolbarHover,
             },
           }}
         >

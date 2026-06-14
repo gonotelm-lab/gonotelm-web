@@ -3,14 +3,16 @@ import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import type { Theme } from '@mui/material/styles'
 import { chatMessageContentTokens } from './layoutTokens'
+import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 
 const notebookInfoTokens = {
   marginTop: 0,
   iconSlotSize: 34,
   iconSlotRadius: 10,
-  iconSlotBorderColor: 'rgba(148,163,184,0.28)',
-  iconColor: 'rgba(148,163,184,0.92)',
+  iconSlotBorderColor: 'divider',
+  iconColor: 'text.secondary',
   titleLineClamp: 2,
   actionRowMinHeight: 28,
   actionIconSize: 16,
@@ -25,14 +27,18 @@ const formatSourceCountLabel = (sourceCount: number) => {
   return `${normalizedCount} ${normalizedCount === 1 ? 'source' : 'sources'}`
 }
 
-const buildCopyActionButtonSx = (copied: boolean) => ({
+const buildCopyActionButtonSx = (copied: boolean) => (theme: Theme) => ({
   p: 0,
   borderRadius: 0,
-  color: copied ? 'success.main' : 'text.disabled',
+  color: copied ? theme.workspacePalette.status.success : 'text.disabled',
   bgcolor: 'transparent',
+  transition: workspaceTransitionPresets.colorBorderBgWithTransform,
   '&:hover': {
     bgcolor: 'transparent',
-    color: copied ? 'success.main' : 'text.secondary',
+    color: copied ? theme.workspacePalette.status.success : 'text.secondary',
+  },
+  '&:active': {
+    transform: 'scale(0.96)',
   },
 })
 
@@ -116,8 +122,8 @@ export function ChatNotebookInfoHeader({
             minWidth: 0,
             fontSize: { xs: '1.35rem', md: '2.05rem' },
             lineHeight: 1.2,
-            fontWeight: 620,
-            letterSpacing: 0.15,
+            fontWeight: 600,
+            letterSpacing: '0.01em',
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: notebookInfoTokens.titleLineClamp,
@@ -170,7 +176,12 @@ export function ChatNotebookInfoHeader({
                 sx={buildCopyActionButtonSx(copied)}
               >
                 {copied ? (
-                  <CheckIcon sx={{ fontSize: notebookInfoTokens.actionIconSize, color: 'success.main' }} />
+                  <CheckIcon
+                    sx={(theme) => ({
+                      fontSize: notebookInfoTokens.actionIconSize,
+                      color: theme.workspacePalette.status.success,
+                    })}
+                  />
                 ) : (
                   <ContentCopyIcon sx={{ fontSize: notebookInfoTokens.actionIconSize }} />
                 )}

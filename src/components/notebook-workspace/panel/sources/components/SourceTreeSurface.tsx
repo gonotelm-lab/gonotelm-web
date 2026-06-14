@@ -4,6 +4,7 @@ import { RichTreeView } from '@mui/x-tree-view/RichTreeView'
 import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { buildSourceTreeStats } from '../preview/sourceTreeStats'
 import { mapSourceTreeToMuiItems, type SourceTreeViewItem } from '../preview/sourceTreeViewAdapter'
+import { workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
 
 interface SourceTreeSurfaceProps {
   tree: GetSourceParsedTreeResponse | null
@@ -73,7 +74,7 @@ export function SourceTreeSurface({ tree, showStats }: SourceTreeSurfaceProps) {
             '& .MuiTreeItem-content': {
               minHeight: 34,
               borderRadius: 1.25,
-              transition: 'background-color 200ms ease',
+              transition: workspaceTransitionPresets.backgroundOnly,
             },
             '& .MuiTreeItem-content:hover': {
               bgcolor: 'action.hover',

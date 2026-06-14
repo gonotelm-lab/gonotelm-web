@@ -10,6 +10,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegistry'
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
@@ -64,9 +65,12 @@ export function SourcePreviewOverlay({
       maxWidth={false}
       slotProps={{
         backdrop: {
-          sx: {
-            bgcolor: 'rgba(15, 23, 42, 0.42)',
-          },
+          sx: (theme) => ({
+            bgcolor: alpha(
+              theme.palette.primary.dark,
+              theme.workspacePalette.overlay.backdropAlpha,
+            ),
+          }),
         },
         paper: {
           sx: {

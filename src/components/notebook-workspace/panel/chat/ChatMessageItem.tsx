@@ -12,6 +12,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
+import type { Theme } from '@mui/material/styles'
 import { useQueryClient } from '@tanstack/react-query'
 import { buildSourceDocQueryOptions } from '@/api/source'
 import type { GetSourceDocResponse } from '@/types/api'
@@ -24,16 +26,16 @@ import {
 } from './chatConversationCommon'
 import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
+import { workspaceAnimation, workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import type { ChatCitationJumpRequest, ChatUiCitationDetail, ChatUiMessage } from './types'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
 const assistantMessagePaddingY = 0.15
-const userBubbleBorderRadius = '16px 16px 6px 16px'
+const userBubbleBorderRadius = '14px 14px 6px 14px'
 
 const citationCardTokens = {
   paperBorderRadius: 1.25,
-  paperBoxShadow: '0 8px 24px rgba(15,23,42,0.14)',
   maxWidth: 380,
   padding: 1.3,
   titleMarginBottom: 0.5,
@@ -64,14 +66,18 @@ const messageLayoutTokens = {
   userTextLineHeight: 1.65,
 }
 
-const buildActionButtonSx = (copied: boolean) => ({
+const buildActionButtonSx = (copied: boolean) => (theme: Theme) => ({
   p: 0,
-  borderRadius: 0,
-  color: copied ? 'success.main' : 'text.disabled',
+  borderRadius: 0.75,
+  color: copied ? theme.workspacePalette.status.success : 'text.disabled',
   bgcolor: 'transparent',
+  transition: workspaceTransitionPresets.colorBorderBgWithTransform,
   '&:hover': {
-    bgcolor: 'transparent',
-    color: copied ? 'success.main' : 'text.secondary',
+    bgcolor: 'action.hover',
+    color: copied ? theme.workspacePalette.status.success : 'text.secondary',
+  },
+  '&:active': {
+    transform: 'scale(0.96)',
   },
 })
 
@@ -264,11 +270,13 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 width: '3ch',
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                animation: 'chat-pending-ellipsis 1.2s steps(4, end) infinite',
+                animation:
+                  `chat-pending-ellipsis ${workspaceAnimation.pendingEllipsisDurationMs}ms ` +
+                  'steps(3, end) infinite',
                 '@keyframes chat-pending-ellipsis': {
-                  '0%': { width: '0ch', opacity: 0.38 },
-                  '50%': { width: '3ch', opacity: 0.9 },
-                  '100%': { width: '0ch', opacity: 0.38 },
+                  '0%': { width: '0ch', opacity: 0.55 },
+                  '50%': { width: '3ch', opacity: 0.85 },
+                  '100%': { width: '0ch', opacity: 0.55 },
                 },
               }}
             >
@@ -301,7 +309,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                   sx={buildActionButtonSx(copied)}
                 >
                   {copied ? (
-                    <CheckIcon sx={{ fontSize: actionIconSize, color: 'success.main' }} />
+                    <CheckIcon
+                      sx={(theme) => ({
+                        fontSize: actionIconSize,
+                        color: theme.workspacePalette.status.success,
+                      })}
+                    />
                   ) : (
                     <ContentCopyIcon sx={{ fontSize: actionIconSize }} />
                   )}
@@ -319,12 +332,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           transformOrigin={{ vertical: 'top', horizontal: 'left' }}
           slotProps={{
             paper: {
-              sx: {
+              sx: (theme) => ({
                 borderRadius: citationCardTokens.paperBorderRadius,
                 border: '1px solid',
                 borderColor: 'divider',
-                boxShadow: citationCardTokens.paperBoxShadow,
-              },
+                boxShadow: `0 8px 24px ${alpha(theme.palette.primary.dark, 0.2)}`,
+              }),
             },
           }}
         >
@@ -338,7 +351,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
             <Box sx={{ mt: 0.45, display: 'flex', alignItems: 'center', gap: 0.4 }}>
               <Typography
                 variant="body2"
-                sx={{ fontWeight: 600, color: citationSummary ? 'warning.main' : 'text.secondary' }}
+                sx={(theme) => ({
+                  fontWeight: 600,
+                  color: citationSummary
+                    ? theme.workspacePalette.citation.summaryType
+                    : theme.workspacePalette.citation.originalType,
+                })}
               >
                 {`引用类型: ${resolveCitationTypeLabel(citationSummary)}`}
               </Typography>
@@ -389,7 +407,10 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                   <Typography variant="body2">正在加载引用内容...</Typography>
                 </Box>
               ) : citationLoadError ? (
-                <Typography variant="body2" color="error.main">
+                <Typography
+                  variant="body2"
+                  sx={(theme) => ({ color: theme.workspacePalette.status.error })}
+                >
                   {citationLoadError}
                 </Typography>
               ) : (
@@ -464,7 +485,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               sx={buildActionButtonSx(copied)}
             >
               {copied ? (
-                <CheckIcon sx={{ fontSize: actionIconSize, color: 'success.main' }} />
+                <CheckIcon
+                  sx={(theme) => ({
+                    fontSize: actionIconSize,
+                    color: theme.workspacePalette.status.success,
+                  })}
+                />
               ) : (
                 <ContentCopyIcon sx={{ fontSize: actionIconSize }} />
               )}

@@ -24,6 +24,7 @@ import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceInlinePreview } from './components/SourceInlinePreview'
 import { SourceListRow } from './components/SourceListRow'
 import { SourcePreviewOverlay } from './components/SourcePreviewOverlay'
+import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
@@ -31,6 +32,7 @@ import type { SourceListItem } from './types/sourceTypes'
 import { useSourcePreviewController, type SourcePreviewRequest, type SourcePreviewState } from './preview/useSourcePreviewController'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
+const sourceSelectionColumnWidthPx = 22
 
 interface SourcesPanelProps {
   collapsed: boolean
@@ -131,7 +133,7 @@ function SourcesPanelLayout({
           height: '100%',
           minWidth: 0,
           overflow: 'hidden',
-          transition: 'width 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: workspaceTransitionPresets.panelWidth,
         }}
       >
         <Paper
@@ -144,11 +146,11 @@ function SourcesPanelLayout({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            bgcolor: 'background.paper',
             position: 'relative',
             opacity: collapsed ? 0 : 1,
             transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-            transition:
-              'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease',
+            transition: workspaceTransitionPresets.panelTransformWithFade,
             pointerEvents: collapsed ? 'none' : 'auto',
           }}
         >
@@ -183,12 +185,22 @@ function SourcesPanelLayout({
 
                 <Divider sx={{ my: 2 }} />
 
-                <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', pr: 0.5 }}>
+                <Box
+                  sx={{
+                    minWidth: 0,
+                    pr: 0.5,
+                    display: 'grid',
+                    gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
+                    alignItems: 'center',
+                    columnGap: 0.75,
+                  }}
+                >
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
                     所有来源
                   </Typography>
                   <Box
                     sx={{
+                      width: sourceSelectionColumnWidthPx,
                       display: 'inline-flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -207,11 +219,18 @@ function SourcesPanelLayout({
                       onChange={(e) => onToggleAll(e.target.checked)}
                     />
                   </Box>
-                </Stack>
+                </Box>
 
                 <Stack
                   spacing={0}
-                  sx={{ mt: 1.25, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...subtleScrollbarSx }}
+                  sx={(theme) => ({
+                    mt: 1.25,
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: 'auto',
+                    pr: 0.5,
+                    ...subtleScrollbarSx(theme),
+                  })}
                 >
                   {showListLoadingSkeleton
                     ? Array.from({ length: skeletonItemCount }).map((_, index) => (
@@ -219,10 +238,14 @@ function SourcesPanelLayout({
                           key={`source-skeleton-${index}`}
                           sx={{ py: 1 }}
                         >
-                          <Stack
-                            direction="row"
-                            spacing={0.75}
-                            sx={{ minWidth: 0, alignItems: 'center' }}
+                          <Box
+                            sx={{
+                              minWidth: 0,
+                              display: 'grid',
+                              gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
+                              alignItems: 'center',
+                              columnGap: 0.75,
+                            }}
                           >
                             <Stack
                               direction="row"
@@ -249,6 +272,7 @@ function SourcesPanelLayout({
                             </Stack>
                             <Box
                               sx={{
+                                width: sourceSelectionColumnWidthPx,
                                 display: 'inline-flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -257,7 +281,7 @@ function SourcesPanelLayout({
                             >
                               <Skeleton variant="rounded" width={16} height={16} />
                             </Box>
-                          </Stack>
+                          </Box>
                         </Box>
                       ))
                     : sourceListItems.length > 0
@@ -274,6 +298,7 @@ function SourcesPanelLayout({
                             onRenameItem={onRenameItem}
                             onPreviewItem={openPreviewFromMenu}
                             onShowTree={openTreeFromMenu}
+                            selectionColumnWidth={sourceSelectionColumnWidthPx}
                             previewLoading={Boolean(
                               previewState.loading &&
                               previewState.sourceId === item.id &&
@@ -317,7 +342,11 @@ function SourcesPanelLayout({
                 }
               : null}
             subpageBodyRef={previewBodyRef}
-            subpageBodySx={{ pr: 0.5, overflowX: 'hidden', ...subtleScrollbarSx }}
+            subpageBodySx={(theme) => ({
+              pr: 0.5,
+              overflowX: 'hidden',
+              ...subtleScrollbarSx(theme),
+            })}
           />
         </Paper>
       </Box>

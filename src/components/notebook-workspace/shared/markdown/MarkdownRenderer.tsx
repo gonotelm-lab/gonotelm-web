@@ -9,6 +9,7 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
+import { workspaceTransitionPresets } from '../ui/motionTokens'
 import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
 interface MarkdownRendererProps {
@@ -204,24 +205,30 @@ export function MarkdownRenderer({
         '& a': { color: 'primary.main', textDecoration: 'none' },
         '& a:hover': { textDecoration: 'underline' },
         '& a[href^="#cite-"]': {
-          ml: 0.2,
-          color: 'primary.main',
-          fontWeight: 600,
-          fontSize: '0.74em',
+          display: 'inline-block',
+          ml: 0.18,
+          px: 0,
+          py: 0,
+          border: 0,
+          bgcolor: 'transparent',
+          color: 'text.secondary',
+          fontWeight: 700,
+          fontSize: '0.72em',
           lineHeight: 1,
           verticalAlign: 'super',
+          letterSpacing: '0.01em',
           textDecoration: 'none',
           cursor: 'pointer',
-          transition: 'color 0.15s ease',
+          transition: workspaceTransitionPresets.colorOnly,
         },
         '& a[href^="#cite-"]:hover': {
-          color: 'primary.dark',
+          color: 'text.primary',
           textDecoration: 'underline',
         },
         '& mark': {
           px: 0.1,
           py: 0.02,
-          bgcolor: '#FFF59D',
+          bgcolor: 'action.selected',
           color: 'inherit',
           borderRadius: 0.25,
         },
