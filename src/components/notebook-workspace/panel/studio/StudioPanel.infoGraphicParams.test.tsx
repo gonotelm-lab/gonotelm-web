@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GenerateInfoGraphicParameters } from '@/types/api'
+import type { GenerateAudioOverviewParameters, GenerateInfoGraphicParameters } from '@/types/api'
 import { StudioPanel } from './StudioPanel'
 
 vi.mock('react-syntax-highlighter', () => ({
@@ -22,6 +22,14 @@ const confirmedInfoGraphicParams = vi.hoisted(
       detail_level: 'detailed',
       extra_prompt: '突出 3 个关键结论',
     }) satisfies GenerateInfoGraphicParameters,
+)
+const confirmedAudioOverviewParams = vi.hoisted(
+  () =>
+    ({
+      language: 'en(English)',
+      style: 'discussion',
+      tip: '突出关键冲突点',
+    }) satisfies GenerateAudioOverviewParameters,
 )
 
 vi.mock('./hooks/useStudioArtifactTasks', () => ({
@@ -110,6 +118,24 @@ vi.mock('./InfoGraphicSettingsDialog', () => ({
     ) : null,
 }))
 
+vi.mock('./AudioOverviewSettingsDialog', () => ({
+  AudioOverviewSettingsDialog: ({
+    open,
+    onGenerate,
+  }: {
+    open: boolean
+    onGenerate: (params: GenerateAudioOverviewParameters) => void
+  }) =>
+    open ? (
+      <button
+        data-testid="dialog-generate-audio-overview"
+        onClick={() => onGenerate(confirmedAudioOverviewParams)}
+      >
+        generate-audio
+      </button>
+    ) : null,
+}))
+
 vi.mock('../../shared/ui/PanelSubpageLayout', () => ({
   PanelSubpageLayout: ({
     primaryContent,
@@ -148,10 +174,76 @@ const renderStudioPanel = () => {
   return renderer
 }
 
-describe('StudioPanel info_graphic 参数复用', () => {
+describe('StudioPanel 任务触发参数', () => {
   beforeEach(() => {
     submitArtifactTaskMock.mockClear()
     reloadHistoryArtifactsMock.mockClear()
+  })
+
+  it('触发音频概览任务时携带默认参数', () => {
+    const renderer = renderStudioPanel()
+
+    const quickCreateButton = renderer.root.findByProps({
+      'data-testid': 'tool-generate-audio_overview',
+    })
+    act(() => {
+      quickCreateButton.props.onClick()
+    })
+
+    expect(submitArtifactTaskMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'audio_overview',
+        actionId: 'generate-audio_overview',
+        audioOverview: expect.objectContaining({
+          language: 'zh-cn(简体中文)',
+          style: 'abstract',
+        }),
+      }),
+    )
+  })
+
+  it('音频高级设置确认后，直接点击也复用上一次参数', () => {
+    const renderer = renderStudioPanel()
+
+    const advancedEntry = renderer.root.findByProps({
+      'data-testid': 'advanced-generate-audio_overview',
+    })
+    act(() => {
+      advancedEntry.props.onClick()
+    })
+
+    const dialogGenerateButton = renderer.root.findByProps({
+      'data-testid': 'dialog-generate-audio-overview',
+    })
+    act(() => {
+      dialogGenerateButton.props.onClick()
+    })
+
+    const quickCreateButton = renderer.root.findByProps({
+      'data-testid': 'tool-generate-audio_overview',
+    })
+    act(() => {
+      quickCreateButton.props.onClick()
+    })
+
+    expect(submitArtifactTaskMock).toHaveBeenCalledTimes(2)
+    expect(submitArtifactTaskMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        kind: 'audio_overview',
+        actionId: 'generate-audio_overview',
+        audioOverview: confirmedAudioOverviewParams,
+      }),
+    )
+    expect(submitArtifactTaskMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        kind: 'audio_overview',
+        actionId: 'generate-audio_overview',
+        audioOverview: confirmedAudioOverviewParams,
+      }),
+    )
   })
 
   it('高级设置确认后，直接点击也复用上一次参数', () => {

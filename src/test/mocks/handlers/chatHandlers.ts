@@ -2,7 +2,7 @@ import { http } from 'msw'
 import {
   createChatCreateMessageResponseFixture,
   createChatListMessagesResponseFixture,
-  createChatMessageListItemFixture,
+  createChatMessageFixture,
 } from '../fixtures/chat'
 import { getMockScenario } from '../scenarios'
 import { createErrorResponse, createSuccessResponse, resolveScenarioResponse } from './httpResponse'
@@ -12,27 +12,35 @@ const validChatStyleSet = new Set(['default', 'analyst', 'guide'])
 const validChatAnswerLengthSet = new Set(['default', 'longer', 'shorter'])
 
 const chatHistoryMessages = [
-  createChatMessageListItemFixture({
+  createChatMessageFixture({
     id: 'history-u-1',
     role: 'user',
-    content: {
-      created_at: Date.now() - 2_000,
-      kind: 'text',
-      text: {
-        content: '解释一下 Rust 所有权',
+    fragments: [
+      {
+        id: 1,
+        type: 'REQUEST',
+        request: {
+          content: { type: 'text', text: { content: '解释一下 Rust 所有权' } },
+        },
       },
-    },
+    ],
   }),
-  createChatMessageListItemFixture({
+  createChatMessageFixture({
     id: 'history-a-1',
     role: 'assistant',
-    content: {
-      created_at: Date.now() - 1_000,
-      kind: 'text',
-      text: {
-        content: '所有权用于在编译期管理资源生命周期。',
+    fragments: [
+      {
+        id: 1,
+        type: 'RESPONSE',
+        response: {
+          status: 'FINISHED',
+          content: {
+            type: 'text',
+            text: { content: '所有权用于在编译期管理资源生命周期。' },
+          },
+        },
       },
-    },
+    ],
   }),
 ]
 

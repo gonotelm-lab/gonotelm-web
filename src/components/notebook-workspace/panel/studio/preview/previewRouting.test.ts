@@ -30,6 +30,15 @@ describe('resolveStudioPreviewEntryMode', () => {
     ).toBe('inline')
   })
 
+  it('routes completed audio_overview to none mode', () => {
+    expect(
+      resolveStudioPreviewEntryMode({
+        kind: 'audio_overview',
+        status: 'completed',
+      }),
+    ).toBe('none')
+  })
+
   it('routes completed unknown kinds to overlay mode', () => {
     expect(
       resolveStudioPreviewEntryMode({

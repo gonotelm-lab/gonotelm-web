@@ -112,4 +112,38 @@ export const sourceHandlers = [
       }),
     })
   }),
+  http.get(`${apiBaseUrl}/api/v1/source/:sourceId/doc/:docId`, async ({ params }) => {
+    const sourceId = String(params.sourceId ?? 'source-1')
+    const docId = String(params.docId ?? 'doc-1')
+    return createSuccessResponse({
+      source_id: sourceId,
+      doc_id: docId,
+      source_title: `来源 ${sourceId}`,
+      content: `引用文档内容 ${docId}`,
+      position: {
+        start: 12,
+        end: 48,
+        bytes_start: 24,
+        bytes_end: 96,
+      },
+    })
+  }),
+  http.get(`${apiBaseUrl}/api/v1/source/:sourceId/batch/docs`, async ({ params, request }) => {
+    const sourceId = String(params.sourceId ?? 'source-1')
+    const ids = new URL(request.url).searchParams.get('ids')?.split(',').map((id) => id.trim()).filter(Boolean) ?? []
+    return createSuccessResponse({
+      docs: ids.map((docId) => ({
+        source_id: sourceId,
+        doc_id: docId,
+        source_title: `来源 ${sourceId}`,
+        content: `引用文档内容 ${docId}`,
+        position: {
+          start: 12,
+          end: 48,
+          bytes_start: 24,
+          bytes_end: 96,
+        },
+      })),
+    })
+  }),
 ]

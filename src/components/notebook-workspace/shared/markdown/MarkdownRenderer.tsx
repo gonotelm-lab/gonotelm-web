@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import type { MouseEvent } from 'react'
+import { useMemo, type MouseEvent, type ReactNode } from 'react'
 import { Box } from '@mui/material'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
@@ -14,13 +13,18 @@ import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
 interface MarkdownRendererProps {
   content: string
+  citations?: string[]
   renderCitationAsSuperscript?: boolean
   justifyParagraphs?: boolean
   onCitationClick?: (
-    event: MouseEvent<HTMLAnchorElement>,
-    sourceIndex: string,
-    docIndex: string,
+    event: MouseEvent<HTMLAnchorElement | HTMLElement>,
+    target: CitationClickTarget,
   ) => void
+}
+
+export interface CitationClickTarget {
+  citationIndex?: string
+  docId?: string
 }
 
 const markdownBaseTypography = {
@@ -61,17 +65,24 @@ const markdownSanitizeSchema = {
     ...defaultSchema.attributes,
     a: [
       ...(defaultSchema.attributes?.a ?? []),
-      ['href', /^#cite-[a-zA-Z0-9_%-]+~[a-zA-Z0-9_%-]+$/],
+      ['href', /^#cite-(?:doc-[0-9a-fA-F-]+|\d+)$/],
     ],
     sup: [...(defaultSchema.attributes?.sup ?? [])],
     mark: [...(defaultSchema.attributes?.mark ?? [])],
   },
 }
 
-const citationPattern = /<sup>\s*([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)\s*<\/sup>/gi
+const citationPattern = /<sup>\s*(\d+)\s*<\/sup>/gi
+const bracketCitationPattern = /\[\[\s*(\d+)\s*\]\]/g
 const markdownCodeSegmentPattern = /(```[\s\S]*?```|`[^`\n]*`)/g
 
-function transformCitationSuperscript(content: string): string {
+const toCitationMarkdownLink = (citationIndex: string, citations?: string[]) => {
+  const docId = citations?.[Number(citationIndex) - 1]?.trim()
+  const citationHref = docId ? `#cite-doc-${docId}` : `#cite-${citationIndex}`
+  return `[\\[${citationIndex}\\]](${citationHref})`
+}
+
+function transformCitationMarkers(content: string, citations?: string[]): string {
   if (!content) {
     return content
   }
@@ -82,32 +93,35 @@ function transformCitationSuperscript(content: string): string {
       if (idx % 2 === 1) {
         return segment
       }
-      return segment.replace(citationPattern, (_matched, sourceIndex: string, docIndex: string) => {
-        const citationHref = `#cite-${encodeURIComponent(sourceIndex)}~${encodeURIComponent(docIndex)}`
-        return `[\\[${sourceIndex}\\]](${citationHref})`
-      })
+      return segment
+        .replace(citationPattern, (_matched, citationIndex: string) =>
+          toCitationMarkdownLink(citationIndex),
+        )
+        .replace(bracketCitationPattern, (_matched, citationIndex: string) =>
+          toCitationMarkdownLink(citationIndex),
+        )
     })
     .join('')
 }
 
-function parseCitationHref(href: string | undefined): { sourceIndex: string; docIndex: string } | null {
+function parseCitationHref(href: string | undefined): { citationIndex: string } | null {
   if (!href || !href.startsWith('#cite-')) {
     return null
   }
 
-  const payload = href.slice('#cite-'.length)
-  const splitIdx = payload.indexOf('~')
-  if (splitIdx <= 0 || splitIdx >= payload.length - 1) {
+  const citationIndex = href.slice('#cite-'.length)
+  if (!citationIndex || !/^\d+$/.test(citationIndex)) {
     return null
   }
 
-  const sourceIndex = decodeURIComponent(payload.slice(0, splitIdx))
-  const docIndex = decodeURIComponent(payload.slice(splitIdx + 1))
-  if (!sourceIndex || !docIndex) {
-    return null
-  }
+  return { citationIndex }
+}
 
-  return { sourceIndex, docIndex }
+const readCitationIndexFromChildren = (children: ReactNode) => {
+  const text = Array.isArray(children)
+    ? children.map((child) => (typeof child === 'string' || typeof child === 'number' ? String(child) : '')).join('')
+    : String(children ?? '')
+  return text.trim()
 }
 
 export function MarkdownRenderer({
@@ -123,7 +137,7 @@ export function MarkdownRenderer({
   const renderedContent = useMemo(
     () =>
       (renderCitationAsSuperscript
-        ? transformCitationSuperscript(normalizedContent)
+        ? transformCitationMarkers(normalizedContent)
         : normalizedContent),
     [normalizedContent, renderCitationAsSuperscript],
   )
@@ -266,6 +280,27 @@ export function MarkdownRenderer({
         remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], rehypeKatex]}
         components={{
+          sup: ({ children }) => {
+            const citationIndex = readCitationIndexFromChildren(children)
+            if (!/^\d+$/.test(citationIndex) || !onCitationClick) {
+              return <sup>{children}</sup>
+            }
+
+            return (
+              <sup>
+                <a
+                  href={`#cite-${citationIndex}`}
+                  aria-label={`打开引用 ${citationIndex}`}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    onCitationClick(event, citationIndex)
+                  }}
+                >
+                  {citationIndex}
+                </a>
+              </sup>
+            )
+          },
           a: ({ href, children, ...props }) => {
             const citationHref = parseCitationHref(href)
             if (citationHref && onCitationClick) {
@@ -277,7 +312,7 @@ export function MarkdownRenderer({
                   aria-label={props['aria-label'] ?? fallbackLabel}
                   onClick={(event) => {
                     event.preventDefault()
-                    onCitationClick(event, citationHref.sourceIndex, citationHref.docIndex)
+                    onCitationClick(event, citationHref.citationIndex)
                   }}
                 >
                   {children ?? href ?? '引用'}

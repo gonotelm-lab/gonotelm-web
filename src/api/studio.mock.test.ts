@@ -56,6 +56,20 @@ describe('studio api with msw mock', () => {
     await deleteStudioArtifact(submitResp.task_id)
   })
 
+  it('supports submitting audio_overview task payload', async () => {
+    const submitResp = await generateStudioArtifact({
+      notebook_id: 'notebook-1',
+      kind: 'audio_overview',
+      source_ids: ['source-1'],
+      audio_overview: {
+        language: 'zh-cn(简体中文)',
+        style: 'abstract',
+      },
+    })
+
+    expect(submitResp.task_id).toMatch(/^task-/)
+  })
+
   it('throws ApiError for server-error and timeout scenarios', async () => {
     setMockScenario('studio', 'server-error')
     await expect(

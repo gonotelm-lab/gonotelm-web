@@ -11,14 +11,16 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type { GenerateInfoGraphicParameters } from '@/types/api'
+import type { GenerateAudioOverviewParameters, GenerateInfoGraphicParameters } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactInlinePreview } from './components/StudioArtifactInlinePreview'
 import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
+import { AudioOverviewSettingsDialog } from './AudioOverviewSettingsDialog'
 import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
+import { defaultAudioOverviewParameters } from './audioOverviewSettings'
 import { defaultInfoGraphicParameters } from './infoGraphicSettings'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
@@ -82,6 +84,11 @@ export function StudioPanel({
   const [infoGraphicParams, setInfoGraphicParams] = useState<GenerateInfoGraphicParameters>(
     defaultInfoGraphicParameters,
   )
+  const [audioOverviewDialogOpen, setAudioOverviewDialogOpen] = useState(false)
+  const [audioOverviewDialogKey, setAudioOverviewDialogKey] = useState(0)
+  const [audioOverviewParams, setAudioOverviewParams] = useState<GenerateAudioOverviewParameters>(
+    defaultAudioOverviewParameters,
+  )
 
   const handleCreateMindmap = () => {
     if (!canSubmitArtifactTask) {
@@ -106,6 +113,24 @@ export function StudioPanel({
       actionId: 'generate-report',
     })
   }
+
+  const handleCreateAudioOverview = useCallback((params?: GenerateAudioOverviewParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    const submitParams = params ?? audioOverviewParams
+    if (params) {
+      setAudioOverviewParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'audio_overview',
+      sourceIds: selectedReadySourceIds,
+      title: '音频概览',
+      actionId: 'generate-audio_overview',
+      audioOverview: submitParams,
+    })
+    setAudioOverviewDialogOpen(false)
+  }, [audioOverviewParams, canSubmitArtifactTask, selectedReadySourceIds, submitArtifactTask])
 
   const handleCreateInfoGraphic = useCallback((params?: GenerateInfoGraphicParameters) => {
     if (!canSubmitArtifactTask) {
@@ -134,14 +159,25 @@ export function StudioPanel({
     setInfoGraphicDialogOpen(true)
   }, [])
 
+  const handleCloseAudioOverviewDialog = useCallback(() => {
+    setAudioOverviewDialogOpen(false)
+  }, [])
+
+  const handleOpenAudioOverviewDialog = useCallback(() => {
+    setAudioOverviewDialogKey((prev) => prev + 1)
+    setAudioOverviewDialogOpen(true)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': handleCreateMindmap,
     'generate-report': handleCreateReport,
     'generate-info_graphic': () => handleCreateInfoGraphic(),
+    'generate-audio_overview': () => handleCreateAudioOverview(),
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
     'generate-info_graphic': handleOpenInfoGraphicDialog,
+    'generate-audio_overview': handleOpenAudioOverviewDialog,
   }
 
   const primaryContent = (
@@ -328,6 +364,14 @@ export function StudioPanel({
         initialParams={infoGraphicParams}
         onClose={handleCloseInfoGraphicDialog}
         onGenerate={handleCreateInfoGraphic}
+      />
+
+      <AudioOverviewSettingsDialog
+        key={audioOverviewDialogKey}
+        open={audioOverviewDialogOpen}
+        initialParams={audioOverviewParams}
+        onClose={handleCloseAudioOverviewDialog}
+        onGenerate={handleCreateAudioOverview}
       />
     </Paper>
   )

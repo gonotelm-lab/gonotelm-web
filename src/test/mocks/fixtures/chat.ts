@@ -1,27 +1,38 @@
 import type {
   ChatCreateMessageResponse,
   ChatListMessagesResponse,
-  ChatMessageListItem,
+  ChatMessage,
 } from '@/types/api'
 
-export const createChatMessageListItemFixture = (
-  overrides: Partial<ChatMessageListItem> = {},
-): ChatMessageListItem => ({
+export const createChatMessageFixture = (
+  overrides: Partial<ChatMessage> = {},
+): ChatMessage => ({
   id: 'message-1',
+  create_time: Date.now(),
+  update_time: Date.now(),
   chat_id: 'chat-1',
+  user_id: 'user-1',
   role: 'assistant',
-  content: {
-    created_at: Date.now(),
-    kind: 'text',
-    text: {
-      content: 'Rust 的所有权让内存安全无需 GC。',
+  seq_no: 1,
+  fragments: [
+    {
+      id: 1,
+      type: 'RESPONSE',
+      response: {
+        status: 'FINISHED',
+        content: {
+          type: 'text',
+          text: { content: 'Rust 的所有权让内存安全无需 GC。' },
+        },
+      },
     },
-  },
+  ],
+  citations: [],
   ...overrides,
 })
 
 export const createChatListMessagesResponseFixture = (
-  messages: ChatMessageListItem[],
+  messages: ChatMessage[],
 ): ChatListMessagesResponse => ({
   messages,
   limit: 20,

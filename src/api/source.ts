@@ -18,16 +18,19 @@ const sourcePreviewCacheTtlMs = 5 * 60 * 1000
 
 export const buildSourceDocQueryOptions = (sourceId: string, docId: string) => ({
   queryKey: sourceDocQueryKey(sourceId, docId),
-  queryFn: () =>
-    request<GetSourceDocResponse>(
-      `/api/v1/source/${encodeURIComponent(sourceId)}/doc/${encodeURIComponent(docId)}`,
-      {
-        method: 'GET',
-      },
-    ),
+  queryFn: () => getSourceDoc(sourceId, docId),
   staleTime: sourceDocCacheTtlMs,
   gcTime: sourceDocCacheTtlMs,
 })
+
+export function getSourceDoc(sourceId: string, docId: string) {
+  return request<GetSourceDocResponse>(
+    `/api/v1/source/${encodeURIComponent(sourceId)}/doc/${encodeURIComponent(docId)}`,
+    {
+      method: 'GET',
+    },
+  )
+}
 
 interface GetSourceParams {
   download?: boolean
@@ -136,6 +139,14 @@ export function getSourceParsedTree(sourceId: string) {
     {
       method: 'GET',
     },
+  )
+}
+
+export function batchGetSourceDocs(sourceId: string, docIds: string[]) {
+  const query = new URLSearchParams()
+  query.set('ids', docIds.join(','))
+  return request<{ docs: GetSourceDocResponse[] }>(
+    `/api/v1/source/${encodeURIComponent(sourceId)}/batch/docs?${query.toString()}`,
   )
 }
 

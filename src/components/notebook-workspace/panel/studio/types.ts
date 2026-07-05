@@ -6,7 +6,11 @@ import type {
   StudioArtifactTaskStatus,
 } from '@/types/api'
 
-export type StudioToolActionId = 'generate-mindmap' | 'generate-report' | 'generate-info_graphic'
+export type StudioToolActionId =
+  | 'generate-mindmap'
+  | 'generate-report'
+  | 'generate-info_graphic'
+  | 'generate-audio_overview'
 
 export type StudioToolAvailability = 'available' | 'coming-soon'
 

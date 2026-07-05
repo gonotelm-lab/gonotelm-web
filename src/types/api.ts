@@ -118,8 +118,6 @@ export interface GetSourceDocResponse {
   source_title: string
   content: string
   position?: SourceDocPosition
-  is_summary?: boolean
-  summarized_from?: string[]
 }
 
 export type GetSourceResponse = NotebookSource
@@ -142,7 +140,7 @@ export interface GetSourceParsedTreeResponse {
   height: number
 }
 
-export type StudioArtifactKind = 'mindmap' | 'report' | 'info_graphic'
+export type StudioArtifactKind = 'mindmap' | 'report' | 'info_graphic' | 'audio_overview'
 
 export type StudioArtifactTaskStatus =
   | 'pending'
@@ -156,12 +154,23 @@ export type StudioArtifactContentKind = 'inline' | 'storage'
 
 export type StudioArtifactInfoGraphicOrientation = 'portrait' | 'landscape' | 'square'
 export type StudioArtifactInfoGraphicDetailLevel = 'concise' | 'standard' | 'detailed'
+export type StudioArtifactAudioOverviewStyle =
+  | 'deep-research'
+  | 'abstract'
+  | 'discussion'
+  | 'debate'
 
 export interface GenerateInfoGraphicParameters {
   orientation?: StudioArtifactInfoGraphicOrientation
   text_language?: string
   extra_prompt?: string
   detail_level?: StudioArtifactInfoGraphicDetailLevel
+}
+
+export interface GenerateAudioOverviewParameters {
+  tip?: string
+  language: string
+  style?: StudioArtifactAudioOverviewStyle
 }
 
 export interface InfoGraphicArtifactExtras {
@@ -181,6 +190,7 @@ export interface GenerateStudioArtifactRequest {
   kind: StudioArtifactKind
   source_ids: string[]
   info_graphic?: GenerateInfoGraphicParameters
+  audio_overview?: GenerateAudioOverviewParameters
 }
 
 export interface GenerateStudioArtifactResponse {
@@ -217,29 +227,62 @@ export interface ListNotebookStudioArtifactsResponse {
 
 export type ChatMessageRole = 'user' | 'assistant'
 
-export interface ChatMessageContentText {
+export type FragmentType = 'REQUEST' | 'THINK' | 'PHASE' | 'RESPONSE'
+export type FragmentStatus = 'RUNNING' | 'FINISHED'
+
+export interface FragmentContentText {
   content: string
 }
 
-export interface ChatMessageContent {
-  created_at: number
-  kind: string
-  text?: ChatMessageContentText
+export interface FragmentContentUnion {
+  type: 'text'
+  text?: FragmentContentText
 }
 
-export interface ChatMessageCitationItem {
+export interface FragmentRequest {
+  content?: FragmentContentUnion
+}
+
+export interface FragmentThink {
+  status: FragmentStatus
+  content?: FragmentContentText
+}
+
+export interface FragmentPhase {
+  status: FragmentStatus
+  summary: string
+  thought: string
+}
+
+export interface FragmentResponse {
+  status: FragmentStatus
+  content?: FragmentContentUnion
+}
+
+export interface MessageFragment {
+  id: number
+  type: FragmentType
+  request?: FragmentRequest
+  think?: FragmentThink
+  phase?: FragmentPhase
+  response?: FragmentResponse
+}
+
+export interface MessageCitation {
+  doc_id: string
   source_id: string
-  doc_ids?: string[]
 }
 
-export type ChatMessageCitation = ChatMessageCitationItem[]
-
-export interface ChatMessageListItem {
+export interface ChatMessage {
   id: string
+  create_time: number
+  update_time: number
   chat_id: string
+  user_id: string
   role: ChatMessageRole
-  content?: ChatMessageContent
-  citation?: ChatMessageCitation
+  fragments?: MessageFragment[]
+  seq_no: number
+  citations?: MessageCitation[]
 }
 
 export interface ChatCreateMessageRequest {
@@ -249,7 +292,6 @@ export interface ChatCreateMessageRequest {
   enable_thinking?: boolean
   style?: ChatStyle
   answer_length?: ChatAnswerLength
-  enhanced_retrieval?: boolean
 }
 
 export interface ChatCreateMessageResponse {
@@ -263,7 +305,7 @@ export interface ChatAbortStreamRequest {
 }
 
 export interface ChatListMessagesResponse {
-  messages: ChatMessageListItem[]
+  messages: ChatMessage[]
   limit: number
   has_more: boolean
   next_cursor: number
@@ -272,44 +314,53 @@ export interface ChatListMessagesResponse {
 export type ChatStyle = 'default' | 'analyst' | 'guide'
 export type ChatAnswerLength = 'default' | 'longer' | 'shorter'
 
-export type MessageStreamPhaseType = 'retrieving' | 'thinking' | 'answer'
-export type MessageStreamPhaseStatus = 'typing' | 'finished'
-export type MessageStreamPhaseContentAction = 'continue' | 'override' | string
-export type ChatMessageStreamFinishReason = 'stop' | 'length' | 'content_filter' | string
+export type EventAction = 'INIT' | 'APPEND' | 'SET' | 'NEW'
 
-export interface ChatMessageStreamCitationDocPosition {
-  start: number
-  end: number
+export type StreamEventTargetPath =
+  | 'm'
+  | 'm.citations'
+  | 'm.f.tk'
+  | 'm.f.tk.v'
+  | 'm.f.tk.st'
+  | 'm.f.rsp'
+  | 'm.f.rsp.v'
+  | 'm.f.rsp.st'
+  | 'm.f.phase'
+
+export interface StreamTaskEventThink {
+  st?: FragmentStatus
+  v?: string
 }
 
-export interface ChatMessageStreamCitationDoc {
-  id?: string
-  position?: ChatMessageStreamCitationDocPosition
-  is_summary?: boolean
+export interface StreamTaskEventResponse {
+  st?: FragmentStatus
+  v?: FragmentContentUnion
 }
 
-export interface ChatMessageStreamCitationItem {
-  source_id?: string
-  docs?: ChatMessageStreamCitationDoc[]
+export interface StreamTaskEventPhase {
+  phase?: FragmentPhase
 }
 
-export type ChatMessageStreamCitation = ChatMessageStreamCitationItem[]
-
-export interface ChatMessageStreamPhase {
-  type: MessageStreamPhaseType
-  status: MessageStreamPhaseStatus
-  content?: string
-  action?: MessageStreamPhaseContentAction
-  citation?: ChatMessageStreamCitation
+export interface StreamTaskEventError {
+  message?: string
 }
 
-export interface ChatMessageStreamEvent {
-  id: number
-  heartbeat?: string
-  phase?: ChatMessageStreamPhase
-  finished?: boolean
-  finish_reason?: ChatMessageStreamFinishReason
-  timestamp: number
-  extra?: Record<string, unknown>
-  stream_id?: string
+export interface StreamTaskEvent {
+  id: string
+  ct?: number
+  op?: EventAction
+  p?: StreamEventTargetPath
+  idx?: number
+  message?: ChatMessage
+  citations?: MessageCitation[]
+  tk?: StreamTaskEventThink
+  rsp?: StreamTaskEventResponse
+  phase?: StreamTaskEventPhase
+  error?: StreamTaskEventError
+  /** 流结束标记，与 error 二选一作为最后一个事件 */
+  done?: boolean
+}
+
+export interface StreamHeartbeatEvent {
+  heartbeat: string
 }

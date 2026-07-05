@@ -16,21 +16,27 @@ import {
   listChatMessages,
   streamChatEvents,
 } from '@/api/chat'
-import type { MessageStreamPhaseType } from '@/types/api'
+import type { StreamDisplayPhaseType } from './chatConversationCommon'
 import {
   chatMessagesPageLimit,
   getErrorMessage,
-  getFinishReasonNotice,
-  resolveStreamContentAction,
+  isStreamTerminalEvent,
   sleep,
   streamReconnectDelayMs,
   streamReconnectMaxRetries,
-  toCitationDetailsFromStreamCitation,
+  streamUiFlushIntervalMs,
 } from './chatConversationCommon'
 import { buildLiveMessagesAfterAbortRefresh, mapHistoryPagesToUiMessages } from './chatStreamDraftRetention'
 import type { ChatAnswerLengthOption, ChatStyleOption } from './chatSettings'
 import type { ChatUiMessage } from './types'
-import { useAssistantChunkBuffer } from './useAssistantChunkBuffer'
+import { useLiveMessageUpdater } from './useLiveMessageUpdater'
+import {
+  applyStreamEventInPlace,
+  cloneChatUiMessage,
+  createEmptyAssistantMessage,
+  extractLatestPhaseSummary,
+} from './streamEventReducer'
+import type { StreamTaskEvent } from '@/types/api'
 import { useChatScrollControl } from './useChatScrollControl'
 import { useCopyFeedback } from './useCopyFeedback'
 import { useStreamStatusScheduler } from './useStreamStatusScheduler'
@@ -45,10 +51,9 @@ interface UseChatConversationParams {
 interface UseChatConversationResult {
   composerValue: string
   enableThinking: boolean
-  enableEnhancedRetrieval: boolean
   displayMessages: ChatUiMessage[]
   streamStatus: string
-  streamPhaseType: MessageStreamPhaseType | null
+  streamPhaseType: StreamDisplayPhaseType
   showStreamStatus: boolean
   showStreamFlowAnimation: boolean
   isLoadingHistory: boolean
@@ -57,18 +62,15 @@ interface UseChatConversationResult {
   activeAssistantMessageId: string | null
   copiedUserMessageId: string | null
   errorText: string
-  finishReasonNotice: string
   isClearingContext: boolean
   showScrollToBottomButton: boolean
   submitDisabled: boolean
   isInputDisabled: boolean
   isAbortDisabled: boolean
   isThinkingToggleDisabled: boolean
-  isEnhancedRetrievalToggleDisabled: boolean
   messageListRef: RefObject<HTMLDivElement | null>
   setComposerValue: (value: string) => void
   setEnableThinking: (enabled: boolean) => void
-  setEnableEnhancedRetrieval: (enabled: boolean) => void
   onMessageListScroll: () => void
   onCopyUserMessage: (messageId: string, text: string) => void
   onComposerKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
@@ -123,13 +125,11 @@ export function useChatConversation({
   const [composerValue, setComposerValue] = useState('')
   const [liveMessages, setLiveMessages] = useState<ChatUiMessage[]>([])
   const [streamStatus, setStreamStatus] = useState('')
-  const [streamPhaseType, setStreamPhaseType] = useState<MessageStreamPhaseType | null>(null)
+  const [streamPhaseType, setStreamPhaseType] = useState<StreamDisplayPhaseType>(null)
   const [errorText, setErrorText] = useState('')
-  const [finishReasonNotice, setFinishReasonNotice] = useState('')
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
   const [enableThinking, setEnableThinking] = useState(false)
-  const [enableEnhancedRetrieval, setEnableEnhancedRetrieval] = useState(false)
   const [isClearingContext, setIsClearingContext] = useState(false)
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
@@ -171,13 +171,7 @@ export function useChatConversation({
     setStreamStatus,
   })
 
-  const {
-    clearPendingAssistantChunkBuffer,
-    queueAssistantChunk,
-    flushPendingAssistantChunk,
-    overrideAssistantContent,
-    applyAssistantCitationDetails,
-  } = useAssistantChunkBuffer({
+  const { updateLiveMessage } = useLiveMessageUpdater({
     messageListRef,
     setLiveMessages,
   })
@@ -264,13 +258,11 @@ export function useChatConversation({
       setAbortRequestedFlag(false)
       clearStreamStatusSchedule()
       stopScrollToBottomAnimation()
-      clearPendingAssistantChunkBuffer()
       clearCopyFeedback()
       resetScrollControl()
     }
   }, [
     abortActiveStreamController,
-    clearPendingAssistantChunkBuffer,
     clearCopyFeedback,
     clearStreamStatusSchedule,
     invalidateStreamRunToken,
@@ -349,19 +341,78 @@ export function useChatConversation({
       let reconnectCount = 0
       let finished = false
 
+      let assistantMsg = createEmptyAssistantMessage(assistantMessageId)
+      let currentAssistantMessageId = assistantMessageId
+      let liveMessageFlushRafId: number | null = null
+      let liveMessageFlushTimerId: number | null = null
+      let lastStreamPhaseSummary = ''
+
+      const syncStreamStatusFromMessage = (message: ChatUiMessage) => {
+        const hasResponseContent = message.fragments.some(
+          (fragment) =>
+            fragment.type === 'RESPONSE' && Boolean(fragment.response?.content?.trim()),
+        )
+        if (hasResponseContent) {
+          lastStreamPhaseSummary = ''
+          clearStreamStatusSchedule()
+          setStreamPhaseType(null)
+          setStreamStatus('')
+          return
+        }
+        const phaseSummary = extractLatestPhaseSummary(message)
+        if (!phaseSummary || phaseSummary === lastStreamPhaseSummary) {
+          return
+        }
+        lastStreamPhaseSummary = phaseSummary
+        queueStreamStatus('phase', phaseSummary)
+      }
+
+      const flushLiveMessage = () => {
+        liveMessageFlushRafId = null
+        updateLiveMessage(currentAssistantMessageId, cloneChatUiMessage(assistantMsg))
+        syncStreamStatusFromMessage(assistantMsg)
+      }
+
+      const scheduleLiveMessageFlush = () => {
+        if (liveMessageFlushRafId !== null || liveMessageFlushTimerId !== null) {
+          return
+        }
+        liveMessageFlushTimerId = window.setTimeout(() => {
+          liveMessageFlushTimerId = null
+          liveMessageFlushRafId = window.requestAnimationFrame(flushLiveMessage)
+        }, streamUiFlushIntervalMs)
+      }
+
+      const cancelLiveMessageFlush = () => {
+        if (liveMessageFlushTimerId !== null) {
+          window.clearTimeout(liveMessageFlushTimerId)
+          liveMessageFlushTimerId = null
+        }
+        if (liveMessageFlushRafId !== null) {
+          window.cancelAnimationFrame(liveMessageFlushRafId)
+          liveMessageFlushRafId = null
+        }
+      }
+
+      const flushLiveMessageImmediately = () => {
+        cancelLiveMessageFlush()
+        flushLiveMessage()
+      }
+
+      const shouldFlushStreamEventImmediately = (event: StreamTaskEvent) =>
+        event.op !== 'APPEND'
+
       setActiveTaskId(taskId)
       clearStreamStatusSchedule()
       applyStreamStatusImmediately(null, '')
       setAbortRequestedFlag(false)
 
-      // Retry stream connection until success/abort/limit, but only while this run token is still current.
       while (runToken === streamRunTokenRef.current) {
         try {
           const controller = new AbortController()
           streamAbortControllerRef.current = controller
           let shouldStopAfterStream = false
 
-          // oxlint-disable-next-line react-doctor/async-await-in-loop -- reconnect attempts must stay sequential for one stream session.
           await streamChatEvents({
             id: chatId,
             task_id: taskId,
@@ -369,55 +420,45 @@ export function useChatConversation({
             signal: controller.signal,
             onEvent: (eventType, event) => {
               if (runToken !== streamRunTokenRef.current) return
-              if (event.stream_id) {
-                lastStreamId = event.stream_id
-              }
-              if (eventType === 'heartbeat' || event.heartbeat) {
+              if (eventType === 'heartbeat' || 'heartbeat' in event) {
                 return
               }
 
-              const phase = event.phase
-              if (phase?.citation) {
-                applyAssistantCitationDetails(
-                  assistantMessageId,
-                  toCitationDetailsFromStreamCitation(phase.citation),
-                )
+              const streamEvent = event as StreamTaskEvent
+              if (streamEvent.id) {
+                lastStreamId = streamEvent.id
               }
-              if (phase?.type === 'retrieving') {
-                queueStreamStatus(
-                  'retrieving',
-                  phase.status === 'finished' ? '来源检索完成' : '正在检索来源...',
-                )
-              } else if (phase?.type === 'thinking') {
-                queueStreamStatus('thinking', '正在思考...')
-              } else if (phase?.type === 'answer') {
+              if (streamEvent.error?.message) {
+                setErrorText(streamEvent.error.message)
+              }
+              if (isStreamTerminalEvent(streamEvent)) {
+                flushLiveMessageImmediately()
+                finished = true
                 clearStreamStatusSchedule()
-                setStreamPhaseType('answer')
+                setStreamPhaseType(null)
                 setStreamStatus('')
-                // Stream can request full overwrite or incremental append depending on backend action semantics.
-                const contentAction = resolveStreamContentAction(phase.action)
-                if (contentAction === 'override') {
-                  clearPendingAssistantChunkBuffer()
-                  overrideAssistantContent(assistantMessageId, phase.content ?? '')
-                } else if (phase.content) {
-                  queueAssistantChunk(assistantMessageId, phase.content)
-                }
+                controller.abort()
+                return
               }
 
-              if (event.finished) {
-                flushPendingAssistantChunk()
-                finished = true
-                const notice = getFinishReasonNotice(event.finish_reason)
-                if (notice) {
-                  setFinishReasonNotice(notice)
-                }
-                clearStreamStatusSchedule()
-                setStreamPhaseType('answer')
-                setStreamStatus('')
+              applyStreamEventInPlace(assistantMsg, streamEvent)
+              if (assistantMsg.id !== currentAssistantMessageId) {
+                currentAssistantMessageId = assistantMsg.id
+                setActiveAssistantMessageId(assistantMsg.id)
+                flushLiveMessageImmediately()
+                return
               }
+              if (shouldFlushStreamEventImmediately(streamEvent)) {
+                flushLiveMessageImmediately()
+                return
+              }
+              scheduleLiveMessageFlush()
             },
           })
 
+          flushLiveMessageImmediately()
+
+          finished = true
           shouldStopAfterStream = abortRequestedRef.current || finished
           if (!shouldStopAfterStream) {
             if (reconnectCount >= streamReconnectMaxRetries) {
@@ -450,15 +491,12 @@ export function useChatConversation({
         }
       }
 
-      // A newer stream run took over; discard local buffer and exit without resetting shared UI state twice.
+      cancelLiveMessageFlush()
+
       if (runToken !== streamRunTokenRef.current) {
-        clearPendingAssistantChunkBuffer()
         return
       }
 
-      flushPendingAssistantChunk()
-      // Preserve partial assistant text after manual abort to avoid abrupt content disappearance.
-      const preserveAssistantDraftOnAbort = abortRequestedRef.current
       setActiveTaskId(null)
       setActiveAssistantMessageId(null)
       clearStreamStatusSchedule()
@@ -467,23 +505,19 @@ export function useChatConversation({
       resetLastStreamStatusAt()
       resetStreamAbortController()
       setAbortRequestedFlag(false)
-      clearPendingAssistantChunkBuffer()
+      const preserveAssistantDraftOnAbort = abortRequestedRef.current
       await refreshHistoryAfterStream({ preserveAssistantDraftOnAbort })
     },
     [
-      applyAssistantCitationDetails,
       applyStreamStatusImmediately,
-      clearPendingAssistantChunkBuffer,
       clearStreamStatusSchedule,
-      flushPendingAssistantChunk,
       chatId,
-      overrideAssistantContent,
-      queueAssistantChunk,
       queueStreamStatus,
       refreshHistoryAfterStream,
       resetStreamAbortController,
       resetLastStreamStatusAt,
       setAbortRequestedFlag,
+      updateLiveMessage,
     ],
   )
 
@@ -499,7 +533,6 @@ export function useChatConversation({
     if (!prompt.trim()) return
 
     setErrorText('')
-    setFinishReasonNotice('')
     setComposerValue('')
     shouldAutoScrollToBottomRef.current = true
 
@@ -508,8 +541,13 @@ export function useChatConversation({
     setActiveAssistantMessageId(assistantMessageId)
     setLiveMessages((prev) => [
       ...prev,
-      { id: userMessageId, role: 'user', text: prompt },
-      { id: assistantMessageId, role: 'assistant', text: '', citationDetails: [] },
+      {
+        id: userMessageId,
+        role: 'user',
+        fragments: [{ id: 1, type: 'REQUEST', request: { content: prompt } }],
+        citations: [],
+      },
+      createEmptyAssistantMessage(assistantMessageId),
     ])
     window.requestAnimationFrame(() => {
       scrollToBottom()
@@ -523,7 +561,6 @@ export function useChatConversation({
         enable_thinking: enableThinking,
         style: chatStyle,
         answer_length: answerLength,
-        enhanced_retrieval: enableEnhancedRetrieval,
       })
       await runStreamSession(created.task_id, assistantMessageId)
     } catch (error) {
@@ -546,7 +583,6 @@ export function useChatConversation({
     scrollToBottom,
     selectedSourceIds,
     enableThinking,
-    enableEnhancedRetrieval,
     chatStyle,
     answerLength,
   ])
@@ -556,7 +592,6 @@ export function useChatConversation({
     if (abortStreamMutation.isPending) return
 
     setErrorText('')
-    setFinishReasonNotice('')
     setStreamStatus('正在终止...')
     setAbortRequestedFlag(true)
 
@@ -680,7 +715,6 @@ export function useChatConversation({
     }
 
     setErrorText('')
-    setFinishReasonNotice('')
     void clearContext()
   }, [chatId, isClearingContext, isStreaming])
 
@@ -689,19 +723,12 @@ export function useChatConversation({
     isStreaming ||
     createMessageMutation.isPending ||
     !chatId
-  const showStreamStatus = Boolean(
-    isStreaming &&
-    streamStatus &&
-    (streamPhaseType === 'retrieving' || streamPhaseType === 'thinking'),
-  )
-  const showStreamFlowAnimation = Boolean(
-    isStreaming && (streamPhaseType === 'retrieving' || streamPhaseType === 'thinking'),
-  )
+  const showStreamStatus = Boolean(isStreaming && streamStatus && streamPhaseType === 'phase')
+  const showStreamFlowAnimation = Boolean(isStreaming && streamPhaseType === 'phase')
 
   return {
     composerValue,
     enableThinking,
-    enableEnhancedRetrieval,
     displayMessages,
     streamStatus,
     streamPhaseType,
@@ -713,18 +740,15 @@ export function useChatConversation({
     activeAssistantMessageId,
     copiedUserMessageId,
     errorText,
-    finishReasonNotice,
     isClearingContext,
     showScrollToBottomButton,
     submitDisabled,
     isInputDisabled: !chatId || isStreaming,
     isAbortDisabled: abortStreamMutation.isPending || !activeTaskId,
     isThinkingToggleDisabled: isStreaming || createMessageMutation.isPending,
-    isEnhancedRetrievalToggleDisabled: isStreaming || createMessageMutation.isPending,
     messageListRef,
     setComposerValue,
     setEnableThinking,
-    setEnableEnhancedRetrieval,
     onMessageListScroll: handleMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,

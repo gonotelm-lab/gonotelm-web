@@ -13,9 +13,12 @@ export const studioToolCatalog: StudioToolDefinition[] = [
   {
     id: 'audio-overview',
     title: '音频概览',
-    description: '即将支持',
+    description: '基于勾选来源生成音频概览任务',
     icon: GraphicEqRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-audio_overview',
+    artifactKind: 'audio_overview',
+    hasAdvancedConfig: true,
   },
   {
     id: 'video-overview',

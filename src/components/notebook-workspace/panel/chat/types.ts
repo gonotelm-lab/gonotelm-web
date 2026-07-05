@@ -7,10 +7,9 @@ export interface ChatUiCitationPosition {
 
 export interface ChatUiCitationDetail {
   marker: string
-  sourceIndex: number
-  docIndex: number
+  citationIndex: number
+  docId: string
   sourceId?: string
-  docId?: string
   isSummary?: boolean
   position?: ChatUiCitationPosition
 }
@@ -22,9 +21,25 @@ export interface ChatCitationJumpRequest {
   snippet?: string
 }
 
+export type ChatUiFragmentType = 'REQUEST' | 'THINK' | 'PHASE' | 'RESPONSE'
+
+export interface ChatUiFragment {
+  id: number
+  type: ChatUiFragmentType
+  request?: { content: string }
+  think?: { status: string; content: string }
+  phase?: { summary: string; thought: string }
+  response?: { status: string; content: string }
+}
+
+export interface ChatUiCitation {
+  docId: string
+  sourceId: string
+}
+
 export interface ChatUiMessage {
   id: string
   role: 'user' | 'assistant'
-  text: string
-  citationDetails?: ChatUiCitationDetail[]
+  fragments: ChatUiFragment[]
+  citations: ChatUiCitation[]
 }

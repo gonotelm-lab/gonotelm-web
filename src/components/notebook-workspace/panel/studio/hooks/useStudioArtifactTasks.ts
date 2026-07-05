@@ -15,6 +15,7 @@ import type {
   StudioArtifactKind,
   StudioArtifactResult,
   GenerateInfoGraphicParameters,
+  GenerateAudioOverviewParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -27,6 +28,7 @@ import {
 } from '../artifactStatus'
 import type { StudioArtifactItem, StudioToolActionId } from '../types'
 import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
+import { buildAudioOverviewRequestParams } from '../audioOverviewSettings'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
@@ -70,18 +72,21 @@ const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
 const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => {
   if (kind === 'report') return 'report'
   if (kind === 'info_graphic') return 'info_graphic'
+  if (kind === 'audio_overview') return 'audio_overview'
   return 'mindmap'
 }
 
 const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId => {
   if (kind === 'report') return 'generate-report'
   if (kind === 'info_graphic') return 'generate-info_graphic'
+  if (kind === 'audio_overview') return 'generate-audio_overview'
   return 'generate-mindmap'
 }
 
 const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => {
   if (kind === 'report') return '报告'
   if (kind === 'info_graphic') return '信息图'
+  if (kind === 'audio_overview') return '音频概览'
   return '思维导图'
 }
 
@@ -136,6 +141,7 @@ interface SubmitStudioArtifactTaskParams {
   title: string
   actionId: StudioToolActionId
   infoGraphic?: GenerateInfoGraphicParameters
+  audioOverview?: GenerateAudioOverviewParameters
 }
 
 export function useStudioArtifactTasks({
@@ -386,6 +392,7 @@ export function useStudioArtifactTasks({
       title,
       actionId,
       infoGraphic,
+      audioOverview,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
@@ -418,6 +425,9 @@ export function useStudioArtifactTasks({
           source_ids: sourceIds,
           ...(kind === 'info_graphic'
             ? { info_graphic: buildInfoGraphicRequestParams(infoGraphic) }
+            : {}),
+          ...(kind === 'audio_overview'
+            ? { audio_overview: buildAudioOverviewRequestParams(audioOverview) }
             : {}),
         })
 

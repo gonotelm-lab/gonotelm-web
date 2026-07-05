@@ -116,12 +116,13 @@ export function ChatPanel({
   notebookId,
   ...restProps
 }: ChatPanelProps) {
-  return <ChatPanelContent key={`${notebookId}:${restProps.chatId}`} {...restProps} />
+  return <ChatPanelContent notebookId={notebookId} key={`${notebookId}:${restProps.chatId}`} {...restProps} />
 }
 
-type ChatPanelContentProps = Omit<ChatPanelProps, 'notebookId'>
+type ChatPanelContentProps = Omit<ChatPanelProps, never>
 
 function ChatPanelContent({
+  notebookId,
   chatId,
   notebookName,
   notebookDescription,
@@ -148,7 +149,6 @@ function ChatPanelContent({
   const {
     composerValue,
     enableThinking,
-    enableEnhancedRetrieval,
     displayMessages,
     streamStatus,
     streamPhaseType,
@@ -160,18 +160,15 @@ function ChatPanelContent({
     activeAssistantMessageId,
     copiedUserMessageId,
     errorText,
-    finishReasonNotice,
     isClearingContext,
     showScrollToBottomButton,
     submitDisabled,
     isInputDisabled,
     isAbortDisabled,
     isThinkingToggleDisabled,
-    isEnhancedRetrievalToggleDisabled,
     messageListRef,
     setComposerValue,
     setEnableThinking,
-    setEnableEnhancedRetrieval,
     onMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,
@@ -257,7 +254,7 @@ function ChatPanelContent({
 
       <ChatMessagesList
         messageListRef={messageListRef}
-        enableThinking={enableThinking}
+        selectedSourceIds={selectedSourceIds}
         notebookInfoHeader={(
           <ChatNotebookInfoHeader
             notebookName={notebookName}
@@ -278,19 +275,6 @@ function ChatPanelContent({
         onCopyUserMessage={onCopyUserMessage}
         onOpenCitationJump={onOpenCitationJump}
       />
-
-      {finishReasonNotice ? (
-        <Typography
-          variant="caption"
-          sx={(theme) => ({
-            mt: 1,
-            px: chatPanelLayoutTokens.horizontalPadding,
-            color: theme.workspacePalette.status.warning,
-          })}
-        >
-          {finishReasonNotice}
-        </Typography>
-      ) : null}
 
       <Box sx={{ position: 'relative', px: chatPanelLayoutTokens.horizontalPadding }}>
         {showScrollToBottomButton ? (
@@ -329,12 +313,9 @@ function ChatPanelContent({
             isAbortDisabled,
             enableThinking,
             isThinkingToggleDisabled,
-            enableEnhancedRetrieval,
-            isEnhancedRetrievalToggleDisabled,
           }}
           onValueChange={setComposerValue}
           onThinkingToggle={setEnableThinking}
-          onEnhancedRetrievalToggle={setEnableEnhancedRetrieval}
           onKeyDown={onComposerKeyDown}
           onSend={onSendMessage}
           onAbort={onAbortStream}

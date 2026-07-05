@@ -1,17 +1,17 @@
 import { useCallback, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { MessageStreamPhaseType } from '@/types/api'
+import type { StreamDisplayPhaseType } from './chatConversationCommon'
 import { streamStatusMinVisibleMs } from './chatConversationCommon'
 
 interface UseStreamStatusSchedulerParams {
-  setStreamPhaseType: Dispatch<SetStateAction<MessageStreamPhaseType | null>>
+  setStreamPhaseType: Dispatch<SetStateAction<StreamDisplayPhaseType>>
   setStreamStatus: Dispatch<SetStateAction<string>>
 }
 
 interface UseStreamStatusSchedulerResult {
   clearStreamStatusSchedule: () => void
-  applyStreamStatusImmediately: (phase: MessageStreamPhaseType | null, text: string) => void
-  queueStreamStatus: (phase: MessageStreamPhaseType, text: string) => void
+  applyStreamStatusImmediately: (phase: StreamDisplayPhaseType, text: string) => void
+  queueStreamStatus: (phase: StreamDisplayPhaseType, text: string) => void
   resetLastStreamStatusAt: () => void
 }
 
@@ -26,7 +26,7 @@ export function useStreamStatusScheduler({
 }: UseStreamStatusSchedulerParams): UseStreamStatusSchedulerResult {
   const streamStatusSwitchTimerRef = useRef<number | null>(null)
   // Keep only the latest pending status so rapid phase updates collapse instead of flickering in sequence.
-  const pendingStreamStatusRef = useRef<{ phase: MessageStreamPhaseType; text: string } | null>(null)
+  const pendingStreamStatusRef = useRef<{ phase: StreamDisplayPhaseType; text: string } | null>(null)
   const lastStreamStatusAtRef = useRef(0)
 
   const clearStreamStatusSchedule = useCallback(() => {
@@ -38,7 +38,7 @@ export function useStreamStatusScheduler({
   }, [])
 
   const applyStreamStatusImmediately = useCallback(
-    (phase: MessageStreamPhaseType | null, text: string) => {
+    (phase: StreamDisplayPhaseType, text: string) => {
       setStreamPhaseType(phase)
       setStreamStatus(text)
       lastStreamStatusAtRef.current = performance.now()
@@ -51,7 +51,7 @@ export function useStreamStatusScheduler({
    * depending on whether the current status has been visible long enough.
    */
   const queueStreamStatus = useCallback(
-    (phase: MessageStreamPhaseType, text: string) => {
+    (phase: StreamDisplayPhaseType, text: string) => {
       const now = performance.now()
       const elapsed = now - lastStreamStatusAtRef.current
       // Enforce a minimum visible window so status text does not flash too quickly.

@@ -23,6 +23,10 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     inline: false,
     overlay: true,
   },
+  audio_overview: {
+    inline: false,
+    overlay: false,
+  },
 }
 
 export const getStudioArtifactPreviewCapability = (

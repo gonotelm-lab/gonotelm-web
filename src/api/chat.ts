@@ -5,7 +5,8 @@ import type {
   ChatCreateMessageRequest,
   ChatCreateMessageResponse,
   ChatListMessagesResponse,
-  ChatMessageStreamEvent,
+  StreamHeartbeatEvent,
+  StreamTaskEvent,
 } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -25,7 +26,7 @@ interface BuildChatStreamUrlParams {
 
 interface StreamChatEventsOptions extends BuildChatStreamUrlParams {
   signal?: AbortSignal
-  onEvent: (eventType: string, event: ChatMessageStreamEvent) => void
+  onEvent: (eventType: string, event: StreamTaskEvent | StreamHeartbeatEvent) => void
 }
 
 interface ParsedSseFrame {
@@ -64,7 +65,7 @@ const parseSseFrame = (frame: string): ParsedSseFrame | null => {
 
 const consumeSseBuffer = (
   buffer: string,
-  onEvent: (eventType: string, event: ChatMessageStreamEvent) => void,
+  onEvent: (eventType: string, event: StreamTaskEvent | StreamHeartbeatEvent) => void,
 ): string => {
   const frames = buffer.split('\n\n')
   const rest = frames.pop() ?? ''
@@ -75,7 +76,7 @@ const consumeSseBuffer = (
     }
 
     try {
-      const payload = JSON.parse(parsed.dataText) as ChatMessageStreamEvent
+      const payload = JSON.parse(parsed.dataText) as StreamTaskEvent | StreamHeartbeatEvent
       onEvent(parsed.eventType, payload)
     } catch {
       // Ignore malformed SSE frames and continue consuming stream.
@@ -100,7 +101,6 @@ export function createChatMessage(payload: ChatCreateMessageRequest) {
     enable_thinking: payload.enable_thinking,
     style: payload.style,
     answer_length: payload.answer_length,
-    enhanced_retrieval: payload.enhanced_retrieval,
   }
   const chatId = encodeURIComponent(payload.id)
   return request<ChatCreateMessageResponse>(`/api/v1/chat/${chatId}/message/create`, {

@@ -3,11 +3,7 @@ import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
 
 interface AssistantMarkdownProps {
   content: string
-  onCitationClick?: (
-    event: MouseEvent<HTMLAnchorElement>,
-    sourceIndex: string,
-    docIndex: string,
-  ) => void
+  onCitationClick?: (event: MouseEvent<HTMLAnchorElement | HTMLElement>, citationIndex: string) => void
 }
 
 export function AssistantMarkdown({ content, onCitationClick }: AssistantMarkdownProps) {

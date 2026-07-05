@@ -3,6 +3,7 @@ import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
+import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
@@ -17,6 +18,7 @@ import {
   toArtifactVisualStatus,
   type StudioArtifactVisualStatus,
 } from '../artifactStatus'
+import { getStudioArtifactPreviewCapability } from '../preview/previewCapabilities'
 import type { StudioArtifactItem } from '../types'
 
 interface StudioArtifactListItemProps {
@@ -88,7 +90,9 @@ export function StudioArtifactListItem({
   const visualStatus = toArtifactVisualStatus(item.status)
   const isCancelled = visualStatus === 'cancelled'
   const isRunning = isStudioTaskRunning(item.status)
-  const canPreview = isStudioTaskCompleted(item.status)
+  const previewCapability = getStudioArtifactPreviewCapability(item.kind)
+  const canPreview =
+    isStudioTaskCompleted(item.status) && (previewCapability.inline || previewCapability.overlay)
   const canRetry = isStudioTaskRetryable(item.status)
   const canCancel = isRunning
   const canDelete = !isRunning
@@ -98,6 +102,8 @@ export function StudioArtifactListItem({
     ? DescriptionRoundedIcon
     : item.kind === 'info_graphic'
       ? ImageRoundedIcon
+      : item.kind === 'audio_overview'
+        ? GraphicEqRoundedIcon
       : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)

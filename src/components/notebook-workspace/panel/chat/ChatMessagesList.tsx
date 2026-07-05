@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded'
-import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import { panelTitleToBodySpacing } from '../../shared/ui/panelStyles'
@@ -10,7 +9,7 @@ import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { chatMessageContentTokens } from './layoutTokens'
-import type { MessageStreamPhaseType } from '@/types/api'
+import type { StreamDisplayPhaseType } from './chatConversationCommon'
 
 const messageItemSpacing = 2.75
 const loadingIndicatorRowMinHeight = 18
@@ -40,11 +39,11 @@ const streamStatusFlowTokens = {
 
 interface ChatMessagesListProps {
   messageListRef: RefObject<HTMLDivElement | null>
-  enableThinking: boolean
+  selectedSourceIds: string[]
   notebookInfoHeader?: ReactNode
   messages: ChatUiMessage[]
   streamStatus: string
-  streamPhaseType: MessageStreamPhaseType | null
+  streamPhaseType: StreamDisplayPhaseType
   showStreamFlowAnimation: boolean
   isLoadingHistory: boolean
   isFetchingMore: boolean
@@ -63,7 +62,7 @@ interface ChatMessagesListProps {
  */
 export const ChatMessagesList = memo(function ChatMessagesList({
   messageListRef,
-  enableThinking,
+  selectedSourceIds,
   notebookInfoHeader,
   messages,
   streamStatus,
@@ -87,12 +86,8 @@ export const ChatMessagesList = memo(function ChatMessagesList({
 
   // Status icon intentionally mirrors backend stream phase to make retrieval/thinking states glanceable.
   const streamStatusIcon =
-    streamPhaseType === 'retrieving' ? (
+    streamPhaseType === 'phase' ? (
       <ManageSearchRoundedIcon
-        sx={{ fontSize: streamStatusIconSize, color: streamStatusRowTokens.color, flexShrink: 0 }}
-      />
-    ) : streamPhaseType === 'thinking' ? (
-      <PsychologyAltRoundedIcon
         sx={{ fontSize: streamStatusIconSize, color: streamStatusRowTokens.color, flexShrink: 0 }}
       />
     ) : null
@@ -192,7 +187,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
             ) : null}
             <ChatMessageItem
               message={message}
-              enableThinking={enableThinking}
+              selectedSourceIds={selectedSourceIds}
               isStreaming={isStreaming}
               isActiveAssistantMessage={activeAssistantMessageId === message.id}
               copied={copiedUserMessageId === message.id}

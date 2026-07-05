@@ -1,5 +1,6 @@
-import { memo, useCallback, useRef, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -14,20 +15,22 @@ import {
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import type { Theme } from '@mui/material/styles'
-import { useQueryClient } from '@tanstack/react-query'
-import { buildSourceDocQueryOptions } from '@/api/source'
 import type { GetSourceDocResponse } from '@/types/api'
-import { AssistantMarkdown } from './AssistantMarkdown'
+import { buildSourceDocQueryOptions } from '@/api/source'
+import { ChatMessageFragments } from './ChatMessageFragments'
+import { getCachedSourceIdForDoc, rememberSourceDocMapping } from './citationResolver'
 import {
   canShowCitationJumpButton,
   formatCitationPositionText,
+  isSummaryCitationPosition,
   normalizeCitationPosition,
   resolveCitationTypeLabel,
 } from './chatConversationCommon'
+import { extractResponseText } from './streamEventReducer'
 import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
-import { workspaceAnimation, workspaceTransitionPresets } from '../../shared/ui/motionTokens'
-import type { ChatCitationJumpRequest, ChatUiCitationDetail, ChatUiMessage } from './types'
+import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
@@ -62,8 +65,6 @@ const messageLayoutTokens = {
   userBubbleMarginRight: chatMessageContentTokens.sideMarginX,
   userBubblePaddingX: 1.25,
   userBubblePaddingY: 0.9,
-  userTextFontSize: 14.5,
-  userTextLineHeight: 1.65,
 }
 
 const buildActionButtonSx = (copied: boolean) => (theme: Theme) => ({
@@ -83,7 +84,7 @@ const buildActionButtonSx = (copied: boolean) => (theme: Theme) => ({
 
 interface ChatMessageItemProps {
   message: ChatUiMessage
-  enableThinking: boolean
+  selectedSourceIds: string[]
   isStreaming: boolean
   isActiveAssistantMessage: boolean
   copied: boolean
@@ -91,13 +92,9 @@ interface ChatMessageItemProps {
   onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
 }
 
-/**
- * Renders one chat bubble (assistant or user) and encapsulates message-level interactions:
- * copy action, citation popover loading, and streaming-aware assistant action visibility.
- */
 export const ChatMessageItem = memo(function ChatMessageItem({
   message,
-  enableThinking,
+  selectedSourceIds,
   isStreaming,
   isActiveAssistantMessage,
   copied,
@@ -109,40 +106,24 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     left: number
     top: number
   } | null>(null)
-  const [activeCitationDetail, setActiveCitationDetail] = useState<ChatUiCitationDetail | null>(null)
+  const [activeCitationIndex, setActiveCitationIndex] = useState<number | null>(null)
   const [activeCitationDoc, setActiveCitationDoc] = useState<GetSourceDocResponse | null>(null)
   const [isCitationLoading, setIsCitationLoading] = useState(false)
   const [citationLoadError, setCitationLoadError] = useState('')
-  // Sequence guard prevents out-of-order async citation responses from overriding the latest click.
   const citationFetchSeqRef = useRef(0)
+
   const isUserMessage = message.role === 'user'
-  const showStreamingPlaceholder =
-    isStreaming && isActiveAssistantMessage && !message.text
-  const showPendingDots =
-    showStreamingPlaceholder && !enableThinking
-  const renderedText = showStreamingPlaceholder ? '' : message.text || ' '
-  const assistantRenderedText = renderedText
-  const canCopy = Boolean(message.text.trim())
+  const responseText = useMemo(() => extractResponseText(message), [message])
+  const canCopy = Boolean(responseText.trim() || message.fragments.some((f) => f.type === 'REQUEST' && f.request?.content))
   const showAssistantActions = !isStreaming || !isActiveAssistantMessage
-  const citationDetailMap = useMemo(() => {
-    const detailMap = new Map<string, ChatUiCitationDetail>()
-    for (const citationDetail of message.citationDetails ?? []) {
-      detailMap.set(`${citationDetail.sourceIndex}#${citationDetail.docIndex}`, citationDetail)
-    }
-    return detailMap
-  }, [message.citationDetails])
-  const citationSummary = activeCitationDoc?.is_summary ?? activeCitationDetail?.isSummary ?? false
-  const isOriginalCitation =
-    activeCitationDoc?.is_summary === false || activeCitationDetail?.isSummary === false
-  const activeCitationSourceId = activeCitationDoc?.source_id ?? activeCitationDetail?.sourceId
-  const activeCitationPosition =
-    normalizeCitationPosition(activeCitationDoc?.position) ?? activeCitationDetail?.position
+
+  const userText = message.fragments.find((f) => f.type === 'REQUEST')?.request?.content ?? ''
+  const activeCitationSourceId = activeCitationDoc?.source_id
+  const activeCitationPosition = normalizeCitationPosition(activeCitationDoc?.position)
+  const citationSummary = isSummaryCitationPosition(activeCitationPosition)
+  const isOriginalCitation = Boolean(activeCitationPosition && !citationSummary)
   const citationPositionText = useMemo(
-    () =>
-      formatCitationPositionText(
-        activeCitationPosition,
-        citationSummary,
-      ),
+    () => formatCitationPositionText(activeCitationPosition, citationSummary),
     [activeCitationPosition, citationSummary],
   )
   const canJumpToSourcePreview = canShowCitationJumpButton({
@@ -152,68 +133,77 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     isOriginalCitation,
   })
 
-  /**
-   * Fetches citation document content for the currently selected marker.
-   * Sequence id guards ensure late responses from previous clicks are ignored.
-   */
-  const fetchCitationDoc = useCallback(async (sourceId: string, docId: string, fetchSeq: number) => {
+  const fetchCitationDoc = useCallback(async (docId: string, sourceId: string, fetchSeq: number) => {
     try {
-      if (citationFetchSeqRef.current !== fetchSeq) {
+      if (citationFetchSeqRef.current !== fetchSeq) return
+
+      const resolvedSourceId =
+        sourceId.trim() || getCachedSourceIdForDoc(docId) || selectedSourceIds[0]?.trim()
+      if (!resolvedSourceId) {
+        if (citationFetchSeqRef.current === fetchSeq) {
+          setActiveCitationDoc(null)
+          setCitationLoadError('未找到引用来源。')
+          setIsCitationLoading(false)
+        }
         return
       }
-      const sourceDoc = await queryClient.fetchQuery(buildSourceDocQueryOptions(sourceId, docId))
+
+      const sourceDoc = await queryClient.fetchQuery(
+        buildSourceDocQueryOptions(resolvedSourceId, docId),
+      )
+
+      if (sourceDoc?.source_id) {
+        rememberSourceDocMapping(docId, sourceDoc.source_id)
+        queryClient.setQueryData(['source-doc', sourceDoc.source_id, docId], sourceDoc)
+      }
+
       if (citationFetchSeqRef.current === fetchSeq) {
         setActiveCitationDoc(sourceDoc)
-        setCitationLoadError('')
+        setCitationLoadError(sourceDoc ? '' : '未找到引用文档。')
       }
     } catch {
-      if (citationFetchSeqRef.current !== fetchSeq) {
-        return
-      }
+      if (citationFetchSeqRef.current !== fetchSeq) return
       setCitationLoadError('加载引用内容失败，请稍后重试。')
     } finally {
       if (citationFetchSeqRef.current === fetchSeq) {
         setIsCitationLoading(false)
       }
     }
-  }, [queryClient])
+  }, [queryClient, selectedSourceIds])
 
-  /**
-   * Opens citation popover at click position and starts a new fetch generation
-   * so only the latest selected citation can update visible detail state.
-   */
   const handleCitationClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>, sourceIndex: string, docIndex: string) => {
-      setCitationAnchorPosition({
-        left: event.clientX + citationCardOffsetPx,
-        top: event.clientY,
-      })
-      const citationDetail = citationDetailMap.get(`${sourceIndex}#${docIndex}`) ?? null
-      setActiveCitationDetail(citationDetail)
+    (event: MouseEvent<HTMLAnchorElement | HTMLElement>, citationIndex: string) => {
+      const index = Number.parseInt(citationIndex, 10)
+      const citation = message.citations[index - 1]
+      setCitationAnchorPosition({ left: event.clientX + citationCardOffsetPx, top: event.clientY })
+      setActiveCitationIndex(Number.isFinite(index) ? index : null)
       setActiveCitationDoc(null)
       setCitationLoadError('')
-
-      // Every click starts a new request generation; older results become stale immediately.
       citationFetchSeqRef.current += 1
       const fetchSeq = citationFetchSeqRef.current
 
-      if (!citationDetail?.sourceId || !citationDetail?.docId) {
+      if (!Number.isFinite(index) || index <= 0) {
+        setIsCitationLoading(false)
+        setCitationLoadError('引用编号无效。')
+        return
+      }
+
+      if (!citation?.docId?.trim()) {
         setIsCitationLoading(false)
         setCitationLoadError('未命中引用映射。')
         return
       }
 
       setIsCitationLoading(true)
-      void fetchCitationDoc(citationDetail.sourceId, citationDetail.docId, fetchSeq)
+      void fetchCitationDoc(citation.docId.trim(), citation.sourceId ?? '', fetchSeq)
     },
-    [citationDetailMap, fetchCitationDoc],
+    [fetchCitationDoc, message.citations],
   )
 
   const handleCloseCitationCard = useCallback(() => {
-    // Closing the popover also invalidates in-flight fetches to avoid late state writes.
     citationFetchSeqRef.current += 1
     setCitationAnchorPosition(null)
-    setActiveCitationDetail(null)
+    setActiveCitationIndex(null)
     setActiveCitationDoc(null)
     setCitationLoadError('')
     setIsCitationLoading(false)
@@ -250,52 +240,15 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           ml: messageLayoutTokens.assistantMarginLeft,
         }}
       >
-        {showPendingDots ? (
-          <Box
-            aria-live="polite"
-            sx={{
-              minHeight: messageLayoutTokens.assistantPendingMinHeight,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                color: 'text.disabled',
-                fontSize: messageLayoutTokens.assistantPendingDotsFontSize,
-                lineHeight: 1,
-                letterSpacing: messageLayoutTokens.assistantPendingDotsLetterSpacing,
-                display: 'inline-block',
-                width: '3ch',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                animation:
-                  `chat-pending-ellipsis ${workspaceAnimation.pendingEllipsisDurationMs}ms ` +
-                  'steps(3, end) infinite',
-                '@keyframes chat-pending-ellipsis': {
-                  '0%': { width: '0ch', opacity: 0.55 },
-                  '50%': { width: '3ch', opacity: 0.85 },
-                  '100%': { width: '0ch', opacity: 0.55 },
-                },
-              }}
-            >
-              ...
-            </Box>
-          </Box>
-        ) : (
-          <AssistantMarkdown content={assistantRenderedText} onCitationClick={handleCitationClick} />
-        )}
+        <ChatMessageFragments
+          message={message}
+          isStreaming={isStreaming}
+          isActiveAssistant={isActiveAssistantMessage}
+          onCitationClick={handleCitationClick}
+        />
 
         {showAssistantActions ? (
-          <Box
-            sx={{
-              mt: messageLayoutTokens.actionRowMarginTop,
-              minHeight: messageLayoutTokens.actionRowMinHeight,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
+          <Box sx={{ mt: messageLayoutTokens.actionRowMarginTop, minHeight: messageLayoutTokens.actionRowMinHeight, display: 'flex', alignItems: 'center' }}>
             <Tooltip title={copied ? '已复制' : '复制'}>
               <span>
                 <IconButton
@@ -304,17 +257,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                   onClick={(event) => {
                     event.stopPropagation()
                     if (!canCopy) return
-                    onCopyUserMessage(message.id, message.text)
+                    onCopyUserMessage(message.id, responseText)
                   }}
                   sx={buildActionButtonSx(copied)}
                 >
                   {copied ? (
-                    <CheckIcon
-                      sx={(theme) => ({
-                        fontSize: actionIconSize,
-                        color: theme.workspacePalette.status.success,
-                      })}
-                    />
+                    <CheckIcon sx={(theme) => ({ fontSize: actionIconSize, color: theme.workspacePalette.status.success })} />
                   ) : (
                     <ContentCopyIcon sx={{ fontSize: actionIconSize }} />
                   )}
@@ -343,7 +291,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         >
           <Box sx={{ maxWidth: citationCardTokens.maxWidth, p: citationCardTokens.padding }}>
             <Typography variant="subtitle2" sx={{ mb: citationCardTokens.titleMarginBottom, fontWeight: 700 }}>
-              引用信息
+              引用信息 {activeCitationIndex ? `[${activeCitationIndex}]` : ''}
             </Typography>
             <Typography variant="body2" sx={{ mt: citationCardTokens.sourceTitleMarginTop, fontWeight: 600 }}>
               {`来源标题: ${activeCitationDoc?.source_title || '-'}`}
@@ -363,15 +311,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               {canJumpToSourcePreview ? (
                 <Tooltip title="跳转到来源预览">
                   <span>
-                    <IconButton
-                      size="small"
-                      onClick={handleJumpToSourcePreview}
-                      sx={{
-                        p: 0,
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'transparent', color: 'primary.dark' },
-                      }}
-                    >
+                    <IconButton size="small" onClick={handleJumpToSourcePreview} sx={{ p: 0, color: 'primary.main' }}>
                       <OpenInNewIcon sx={{ fontSize: 15 }} />
                     </IconButton>
                   </span>
@@ -395,22 +335,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               }}
             >
               {isCitationLoading ? (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: citationCardTokens.loadingGap,
-                    py: citationCardTokens.loadingPaddingY,
-                  }}
-                >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: citationCardTokens.loadingGap, py: citationCardTokens.loadingPaddingY }}>
                   <CircularProgress size={citationCardTokens.loadingSpinnerSize} />
                   <Typography variant="body2">正在加载引用内容...</Typography>
                 </Box>
               ) : citationLoadError ? (
-                <Typography
-                  variant="body2"
-                  sx={(theme) => ({ color: theme.workspacePalette.status.error })}
-                >
+                <Typography variant="body2" sx={(theme) => ({ color: theme.workspacePalette.status.error })}>
                   {citationLoadError}
                 </Typography>
               ) : (
@@ -458,17 +388,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           color: 'primary.contrastText',
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{
-            fontSize: messageLayoutTokens.userTextFontSize,
-            lineHeight: messageLayoutTokens.userTextLineHeight,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}
-        >
-          {renderedText}
-        </Typography>
+        <ChatMessageFragments message={message} />
       </Paper>
 
       <Box className="user-message-actions" sx={{ mr: messageLayoutTokens.userBubbleMarginRight }}>
@@ -476,21 +396,16 @@ export const ChatMessageItem = memo(function ChatMessageItem({
           <span>
             <IconButton
               size="small"
-              disabled={!canCopy}
+              disabled={!userText.trim()}
               onClick={(event) => {
                 event.stopPropagation()
-                if (!canCopy) return
-                onCopyUserMessage(message.id, message.text)
+                if (!userText.trim()) return
+                onCopyUserMessage(message.id, userText)
               }}
               sx={buildActionButtonSx(copied)}
             >
               {copied ? (
-                <CheckIcon
-                  sx={(theme) => ({
-                    fontSize: actionIconSize,
-                    color: theme.workspacePalette.status.success,
-                  })}
-                />
+                <CheckIcon sx={(theme) => ({ fontSize: actionIconSize, color: theme.workspacePalette.status.success })} />
               ) : (
                 <ContentCopyIcon sx={{ fontSize: actionIconSize }} />
               )}

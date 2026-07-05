@@ -17,6 +17,13 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
+  it('returns none preview capability for audio_overview', () => {
+    expect(getStudioArtifactPreviewCapability('audio_overview')).toEqual({
+      inline: false,
+      overlay: false,
+    })
+  })
+
   it('falls back to overlay-only for unknown kinds', () => {
     expect(getStudioArtifactPreviewCapability('unknown-kind' as StudioArtifactKind)).toEqual({
       inline: false,
