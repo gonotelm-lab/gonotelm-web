@@ -1,46 +1,25 @@
 import { describe, expect, it } from 'vitest'
+import { findLiveMessageIndex } from './useLiveMessageUpdater'
 import type { ChatUiMessage } from './types'
 
-const remapLiveMessage = (
-  previous: ChatUiMessage[],
-  messageId: string,
-  nextMessage: ChatUiMessage,
-): ChatUiMessage[] => {
-  const targetIndex = previous.findIndex(
-    (message) =>
-      message.id === messageId || (nextMessage.id.length > 0 && message.id === nextMessage.id),
-  )
-  if (targetIndex === -1) {
-    return previous
-  }
-
-  return previous.map((message, index) => (index === targetIndex ? nextMessage : message))
-}
-
-describe('live message id remapping', () => {
-  it('keeps updating after assistant message id changes from local draft to server id', () => {
+describe('findLiveMessageIndex', () => {
+  it('matches live draft by stable clientKey after server id is assigned', () => {
     const localId = 'local-assistant-1'
     const serverId = 'server-assistant-1'
 
-    let liveMessages: ChatUiMessage[] = [
+    const previous: ChatUiMessage[] = [
       {
         id: localId,
+        clientKey: localId,
         role: 'assistant',
         fragments: [],
         citations: [],
       },
     ]
 
-    liveMessages = remapLiveMessage(liveMessages, localId, {
+    const nextMessage: ChatUiMessage = {
       id: serverId,
-      role: 'assistant',
-      fragments: [],
-      citations: [],
-    })
-    expect(liveMessages[0]?.id).toBe(serverId)
-
-    liveMessages = remapLiveMessage(liveMessages, serverId, {
-      id: serverId,
+      clientKey: localId,
       role: 'assistant',
       fragments: [
         {
@@ -50,9 +29,9 @@ describe('live message id remapping', () => {
         },
       ],
       citations: [],
-    })
+    }
 
-    expect(liveMessages[0]?.fragments).toHaveLength(1)
-    expect(liveMessages[0]?.fragments[0]?.phase?.summary).toBe('检索证据')
+    expect(findLiveMessageIndex(previous, localId, nextMessage)).toBe(0)
+    expect(findLiveMessageIndex(previous, serverId, nextMessage)).toBe(0)
   })
 })

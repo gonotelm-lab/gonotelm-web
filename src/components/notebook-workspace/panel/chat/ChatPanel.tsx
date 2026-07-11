@@ -150,10 +150,6 @@ function ChatPanelContent({
     composerValue,
     enableThinking,
     displayMessages,
-    streamStatus,
-    streamPhaseType,
-    showStreamStatus,
-    showStreamFlowAnimation,
     isLoadingHistory,
     isFetchingMore,
     isStreaming,
@@ -263,9 +259,6 @@ function ChatPanelContent({
           />
         )}
         messages={displayMessages}
-        streamStatus={showStreamStatus ? streamStatus : ''}
-        streamPhaseType={showStreamStatus ? streamPhaseType : null}
-        showStreamFlowAnimation={showStreamFlowAnimation}
         isLoadingHistory={isLoadingHistory}
         isFetchingMore={isFetchingMore}
         isStreaming={isStreaming}

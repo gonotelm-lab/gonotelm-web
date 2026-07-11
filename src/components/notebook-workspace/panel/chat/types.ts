@@ -39,6 +39,7 @@ export interface ChatUiCitation {
 
 export interface ChatUiMessage {
   id: string
+  clientKey?: string
   role: 'user' | 'assistant'
   fragments: ChatUiFragment[]
   citations: ChatUiCitation[]

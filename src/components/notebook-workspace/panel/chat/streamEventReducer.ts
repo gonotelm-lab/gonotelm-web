@@ -1,8 +1,8 @@
 import type { MessageCitation, StreamTaskEvent } from '@/types/api'
 import type { ChatUiCitation, ChatUiFragment, ChatUiMessage } from './types'
 
-export function createEmptyAssistantMessage(id: string): ChatUiMessage {
-  return { id, role: 'assistant', fragments: [], citations: [] }
+export function createEmptyAssistantMessage(id: string, clientKey?: string): ChatUiMessage {
+  return { id, clientKey: clientKey ?? id, role: 'assistant', fragments: [], citations: [] }
 }
 
 function resolveFragmentIndex(fragments: ChatUiFragment[], index?: number): number {
@@ -38,10 +38,29 @@ export function mapStreamCitationToUi(citation: MessageCitation): ChatUiCitation
 const readResponseTextChunk = (event: StreamTaskEvent) =>
   event.rsp?.v?.text?.content ?? ''
 
+const cloneFragment = (fragment: ChatUiFragment): ChatUiFragment => ({
+  ...fragment,
+  request: fragment.request ? { ...fragment.request } : undefined,
+  think: fragment.think ? { ...fragment.think } : undefined,
+  phase: fragment.phase ? { ...fragment.phase } : undefined,
+  response: fragment.response
+    ? {
+        status: fragment.response.status,
+        content: fragment.response.content?.text
+          ? {
+              type: 'text' as const,
+              text: { content: fragment.response.content.text.content ?? '' },
+            }
+          : fragment.response.content,
+      }
+    : undefined,
+})
+
 export function cloneChatUiMessage(msg: ChatUiMessage): ChatUiMessage {
   return {
     ...msg,
-    fragments: msg.fragments.map((fragment) => ({ ...fragment })),
+    clientKey: msg.clientKey ?? msg.id,
+    fragments: msg.fragments.map(cloneFragment),
     citations: msg.citations.map((citation) => ({ ...citation })),
   }
 }

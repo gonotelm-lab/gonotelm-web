@@ -49,6 +49,7 @@ export function mapChatMessageToUi(message: ChatMessage): ChatUiMessage {
   const role = String(message.role).toLowerCase() === 'user' ? 'user' : 'assistant'
   return {
     id: message.id,
+    clientKey: message.id,
     role,
     fragments: (message.fragments ?? []).map(mapFragment),
     citations: (message.citations ?? []).map(mapApiCitationToUi),

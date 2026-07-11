@@ -1,15 +1,11 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import type { MouseEvent } from 'react'
-import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
-import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined'
-import PsychologyAltRoundedIcon from '@mui/icons-material/PsychologyAltRounded'
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
-import TripOriginOutlinedIcon from '@mui/icons-material/TripOriginOutlined'
-import { Box, Collapse, IconButton, Typography } from '@mui/material'
+import { Box, CircularProgress, Typography } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
 import { AssistantMarkdown } from './AssistantMarkdown'
+import { chatMessageContentTokens } from './layoutTokens'
+import { extractLatestPhaseSummary } from './streamEventReducer'
+import { workspaceAnimation } from '../../shared/ui/motionTokens'
 import type { ChatUiFragment, ChatUiFragmentType, ChatUiMessage } from './types'
 
 interface ChatMessageFragmentsProps {
@@ -18,6 +14,24 @@ interface ChatMessageFragmentsProps {
   isActiveAssistant?: boolean
   onCitationClick?: (event: MouseEvent<HTMLAnchorElement | HTMLElement>, citationIndex: string) => void
 }
+
+const phaseStatusTokens = {
+  marginBottom: 0.55,
+  gap: 0.75,
+  spinnerSize: 14,
+  textFontSize: 14.3,
+  textLetterSpacing: 0.1,
+  color: 'text.secondary',
+}
+
+const phaseStatusFlowTokens = {
+  backgroundSize: '240% 100%',
+  animationDurationSec: workspaceAnimation.streamStatusFlowDurationSec,
+  backgroundStartPosition: '160% 0',
+  backgroundEndPosition: '-160% 0',
+}
+
+export const THINKING_PHASE_LABEL = '思考中...'
 
 const normalizeFragmentType = (type: string): ChatUiFragmentType | null => {
   const normalized = type.toUpperCase()
@@ -32,34 +46,49 @@ const normalizeFragmentType = (type: string): ChatUiFragmentType | null => {
   return null
 }
 
-const isThinkingFragment = (fragment: ChatUiFragment) => {
-  const fragmentType = normalizeFragmentType(fragment.type)
-  return fragmentType !== null && fragmentType !== 'REQUEST' && fragmentType !== 'RESPONSE'
-}
-
 export const extractCombinedResponseContent = (fragments: ChatUiFragment[]) =>
   fragments
     .filter((fragment) => normalizeFragmentType(fragment.type) === 'RESPONSE')
     .map((fragment) => fragment.response?.content ?? '')
     .join('\n')
 
-export const extractThinkingFragments = (fragments: ChatUiFragment[]) =>
-  fragments.filter(isThinkingFragment)
+export const hasResponseContent = (fragments: ChatUiFragment[]) =>
+  Boolean(extractCombinedResponseContent(fragments).trim())
 
-const thinkingSegmentHasContent = (fragment: ChatUiFragment) => {
-  const fragmentType = normalizeFragmentType(fragment.type)
-  if (fragmentType === 'PHASE') {
-    return Boolean(fragment.phase?.summary?.trim() || fragment.phase?.thought?.trim())
+export const resolvePhaseStatusLabel = (message: ChatUiMessage) =>
+  extractLatestPhaseSummary(message) || THINKING_PHASE_LABEL
+
+export const shouldShowPhaseStatus = ({
+  isActiveAssistant,
+}: {
+  isActiveAssistant?: boolean
+  fragments: ChatUiFragment[]
+}) => Boolean(isActiveAssistant)
+
+export const resolveStickyPhaseStatusLabel = (
+  message: ChatUiMessage,
+  previousLabel: string,
+  enabled: boolean,
+) => {
+  if (!enabled) {
+    return THINKING_PHASE_LABEL
   }
-  if (fragmentType === 'THINK') {
-    return Boolean(fragment.think?.content?.trim()) || fragment.think?.status === 'RUNNING'
+
+  const latestPhase = extractLatestPhaseSummary(message)
+  if (latestPhase) {
+    return latestPhase
   }
-  return true
+
+  if (previousLabel !== THINKING_PHASE_LABEL) {
+    return previousLabel
+  }
+
+  return THINKING_PHASE_LABEL
 }
 
 export const ChatMessageFragments = memo(function ChatMessageFragments({
   message,
-  isStreaming,
+  isStreaming: _isStreaming,
   isActiveAssistant,
   onCitationClick,
 }: ChatMessageFragmentsProps) {
@@ -82,364 +111,114 @@ export const ChatMessageFragments = memo(function ChatMessageFragments({
     )
   }
 
-  const thinkingFragments = useMemo(
-    () => extractThinkingFragments(message.fragments),
-    [message.fragments],
-  )
   const responseContent = useMemo(
     () => extractCombinedResponseContent(message.fragments),
     [message.fragments],
   )
-  const isActiveStream = Boolean(isStreaming && isActiveAssistant)
-  const hasRunningThink = thinkingFragments.some(
-    (fragment) => normalizeFragmentType(fragment.type) === 'THINK' && fragment.think?.status === 'RUNNING',
+  const showPhaseStatus = shouldShowPhaseStatus({
+    isActiveAssistant,
+    fragments: message.fragments,
+  })
+  const stickyPhaseLabelRef = useRef(THINKING_PHASE_LABEL)
+  const phaseStatusLabel = resolveStickyPhaseStatusLabel(
+    message,
+    stickyPhaseLabelRef.current,
+    showPhaseStatus,
   )
-  const isThinking = isActiveStream && (hasRunningThink || !responseContent.trim())
-  const showThinkingBlock =
-    thinkingFragments.length > 0 || (isActiveStream && !responseContent.trim())
+  stickyPhaseLabelRef.current = phaseStatusLabel
 
   return (
     <Box>
-      {showThinkingBlock ? (
-        <ThinkingProcessBlock
-          fragments={thinkingFragments}
-          isStreaming={isActiveStream}
-          isThinking={isThinking}
-        />
-      ) : null}
+      {showPhaseStatus ? <PhaseStatusIndicator label={phaseStatusLabel} /> : null}
 
       {responseContent.trim() ? (
-        isActiveStream ? (
-          <Typography
-            variant="body2"
-            component="div"
-            sx={{
-              fontSize: 14.8,
-              lineHeight: 1.72,
-              color: 'text.primary',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {responseContent}
-          </Typography>
-        ) : (
-          <AssistantMarkdown content={responseContent} onCitationClick={onCitationClick} />
-        )
+        <AssistantMarkdown content={responseContent} onCitationClick={onCitationClick} />
       ) : null}
     </Box>
   )
 })
 
-function ThinkingProcessBlock({
-  fragments,
-  isStreaming,
-  isThinking,
-}: {
-  fragments: ChatUiFragment[]
-  isStreaming: boolean
-  isThinking: boolean
-}) {
-  const [expanded, setExpanded] = useState(isThinking)
+const isThinkingLabel = (label: string) => label === THINKING_PHASE_LABEL
 
-  useEffect(() => {
-    const shouldExpand = isThinking || isStreaming
-    setExpanded((previous) => (previous === shouldExpand ? previous : shouldExpand))
-  }, [isThinking, isStreaming])
-
-  const visibleFragments = fragments.filter(thinkingSegmentHasContent)
-  if (visibleFragments.length === 0 && !isThinking) {
-    return null
-  }
-
-  const title = isThinking ? '思考中...' : '思考过程'
+function PhaseStatusIndicator({ label }: { label: string }) {
+  const theme = useTheme()
+  const isThinking = isThinkingLabel(label)
+  const flowGradient = useMemo(
+    () =>
+      `linear-gradient(90deg, ${alpha(theme.palette.primary.main, 0.72)} 0%, ${alpha(theme.palette.primary.main, 0.72)} 10%, ${alpha(theme.palette.primary.main, 0.78)} 25%, ${alpha(theme.palette.primary.main, 0.88)} 40%, ${alpha(theme.palette.primary.dark, 0.98)} 50%, ${alpha(theme.palette.primary.main, 0.88)} 60%, ${alpha(theme.palette.primary.main, 0.78)} 75%, ${alpha(theme.palette.primary.main, 0.72)} 90%, ${alpha(theme.palette.primary.main, 0.72)} 100%)`,
+    [theme.palette.primary.dark, theme.palette.primary.main],
+  )
 
   return (
     <Box
       sx={{
-        my: 0.5,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1.25,
-        bgcolor: 'action.hover',
-        overflow: 'hidden',
-      }}
-    >
-      <Box
-        role="button"
-        tabIndex={0}
-        onClick={() => setExpanded((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            setExpanded((value) => !value)
-          }
-        }}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          px: 1,
-          py: 0.65,
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-      >
-        <PsychologyAltRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', flex: 1 }}>
-          {title}
-        </Typography>
-        <IconButton
-          size="small"
-          aria-label={expanded ? '收起思考过程' : '展开思考过程'}
-          onClick={(event) => {
-            event.stopPropagation()
-            setExpanded((value) => !value)
-          }}
-          sx={{ p: 0.25 }}
-        >
-          {expanded ? (
-            <ExpandLessIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          ) : (
-            <ExpandMoreIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          )}
-        </IconButton>
-      </Box>
-
-      <Collapse in={expanded}>
-        <Box
-          sx={{
-            px: 1.1,
-            pb: 1,
-            pt: 0.5,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <ThinkingTimeline
-            fragments={visibleFragments}
-            isStreaming={isStreaming}
-            isThinking={isThinking && visibleFragments.length === 0}
-          />
-        </Box>
-      </Collapse>
-    </Box>
-  )
-}
-
-const resolvePhaseIcon = (summary: string) => {
-  const text = summary.toLowerCase()
-  if (/检索|搜索|查询|search|retrieve|query/.test(text)) {
-    return SearchOutlinedIcon
-  }
-  if (/浏览|阅读|查看|read|browse|open/.test(text)) {
-    return DescriptionOutlinedIcon
-  }
-  if (/分析|规划|计划|plan|analy/.test(text)) {
-    return AutoAwesomeOutlinedIcon
-  }
-  return TripOriginOutlinedIcon
-}
-
-function ThinkingTimeline({
-  fragments,
-  isStreaming,
-  isThinking,
-}: {
-  fragments: ChatUiFragment[]
-  isStreaming: boolean
-  isThinking: boolean
-}) {
-  if (fragments.length === 0) {
-    return isThinking ? (
-      <Typography variant="body2" sx={{ fontSize: 13, color: 'text.secondary', pl: 3 }}>
-        ...
-      </Typography>
-    ) : null
-  }
-
-  return (
-    <Box sx={{ position: 'relative', pl: 0.25 }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 9,
-          top: 10,
-          bottom: 10,
-          width: '1.5px',
-          bgcolor: 'divider',
-          borderRadius: 1,
-        }}
-      />
-
-      {fragments.map((fragment, index) => {
-        const fragmentType = normalizeFragmentType(fragment.type)
-        const isLast = index === fragments.length - 1
-        return (
-          <ThinkingTimelineItem
-            key={`${fragmentType}-${fragment.id}`}
-            fragment={fragment}
-            isStreaming={isStreaming}
-            isLast={isLast}
-          />
-        )
-      })}
-    </Box>
-  )
-}
-
-function ThinkingTimelineItem({
-  fragment,
-  isStreaming,
-  isLast,
-}: {
-  fragment: ChatUiFragment
-  isStreaming: boolean
-  isLast: boolean
-}) {
-  const fragmentType = normalizeFragmentType(fragment.type)
-
-  if (fragmentType === 'PHASE') {
-    const summary = fragment.phase?.summary?.trim() ?? ''
-    const thought = fragment.phase?.thought?.trim() ?? ''
-    if (!summary && !thought) {
-      return null
-    }
-
-    const PhaseIcon = resolvePhaseIcon(summary)
-
-    return (
-      <ThinkingTimelineRow
-        icon={<PhaseIcon />}
-        isLast={isLast}
-        content={
-          <>
-            {summary ? (
-              <Typography variant="body2" sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>
-                {summary}
-              </Typography>
-            ) : null}
-            {thought ? (
-              <Typography
-                variant="caption"
-                sx={{
-                  display: 'block',
-                  mt: summary ? 0.3 : 0,
-                  color: 'text.secondary',
-                  lineHeight: 1.55,
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {thought}
-              </Typography>
-            ) : null}
-          </>
-        }
-      />
-    )
-  }
-
-  if (fragmentType === 'THINK') {
-    const content = fragment.think?.content ?? ''
-    const isRunning = fragment.think?.status === 'RUNNING'
-    if (!content.trim() && !isRunning) {
-      return null
-    }
-
-    return (
-      <ThinkingTimelineRow
-        icon={<PsychologyAltOutlinedIcon />}
-        isLast={isLast}
-        iconColor={isRunning && isStreaming ? 'primary.main' : 'text.secondary'}
-        content={
-          <Typography
-            variant="body2"
-            component="div"
-            sx={{
-              whiteSpace: 'pre-wrap',
-              fontSize: 13,
-              lineHeight: 1.6,
-              color: 'text.secondary',
-            }}
-          >
-            {content}
-            {isRunning && isStreaming ? (
-              <Box
-                component="span"
-                aria-hidden
-                sx={{
-                  display: 'inline-block',
-                  width: '0.55em',
-                  ml: 0.1,
-                  color: 'primary.main',
-                  animation: 'think-stream-cursor 1s step-end infinite',
-                  '@keyframes think-stream-cursor': {
-                    '0%, 100%': { opacity: 1 },
-                    '50%': { opacity: 0 },
-                  },
-                }}
-              >
-                ▍
-              </Box>
-            ) : null}
-            {!content && isRunning && isStreaming ? '...' : null}
-          </Typography>
-        }
-      />
-    )
-  }
-
-  return null
-}
-
-function ThinkingTimelineRow({
-  icon,
-  content,
-  isLast,
-  iconColor = 'text.secondary',
-}: {
-  icon: ReactNode
-  content: ReactNode
-  isLast: boolean
-  iconColor?: string
-}) {
-  return (
-    <Box
-      sx={{
+        mb: phaseStatusTokens.marginBottom,
+        mr: chatMessageContentTokens.sideMarginX,
+        ml: chatMessageContentTokens.sideMarginX,
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: 0.85,
-        pb: isLast ? 0 : 0.9,
-        position: 'relative',
+        alignItems: 'center',
+        gap: phaseStatusTokens.gap,
+        minHeight: 22,
       }}
     >
-      <Box
+      <CircularProgress
+        size={phaseStatusTokens.spinnerSize}
+        sx={{ color: 'primary.main', flexShrink: 0 }}
+      />
+      <Typography
+        variant="body2"
         sx={{
-          width: 20,
-          flexShrink: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 1,
+          fontSize: phaseStatusTokens.textFontSize,
+          fontWeight: 600,
+          letterSpacing: phaseStatusTokens.textLetterSpacing,
+          color: 'transparent',
+          background: flowGradient,
+          backgroundSize: phaseStatusFlowTokens.backgroundSize,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          animation: `phase-status-text-flow ${phaseStatusFlowTokens.animationDurationSec}s linear infinite`,
+          '@keyframes phase-status-text-flow': {
+            from: { backgroundPosition: phaseStatusFlowTokens.backgroundStartPosition },
+            to: { backgroundPosition: phaseStatusFlowTokens.backgroundEndPosition },
+          },
         }}
       >
+        {isThinking ? '思考中' : label}
+      </Typography>
+      {isThinking ? (
         <Box
+          component="span"
+          aria-hidden
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            bgcolor: 'action.hover',
-            color: iconColor,
-            '& .MuiSvgIcon-root': { fontSize: 14 },
+            display: 'inline-flex',
+            gap: '1px',
+            ml: '1px',
           }}
         >
-          {icon}
+          {[0, 1, 2].map((i) => (
+            <Box
+              key={i}
+              component="span"
+              sx={{
+                opacity: 0,
+                animation: `phase-dot-pulse 1.4s ease-in-out ${i * 0.2}s infinite`,
+                '@keyframes phase-dot-pulse': {
+                  '0%, 40%': { opacity: 0 },
+                  '50%': { opacity: 1 },
+                  '90%, 100%': { opacity: 0 },
+                },
+                color: 'primary.main',
+                fontSize: phaseStatusTokens.textFontSize,
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              .
+            </Box>
+          ))}
         </Box>
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0, pt: 0.1 }}>{content}</Box>
+      ) : null}
     </Box>
   )
 }

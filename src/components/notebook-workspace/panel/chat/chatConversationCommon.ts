@@ -18,6 +18,14 @@ export const smoothScrollDeltaEpsilonPx = 1
 /** 服务端流式任务的终止事件：done=true 或 error 非空 */
 export const isStreamTerminalEvent = (event: StreamTaskEvent) =>
   event.done === true || Boolean(event.error?.message)
+
+/** 结构类事件需要立刻刷新 UI，避免 phase/fragment 切换滞后。 */
+export const shouldFlushStreamEventImmediately = (event: StreamTaskEvent) =>
+  event.op !== 'APPEND'
+
+/** 回答正文增量需要按帧刷新，才能呈现流式输出效果。 */
+export const shouldFlushStreamEventOnNextFrame = (event: StreamTaskEvent) =>
+  event.op === 'APPEND' && event.p === 'm.f.rsp.v'
 export const copyFeedbackVisibleMs = 1500
 
 export type StreamDisplayPhaseType = 'phase' | null

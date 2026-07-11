@@ -16,16 +16,18 @@ import {
   listChatMessages,
   streamChatEvents,
 } from '@/api/chat'
-import type { StreamDisplayPhaseType } from './chatConversationCommon'
 import {
   chatMessagesPageLimit,
   getErrorMessage,
   isStreamTerminalEvent,
+  shouldFlushStreamEventImmediately,
+  shouldFlushStreamEventOnNextFrame,
   sleep,
   streamReconnectDelayMs,
   streamReconnectMaxRetries,
   streamUiFlushIntervalMs,
 } from './chatConversationCommon'
+import type { StreamDisplayPhaseType } from './chatConversationCommon'
 import { buildLiveMessagesAfterAbortRefresh, mapHistoryPagesToUiMessages } from './chatStreamDraftRetention'
 import type { ChatAnswerLengthOption, ChatStyleOption } from './chatSettings'
 import type { ChatUiMessage } from './types'
@@ -201,10 +203,11 @@ export function useChatConversation({
     [messagesQuery.data?.pages],
   )
 
-  const displayMessages = useMemo(
-    () => [...historyMessages, ...liveMessages],
-    [historyMessages, liveMessages],
-  )
+  const displayMessages = useMemo(() => {
+    const historyIds = new Set(historyMessages.map((message) => message.id))
+    const dedupedLiveMessages = liveMessages.filter((message) => !historyIds.has(message.id))
+    return [...historyMessages, ...dedupedLiveMessages]
+  }, [historyMessages, liveMessages])
 
   const isStreaming = Boolean(activeTaskId)
   const invalidateStreamRunToken = useCallback(() => {
@@ -342,6 +345,7 @@ export function useChatConversation({
       let finished = false
 
       let assistantMsg = createEmptyAssistantMessage(assistantMessageId)
+      const assistantClientKey = assistantMessageId
       let currentAssistantMessageId = assistantMessageId
       let liveMessageFlushRafId: number | null = null
       let liveMessageFlushTimerId: number | null = null
@@ -369,8 +373,15 @@ export function useChatConversation({
 
       const flushLiveMessage = () => {
         liveMessageFlushRafId = null
-        updateLiveMessage(currentAssistantMessageId, cloneChatUiMessage(assistantMsg))
+        updateLiveMessage(assistantClientKey, cloneChatUiMessage(assistantMsg))
         syncStreamStatusFromMessage(assistantMsg)
+      }
+
+      const scheduleLiveMessageFlushOnNextFrame = () => {
+        if (liveMessageFlushRafId !== null) {
+          return
+        }
+        liveMessageFlushRafId = window.requestAnimationFrame(flushLiveMessage)
       }
 
       const scheduleLiveMessageFlush = () => {
@@ -398,9 +409,6 @@ export function useChatConversation({
         cancelLiveMessageFlush()
         flushLiveMessage()
       }
-
-      const shouldFlushStreamEventImmediately = (event: StreamTaskEvent) =>
-        event.op !== 'APPEND'
 
       setActiveTaskId(taskId)
       clearStreamStatusSchedule()
@@ -444,12 +452,15 @@ export function useChatConversation({
               applyStreamEventInPlace(assistantMsg, streamEvent)
               if (assistantMsg.id !== currentAssistantMessageId) {
                 currentAssistantMessageId = assistantMsg.id
-                setActiveAssistantMessageId(assistantMsg.id)
                 flushLiveMessageImmediately()
                 return
               }
               if (shouldFlushStreamEventImmediately(streamEvent)) {
                 flushLiveMessageImmediately()
+                return
+              }
+              if (shouldFlushStreamEventOnNextFrame(streamEvent)) {
+                scheduleLiveMessageFlushOnNextFrame()
                 return
               }
               scheduleLiveMessageFlush()
@@ -543,6 +554,7 @@ export function useChatConversation({
       ...prev,
       {
         id: userMessageId,
+        clientKey: userMessageId,
         role: 'user',
         fragments: [{ id: 1, type: 'REQUEST', request: { content: prompt } }],
         citations: [],
@@ -562,6 +574,7 @@ export function useChatConversation({
         style: chatStyle,
         answer_length: answerLength,
       })
+      setActiveTaskId(created.task_id)
       await runStreamSession(created.task_id, assistantMessageId)
     } catch (error) {
       setErrorText(getErrorMessage(error))

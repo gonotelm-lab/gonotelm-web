@@ -1,4 +1,4 @@
-import { startTransition, useCallback } from 'react'
+import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { streamAutoScrollThresholdPx } from './chatConversationCommon'
 import type { ChatUiMessage } from './types'
@@ -29,6 +29,19 @@ const buildLiveMessageFingerprint = (message: ChatUiMessage) =>
       .join('|'),
   ].join('#')
 
+export const findLiveMessageIndex = (
+  previous: ChatUiMessage[],
+  messageId: string,
+  nextMessage: ChatUiMessage,
+) =>
+  previous.findIndex(
+    (message) =>
+      message.id === messageId ||
+      message.clientKey === messageId ||
+      (nextMessage.clientKey && message.clientKey === nextMessage.clientKey) ||
+      (nextMessage.id.length > 0 && message.id === nextMessage.id),
+  )
+
 export function useLiveMessageUpdater({
   messageListRef,
   setLiveMessages,
@@ -43,26 +56,20 @@ export function useLiveMessageUpdater({
       )
       const nextFingerprint = buildLiveMessageFingerprint(nextMessage)
 
-      startTransition(() => {
-        setLiveMessages((previous) => {
-          const targetIndex = previous.findIndex(
-            (message) =>
-              message.id === messageId ||
-              (nextMessage.id.length > 0 && message.id === nextMessage.id),
-          )
-          if (targetIndex === -1) {
-            return previous
-          }
+      setLiveMessages((previous) => {
+        const targetIndex = findLiveMessageIndex(previous, messageId, nextMessage)
+        if (targetIndex === -1) {
+          return previous
+        }
 
-          const currentFingerprint = buildLiveMessageFingerprint(previous[targetIndex]!)
-          if (currentFingerprint === nextFingerprint) {
-            return previous
-          }
+        const currentFingerprint = buildLiveMessageFingerprint(previous[targetIndex]!)
+        if (currentFingerprint === nextFingerprint) {
+          return previous
+        }
 
-          return previous.map((message, index) =>
-            index === targetIndex ? nextMessage : message,
-          )
-        })
+        return previous.map((message, index) =>
+          index === targetIndex ? nextMessage : message,
+        )
       })
 
       if (shouldStickToBottom) {
