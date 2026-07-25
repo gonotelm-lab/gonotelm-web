@@ -144,7 +144,7 @@ export function useStudioPreviewController({
         return
       }
 
-      if (!content && contentUrl && latestItem.kind !== 'info_graphic') {
+      if (!content && contentUrl && latestItem.kind !== 'info_graphic' && latestItem.kind !== 'audio_overview') {
         content = await loadStudioArtifactContentFromUrl(contentUrl)
         if (previewLoadSeqRef.current !== requestSeq) {
           return

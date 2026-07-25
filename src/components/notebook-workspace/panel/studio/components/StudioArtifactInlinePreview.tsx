@@ -15,6 +15,7 @@ import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
+import { StudioAudioPlayer } from './StudioAudioPlayer'
 
 interface StudioArtifactInlinePreviewProps {
   artifact: StudioArtifactItem
@@ -38,7 +39,10 @@ export function StudioArtifactInlinePreview({
   onRetryLoad,
 }: StudioArtifactInlinePreviewProps) {
   const sourceCount = artifact.sourceIds.length || artifact.sourceCount
-  const hasDownloadableContent = Boolean(content.trim())
+  const isAudioOverviewArtifact = artifact.kind === 'audio_overview'
+  const hasDownloadableContent = isAudioOverviewArtifact
+    ? Boolean(artifact.contentUrl.trim())
+    : Boolean(content.trim())
   const canDownload = !loading && !error && hasDownloadableContent
   const isMindmapArtifact = artifact.kind === 'mindmap'
 
@@ -108,11 +112,20 @@ export function StudioArtifactInlinePreview({
             </Box>
           </Stack>
         ) : (
-          renderStudioArtifactPreviewContent({
-            artifact,
-            content,
-            mode: 'inline',
-          })
+          isAudioOverviewArtifact ? (
+            <StudioAudioPlayer
+              audioUrl={artifact.contentUrl}
+              title={artifact.title}
+              onRetry={onRetryLoad}
+              onDownload={onDownload}
+            />
+          ) : (
+            renderStudioArtifactPreviewContent({
+              artifact,
+              content,
+              mode: 'inline',
+            })
+          )
         )}
       </Box>
     </Stack>

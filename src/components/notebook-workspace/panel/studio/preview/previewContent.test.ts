@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { hasStudioArtifactPreviewContent } from './previewContent'
 
 describe('hasStudioArtifactPreviewContent', () => {
-  it('disables preview content for audio_overview', () => {
-    expect(hasStudioArtifactPreviewContent('audio_overview', 'text', 'https://example.com/a.mp3')).toBe(
-      false,
-    )
+  it('enables preview content for audio_overview when content_url is present', () => {
+    expect(hasStudioArtifactPreviewContent('audio_overview', '', 'https://example.com/a.wav')).toBe(true)
+    expect(hasStudioArtifactPreviewContent('audio_overview', '', '')).toBe(false)
   })
 
   it('treats info_graphic preview as content_url based', () => {

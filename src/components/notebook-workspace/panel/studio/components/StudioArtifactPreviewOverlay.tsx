@@ -85,6 +85,20 @@ export function StudioArtifactPreviewOverlay({
       return
     }
 
+    if (artifact.kind === 'audio_overview') {
+      const audioUrl = artifact.contentUrl
+      if (!audioUrl.trim()) return
+      void downloadFileFromUrl(audioUrl, `${safeName}.wav`).catch(() => {
+        const anchor = document.createElement('a')
+        anchor.href = audioUrl
+        anchor.download = `${safeName}.wav`
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+      })
+      return
+    }
+
     const extension = artifact.kind === 'mindmap'
       ? 'mmd'
       : artifact.kind === 'report'
@@ -179,11 +193,11 @@ export function StudioArtifactPreviewOverlay({
             flex: 1,
             minHeight: 0,
             overflow: 'auto',
-            ...(isMindmapArtifact || isInfographicArtifact
-              ? { p: 0 }
-              : isReportArtifact
-                ? { px: 5, py: 1.4 }
-                : { p: 1.4 }),
+          ...(isMindmapArtifact || isInfographicArtifact
+            ? { p: 0 }
+            : isReportArtifact
+              ? { px: 5, py: 1.4 }
+              : { p: 1.4 }),
           }}
         >
           {loading ? (

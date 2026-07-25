@@ -4,6 +4,7 @@ import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdow
 import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
 import { MindmapCanvas } from '../components/MindmapCanvas'
+import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
 
 export type StudioArtifactPreviewMode = 'inline' | 'overlay'
 
@@ -102,6 +103,16 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
             maxHeight: '100%',
             objectFit: 'contain',
           }}
+        />
+      </Box>
+    ),
+  },
+  audio_overview: {
+    renderInline: ({ artifact }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <StudioAudioPlayer
+          audioUrl={artifact.contentUrl}
+          title={artifact.title}
         />
       </Box>
     ),

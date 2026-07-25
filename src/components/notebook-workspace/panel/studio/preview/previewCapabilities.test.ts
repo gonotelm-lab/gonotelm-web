@@ -17,9 +17,9 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
-  it('returns none preview capability for audio_overview', () => {
+  it('returns inline-only preview capability for audio_overview', () => {
     expect(getStudioArtifactPreviewCapability('audio_overview')).toEqual({
-      inline: false,
+      inline: true,
       overlay: false,
     })
   })

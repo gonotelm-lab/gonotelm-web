@@ -24,7 +24,7 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     overlay: true,
   },
   audio_overview: {
-    inline: false,
+    inline: true,
     overlay: false,
   },
 }
