@@ -6,17 +6,6 @@ import { SourcesPanel } from './SourcesPanel'
 import type { SourceListItem } from './types/sourceTypes'
 
 const overlaySpy = vi.hoisted(() => vi.fn())
-const mockGetSourceParsedTree = vi.hoisted(() =>
-  vi.fn(async () => ({
-    height: 1,
-    root: {
-      id: 'root',
-      pos: 0,
-      content: 'root',
-      children: [],
-    },
-  })),
-)
 
 vi.mock('@/api/source', () => ({
   buildSourceParsedContentQueryOptions: (sourceId: string) => ({
@@ -34,7 +23,6 @@ vi.mock('@/api/source', () => ({
     staleTime: 0,
     gcTime: 0,
   }),
-  getSourceParsedTree: mockGetSourceParsedTree,
 }))
 
 vi.mock('./components/AddSourceDialog', () => ({
@@ -45,11 +33,9 @@ vi.mock('./components/SourceListRow', () => ({
   SourceListRow: ({
     item,
     onPreviewItem,
-    onShowTree,
   }: {
     item: SourceListItem
     onPreviewItem: (nextItem: SourceListItem) => void
-    onShowTree: (nextItem: SourceListItem) => void
   }) => (
     <div>
       <button
@@ -57,12 +43,6 @@ vi.mock('./components/SourceListRow', () => ({
         onClick={() => onPreviewItem(item)}
       >
         preview
-      </button>
-      <button
-        data-testid={`tree-${item.id}`}
-        onClick={() => onShowTree(item)}
-      >
-        tree
       </button>
     </div>
   ),
@@ -73,7 +53,7 @@ vi.mock('./components/SourceInlinePreview', () => ({
     viewType,
     onOpenOverlay,
   }: {
-    viewType: 'content' | 'tree'
+    viewType: 'content'
     onOpenOverlay: () => void
   }) => (
     <div>
@@ -173,7 +153,6 @@ const flushMicrotasks = async () => {
 describe('SourcesPanel interaction', () => {
   beforeEach(() => {
     overlaySpy.mockReset()
-    mockGetSourceParsedTree.mockClear()
   })
 
   it('点击来源预览后打开内联子页', async () => {
@@ -212,50 +191,5 @@ describe('SourcesPanel interaction', () => {
 
     const latestOverlayProps = overlaySpy.mock.calls.at(-1)?.[0] as { open?: boolean } | undefined
     expect(latestOverlayProps?.open).toBe(true)
-  })
-
-  it('点击展示树后打开内联展示子页', async () => {
-    const renderer = await renderSourcesPanel()
-
-    const treeButton = renderer.root.findByProps({
-      'data-testid': 'tree-source-1',
-    })
-    await act(async () => {
-      treeButton.props.onClick()
-      await flushMicrotasks()
-    })
-
-    const subpageTitle = renderer.root.findByProps({
-      'data-testid': 'subpage-title',
-    })
-    expect(subpageTitle.children.join('')).toContain('来源一')
-    expect(mockGetSourceParsedTree).toHaveBeenCalledTimes(1)
-  })
-
-  it('tree 视图下点击放大打开 overlay，且 viewType=tree', async () => {
-    const renderer = await renderSourcesPanel()
-
-    const treeButton = renderer.root.findByProps({
-      'data-testid': 'tree-source-1',
-    })
-    await act(async () => {
-      treeButton.props.onClick()
-      await flushMicrotasks()
-    })
-
-    const inlineView = renderer.root.findByProps({ 'data-testid': 'inline-view' })
-    expect(inlineView.children.join('')).toBe('tree')
-
-    const expandButton = renderer.root.findByProps({ 'aria-label': '放大预览' })
-    await act(async () => {
-      expandButton.props.onClick()
-      await flushMicrotasks()
-    })
-
-    const latestOverlayProps = overlaySpy.mock.calls.at(-1)?.[0] as
-      | { open?: boolean; viewType?: string }
-      | undefined
-    expect(latestOverlayProps?.open).toBe(true)
-    expect(latestOverlayProps?.viewType).toBe('tree')
   })
 })

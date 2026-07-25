@@ -1,4 +1,4 @@
-export type SourcePreviewViewType = 'content' | 'tree'
+export type SourcePreviewViewType = 'content'
 
 export type SourcePreviewEntryMode = 'none' | 'inline' | 'overlay'
 

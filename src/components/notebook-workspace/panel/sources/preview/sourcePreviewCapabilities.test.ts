@@ -9,12 +9,4 @@ describe('getSourcePreviewCapability', () => {
       downloadable: true,
     })
   })
-
-  it('tree 视图支持内联和放大，不支持下载', () => {
-    expect(getSourcePreviewCapability('tree')).toEqual({
-      inline: true,
-      overlay: true,
-      downloadable: false,
-    })
-  })
 })

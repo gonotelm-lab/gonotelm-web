@@ -6,11 +6,6 @@ const sourcePreviewCapabilityByViewType: Record<SourcePreviewViewType, SourcePre
     overlay: true,
     downloadable: true,
   },
-  tree: {
-    inline: true,
-    overlay: true,
-    downloadable: false,
-  },
 }
 
 export const getSourcePreviewCapability = (

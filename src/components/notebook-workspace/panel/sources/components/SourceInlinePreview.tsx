@@ -9,7 +9,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegistry'
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
@@ -26,7 +25,6 @@ interface SourceInlinePreviewProps {
   notice: string
   markdown: string
   focusRange: SourceHighlightRange | null
-  tree: GetSourceParsedTreeResponse | null
   canOpenOverlay: boolean
   canDownload: boolean
   onOpenOverlay: () => void
@@ -37,7 +35,6 @@ interface SourceInlinePreviewProps {
 
 const viewTypeLabelMap: Record<SourcePreviewViewType, string> = {
   content: '预览',
-  tree: '展示',
 }
 
 export function SourceInlinePreview({
@@ -48,7 +45,6 @@ export function SourceInlinePreview({
   notice,
   markdown,
   focusRange,
-  tree,
   canOpenOverlay,
   canDownload,
   onOpenOverlay,
@@ -56,7 +52,6 @@ export function SourceInlinePreview({
   onRetryLoad,
   degradedByResizing,
 }: SourceInlinePreviewProps) {
-  const isTreeView = viewType === 'tree'
 
   return (
     <Stack sx={{ height: '100%', minHeight: 0 }}>
@@ -84,27 +79,25 @@ export function SourceInlinePreview({
               </span>
             </Tooltip>
           ) : null}
-          {!isTreeView ? (
-            <Tooltip title="下载预览内容">
-              <span>
-                <IconButton
-                  size="small"
-                  aria-label="下载预览内容"
-                  onClick={onDownload}
-                  disabled={!canDownload}
-                  sx={inlinePreviewActionIconButtonSx}
-                >
-                  <DownloadRoundedIcon sx={inlinePreviewActionIconSx} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          ) : null}
+          <Tooltip title="下载预览内容">
+            <span>
+              <IconButton
+                size="small"
+                aria-label="下载预览内容"
+                onClick={onDownload}
+                disabled={!canDownload}
+                sx={inlinePreviewActionIconButtonSx}
+              >
+                <DownloadRoundedIcon sx={inlinePreviewActionIconSx} />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
       </Stack>
 
       <Box
-        data-source-preview-scroll-root={isTreeView ? undefined : 'true'}
-        sx={{ mt: 1.2, flex: 1, minHeight: 0, overflow: isTreeView ? 'hidden' : 'auto' }}
+        data-source-preview-scroll-root="true"
+        sx={{ mt: 1.2, flex: 1, minHeight: 0, overflow: 'auto' }}
       >
         {degradedByResizing ? (
           <Box
@@ -143,7 +136,6 @@ export function SourceInlinePreview({
             viewType,
             markdown,
             focusRange,
-            tree,
           })
         )}
       </Box>

@@ -11,7 +11,6 @@ import {
   Typography,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import type { GetSourceParsedTreeResponse } from '@/types/api'
 import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegistry'
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
@@ -25,7 +24,6 @@ interface SourcePreviewOverlayProps {
   notice: string
   markdown: string
   focusRange: SourceHighlightRange | null
-  tree: GetSourceParsedTreeResponse | null
   canDownload: boolean
   onDownload: () => void
   onClose: () => void
@@ -34,7 +32,6 @@ interface SourcePreviewOverlayProps {
 
 const viewTypeLabelMap: Record<SourcePreviewViewType, string> = {
   content: '预览',
-  tree: '展示',
 }
 
 export function SourcePreviewOverlay({
@@ -46,13 +43,11 @@ export function SourcePreviewOverlay({
   notice,
   markdown,
   focusRange,
-  tree,
   canDownload,
   onDownload,
   onClose,
   onRetryLoad,
 }: SourcePreviewOverlayProps) {
-  const isTreeView = viewType === 'tree'
   const handleCloseOverlay = () => {
     onClose()
   }
@@ -115,27 +110,25 @@ export function SourcePreviewOverlay({
             </Typography>
           </Box>
           <Stack direction="row" spacing={0.4} sx={{ alignItems: 'center', flexShrink: 0 }}>
-            {!isTreeView ? (
-              <Tooltip title="下载预览内容">
-                <span>
-                  <IconButton
-                    size="small"
-                    aria-label="下载预览内容"
-                    onClick={onDownload}
-                    disabled={!canDownload}
-                    sx={{ p: 0.45 }}
-                  >
-                    <DownloadRoundedIcon sx={{ fontSize: 17 }} />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            ) : null}
+            <Tooltip title="下载预览内容">
+              <span>
+                <IconButton
+                  size="small"
+                  aria-label="下载预览内容"
+                  onClick={onDownload}
+                  disabled={!canDownload}
+                  sx={{ p: 0.45 }}
+                >
+                  <DownloadRoundedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
             <IconButton size="small" onClick={handleCloseOverlay} aria-label="关闭预览" sx={{ p: 0.45 }}>
               <CloseRoundedIcon sx={{ fontSize: 17 }} />
             </IconButton>
           </Stack>
         </Stack>
-        <Box sx={{ flex: 1, minHeight: 0, p: isTreeView ? 0 : 1.4, overflow: 'auto' }}>
+        <Box sx={{ flex: 1, minHeight: 0, p: 1.4, overflow: 'auto' }}>
           {loading ? (
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Typography variant="body2" color="text.secondary">
@@ -158,7 +151,6 @@ export function SourcePreviewOverlay({
               viewType,
               markdown,
               focusRange,
-              tree,
             })
           )}
         </Box>

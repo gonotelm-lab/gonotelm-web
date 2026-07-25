@@ -737,10 +737,6 @@ export function NotebookWorkspacePage() {
         )
         if (leftBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
           nextSourcesCollapsed = true
-        } else {
-          nextSourcesWidth = Math.round(
-            clampNumber(nextSourcesWidth, leftBounds.minWidth, leftBounds.maxWidth),
-          )
         }
       }
 
@@ -752,10 +748,6 @@ export function NotebookWorkspacePage() {
         )
         if (rightBounds.maxWidth <= workspacePanelAutoCollapseWidthPx) {
           nextInsightsCollapsed = true
-        } else {
-          nextInsightsWidth = Math.round(
-            clampNumber(nextInsightsWidth, rightBounds.minWidth, rightBounds.maxWidth),
-          )
         }
       }
     }

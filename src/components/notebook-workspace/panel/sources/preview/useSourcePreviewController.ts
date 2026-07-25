@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildSourceParsedContentQueryOptions,
   buildSourceParsedContentUrlQueryOptions,
-  getSourceParsedTree,
 } from '@/api/source'
 import { ApiError } from '@/lib/http'
 import { useQueryClient } from '@tanstack/react-query'
-import type { GetSourceParsedTreeResponse } from '@/types/api'
 import type { ChatCitationJumpRequest } from '../../chat/types'
 import type { SourceListItem } from '../types/sourceTypes'
 import {
@@ -48,7 +46,6 @@ export interface SourcePreviewState {
   notice: string
   error: string
   locator: ChatCitationJumpRequest | null
-  tree: GetSourceParsedTreeResponse | null
 }
 
 const defaultSourcePreviewState: SourcePreviewState = {
@@ -64,7 +61,6 @@ const defaultSourcePreviewState: SourcePreviewState = {
   notice: '',
   error: '',
   locator: null,
-  tree: null,
 }
 
 interface OpenSourcePreviewParams {
@@ -118,41 +114,7 @@ export function useSourcePreviewController({
       notice: '',
       error: '',
       locator,
-      tree: null,
     })
-
-    if (viewType === 'tree') {
-      try {
-        const tree = await getSourceParsedTree(sourceId)
-        if (requestSeqRef.current !== requestSeq) {
-          return
-        }
-        setPreviewState((prev) =>
-          prev.sourceId === sourceId
-            ? {
-                ...prev,
-                loading: false,
-                tree,
-                notice: tree.root ? '' : '当前来源暂无可展示的树结构。',
-              }
-            : prev,
-        )
-      } catch (error) {
-        if (requestSeqRef.current !== requestSeq) {
-          return
-        }
-        setPreviewState((prev) =>
-          prev.sourceId === sourceId
-            ? {
-                ...prev,
-                loading: false,
-                error: getSourcePreviewErrorMessage(error),
-              }
-            : prev,
-        )
-      }
-      return
-    }
 
     try {
       const fetchMarkdownByUrl = async (url: string) => {
@@ -263,22 +225,6 @@ export function useSourcePreviewController({
     })
   }, [loadSourcePreview])
 
-  const openTreeFromMenu = useCallback((item: SourceListItem) => {
-    const entryMode = resolveSourcePreviewEntryMode({
-      viewType: 'tree',
-      status: item.status,
-    })
-    if (entryMode === 'none') {
-      return
-    }
-    void loadSourcePreview({
-      item,
-      viewType: 'tree',
-      inlineOpen: entryMode === 'inline',
-      overlayOpen: entryMode === 'overlay',
-    })
-  }, [loadSourcePreview])
-
   const openPreviewFromCitation = useCallback((item: SourceListItem, locator: ChatCitationJumpRequest) => {
     void loadSourcePreview({
       item,
@@ -331,7 +277,7 @@ export function useSourcePreviewController({
   }, [activeCapability.overlay, previewState.sourceId])
 
   const downloadActivePreview = useCallback(() => {
-    if (!activeCapability.downloadable || previewState.viewType !== 'content') {
+    if (!activeCapability.downloadable) {
       return
     }
     const markdown = previewState.rawMarkdown.trim() || previewState.markdown.trim()
@@ -357,7 +303,6 @@ export function useSourcePreviewController({
     previewState.markdown,
     previewState.rawMarkdown,
     previewState.sourceName,
-    previewState.viewType,
   ])
 
   useEffect(() => {
@@ -370,18 +315,15 @@ export function useSourcePreviewController({
     }
   }, [previewState.sourceId, sourceListItems])
 
-  const isHeavyPreview = useMemo(() => {
-    if (previewState.viewType !== 'content') {
-      return false
-    }
-    return previewState.rawMarkdown.length > sourceMarkdownHeavyCharThreshold
-  }, [previewState.rawMarkdown.length, previewState.viewType])
+  const isHeavyPreview = useMemo(
+    () => previewState.rawMarkdown.length > sourceMarkdownHeavyCharThreshold,
+    [previewState.rawMarkdown.length],
+  )
 
   return {
     previewState,
     activeCapability,
     openPreviewFromMenu,
-    openTreeFromMenu,
     openPreviewFromCitation,
     closeInlinePreview,
     closeOverlayPreview,

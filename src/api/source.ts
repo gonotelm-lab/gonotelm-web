@@ -5,7 +5,6 @@ import type {
   GetSourceDocResponse,
   GetSourceResponse,
   GetSourceParsedContentResponse,
-  GetSourceParsedTreeResponse,
   PollSourceStatusResponse,
   UploadFileSourceRequest,
   UploadFileSourceResponse,
@@ -132,15 +131,6 @@ async function getSourceParsedContent(
 
 export const getSourceParsedContentForDownload = (sourceId: string) =>
   getSourceParsedContent(sourceId, { download: true })
-
-export function getSourceParsedTree(sourceId: string) {
-  return request<GetSourceParsedTreeResponse>(
-    `/api/v1/source/${encodeURIComponent(sourceId)}/parsed/tree`,
-    {
-      method: 'GET',
-    },
-  )
-}
 
 export function batchGetSourceDocs(sourceId: string, docIds: string[]) {
   const query = new URLSearchParams()

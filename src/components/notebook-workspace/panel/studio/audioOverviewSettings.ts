@@ -4,7 +4,7 @@ import type {
 } from '@/types/api'
 
 export const defaultAudioOverviewParameters: GenerateAudioOverviewParameters = {
-  language: 'zh-cn(简体中文)',
+  language: 'zh-CN',
   style: 'abstract',
   tip: '',
 }
@@ -24,11 +24,8 @@ export function buildAudioOverviewRequestParams(
 }
 
 export const audioOverviewLanguageOptionList: { value: string; label: string }[] = [
-  { value: 'zh-cn(简体中文)', label: '简体中文' },
-  { value: 'en(English)', label: 'English' },
-  { value: 'zh-tw(繁体中文)', label: '繁体中文' },
-  { value: 'ja(日本語)', label: '日本語' },
-  { value: 'ko(한국어)', label: '한국어' },
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en-US', label: 'English' },
 ]
 
 export const audioOverviewStyleOptionList: {

@@ -197,12 +197,6 @@ export function StudioPanel({
         </IconButton>
       </Stack>
 
-      {!canSubmitArtifactTask ? (
-        <Alert severity="info" sx={{ mt: 0.6, mb: 0.9, py: 0.25 }}>
-          请先在左侧来源面板勾选至少一个已就绪来源。
-        </Alert>
-      ) : null}
-
       <Box
         sx={{
           mt: panelTitleToBodySpacing,

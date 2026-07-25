@@ -73,7 +73,6 @@ interface SourcesPanelLayoutProps {
   showListLoadingSkeleton: boolean
   skeletonItemCount: number
   openPreviewFromMenu: (item: SourceListItem) => void
-  openTreeFromMenu: (item: SourceListItem) => void
   previewBodyRef: RefObject<HTMLDivElement | null>
   closeOverlayPreview: () => void
 }
@@ -94,7 +93,6 @@ function SourcesPanelLayout({
   showListLoadingSkeleton,
   skeletonItemCount,
   openPreviewFromMenu,
-  openTreeFromMenu,
   previewBodyRef,
   closeOverlayPreview,
 }: SourcesPanelLayoutProps) {
@@ -297,17 +295,10 @@ function SourcesPanelLayout({
                             onRetryItem={onRetryItem}
                             onRenameItem={onRenameItem}
                             onPreviewItem={openPreviewFromMenu}
-                            onShowTree={openTreeFromMenu}
                             selectionColumnWidth={sourceSelectionColumnWidthPx}
                             previewLoading={Boolean(
                               previewState.loading &&
-                              previewState.sourceId === item.id &&
-                              previewState.viewType === 'content',
-                            )}
-                            treeLoading={Boolean(
-                              previewState.loading &&
-                              previewState.sourceId === item.id &&
-                              previewState.viewType === 'tree',
+                              previewState.sourceId === item.id,
                             )}
                           />
                         ))
@@ -328,7 +319,6 @@ function SourcesPanelLayout({
                       notice={previewState.notice}
                       markdown={previewState.markdown}
                       focusRange={previewState.focusRange}
-                      tree={previewState.tree}
                       canOpenOverlay={canOpenOverlay}
                       canDownload={canDownload}
                       onOpenOverlay={openOverlayFromInline}
@@ -359,7 +349,6 @@ function SourcesPanelLayout({
         notice={previewState.notice}
         markdown={previewState.markdown}
         focusRange={previewState.focusRange}
-        tree={previewState.tree}
         canDownload={canDownload}
         onDownload={downloadActivePreview}
         onClose={closeOverlayPreview}
@@ -470,7 +459,6 @@ export function SourcesPanel(props: SourcesPanelProps) {
     previewState,
     activeCapability,
     openPreviewFromMenu,
-    openTreeFromMenu,
     openPreviewFromCitation,
     closeInlinePreview,
     closeOverlayPreview,
@@ -521,10 +509,6 @@ export function SourcesPanel(props: SourcesPanelProps) {
     previewInitialFocusPendingRef.current = false
     openPreviewFromMenu(item)
   }
-  const handleOpenTreeFromMenu = (item: SourceListItem) => {
-    previewInitialFocusPendingRef.current = false
-    openTreeFromMenu(item)
-  }
 
   return (
     <SourcesPanelLayout
@@ -543,7 +527,6 @@ export function SourcesPanel(props: SourcesPanelProps) {
       showListLoadingSkeleton={showListLoadingSkeleton}
       skeletonItemCount={skeletonItemCount}
       openPreviewFromMenu={handleOpenPreviewFromMenu}
-      openTreeFromMenu={handleOpenTreeFromMenu}
       previewBodyRef={previewBodyRef}
       closeOverlayPreview={closeOverlayPreview}
     />

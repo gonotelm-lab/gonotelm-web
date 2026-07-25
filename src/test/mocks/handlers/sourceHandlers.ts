@@ -1,7 +1,6 @@
 import { http } from 'msw'
 import {
   createGetSourceResponseFixture,
-  createSourceParsedTreeFixture,
   createPollSourceStatusFixture,
   createSourceResponseFixture,
 } from '../fixtures/source'
@@ -98,17 +97,6 @@ export const sourceHandlers = [
         parsed_content: {
           url: '',
         },
-      }),
-    })
-  }),
-  http.get(`${apiBaseUrl}/api/v1/source/:sourceId/parsed/tree`, async () => {
-    const scenario = getMockScenario('source')
-    return resolveScenarioResponse({
-      scenario,
-      successData: createSourceParsedTreeFixture(),
-      emptyData: createSourceParsedTreeFixture({
-        root: undefined,
-        height: 0,
       }),
     })
   }),
