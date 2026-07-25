@@ -15,37 +15,37 @@ import {
   Typography,
 } from '@mui/material'
 import type {
-  GenerateAudioOverviewParameters,
-  StudioArtifactAudioOverviewStyle,
+  GenerateReportParameters,
+  StudioArtifactReportStyle,
 } from '@/types/api'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
-  audioOverviewLanguageOptionList,
-  audioOverviewStyleOptionList,
-  defaultAudioOverviewParameters,
-} from './audioOverviewSettings'
+  defaultReportParameters,
+  reportLanguageOptionList,
+  reportStyleOptionList,
+} from './reportSettings'
 
-interface AudioOverviewSettingsDialogProps {
+interface ReportSettingsDialogProps {
   open: boolean
-  initialParams: GenerateAudioOverviewParameters
+  initialParams: GenerateReportParameters
   onClose: () => void
-  onGenerate: (params: GenerateAudioOverviewParameters) => void
+  onGenerate: (params: GenerateReportParameters) => void
 }
 
-export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDialog({
+export const ReportSettingsDialog = memo(function ReportSettingsDialog({
   open,
   initialParams,
   onClose,
   onGenerate,
-}: AudioOverviewSettingsDialogProps) {
-  const [draftParams, setDraftParams] = useState<GenerateAudioOverviewParameters>(initialParams)
+}: ReportSettingsDialogProps) {
+  const [draftParams, setDraftParams] = useState<GenerateReportParameters>(initialParams)
 
-  const language = draftParams.language || defaultAudioOverviewParameters.language
-  const style = draftParams.style || defaultAudioOverviewParameters.style || 'abstract'
+  const language = draftParams.language || defaultReportParameters.language
+  const style = draftParams.style || defaultReportParameters.style || 'default'
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>生成音频概览</DialogTitle>
+      <DialogTitle>生成报告</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.25}>
           <Box>
@@ -53,7 +53,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
               选择语言
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              控制音频概览输出文本的语言。
+              控制报告输出的语言。
             </Typography>
             <TextField
               select
@@ -65,7 +65,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
               }
               sx={{ mt: 1.25 }}
             >
-              {audioOverviewLanguageOptionList.map((option) => (
+              {reportLanguageOptionList.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>
@@ -80,26 +80,26 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
               生成风格
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              控制音频概览的表达方式和内容组织。
+              控制报告的组织方式和内容侧重。
             </Typography>
             <ToggleButtonGroup
               exclusive
               value={style}
-              onChange={(_, nextValue: StudioArtifactAudioOverviewStyle | null) => {
+              onChange={(_, nextValue: StudioArtifactReportStyle | null) => {
                 if (nextValue) {
                   setDraftParams((prev) => ({ ...prev, style: nextValue }))
                 }
               }}
               sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
             >
-              {audioOverviewStyleOptionList.map((option) => (
+              {reportStyleOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
                   {option.label}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
-              {audioOverviewStyleOptionList.find((option) => option.value === style)?.description}
+              {reportStyleOptionList.find((option) => option.value === style)?.description}
             </Typography>
           </Box>
 

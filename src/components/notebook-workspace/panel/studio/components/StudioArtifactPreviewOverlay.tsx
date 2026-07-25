@@ -15,6 +15,7 @@ import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
 import { downloadFileFromUrl } from '../preview/downloadFile'
+import { StudioArtifactExtrasPopover } from './StudioArtifactExtrasPopover'
 
 interface StudioArtifactPreviewOverlayProps {
   open: boolean
@@ -173,6 +174,12 @@ export function StudioArtifactPreviewOverlay({
             </Typography>
           </Box>
           <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center', flexShrink: 0, ml: 1.2 }}>
+            {artifact && (
+              <StudioArtifactExtrasPopover
+                artifact={artifact}
+                iconSx={overlayActionButtonSx}
+              />
+            )}
             <IconButton
               size="small"
               aria-label="下载预览内容"

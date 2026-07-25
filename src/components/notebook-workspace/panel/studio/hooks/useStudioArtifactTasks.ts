@@ -14,6 +14,8 @@ import type {
   InfoGraphicArtifactExtras,
   StudioArtifactKind,
   StudioArtifactResult,
+  GenerateMindmapParameters,
+  GenerateReportParameters,
   GenerateInfoGraphicParameters,
   GenerateAudioOverviewParameters,
 } from '@/types/api'
@@ -27,6 +29,8 @@ import {
   toArtifactVisualStatus,
 } from '../artifactStatus'
 import type { StudioArtifactItem, StudioToolActionId } from '../types'
+import { buildMindmapRequestParams } from '../mindmapSettings'
+import { buildReportRequestParams } from '../reportSettings'
 import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
 import { buildAudioOverviewRequestParams } from '../audioOverviewSettings'
 
@@ -100,6 +104,39 @@ const resolveInfoGraphicExtras = (
   return extras
 }
 
+const buildLocalExtras = (
+  kind: StudioArtifactKind,
+  report?: GenerateReportParameters,
+  infoGraphic?: GenerateInfoGraphicParameters,
+  audioOverview?: GenerateAudioOverviewParameters,
+): StudioArtifactItem['extras'] => {
+  switch (kind) {
+    case 'mindmap':
+      return undefined
+    case 'report':
+      return {
+        style: report?.style,
+        language: report?.language,
+        tip: report?.tip,
+      }
+    case 'info_graphic':
+      return {
+        prompt: infoGraphic?.extra_prompt,
+        text_language: infoGraphic?.text_language,
+        orientation: infoGraphic?.orientation,
+        detail_level: infoGraphic?.detail_level,
+        visual_style: infoGraphic?.visual_style,
+      }
+    case 'audio_overview':
+      return {
+        tip: audioOverview?.tip,
+        language: audioOverview?.language,
+        style: audioOverview?.style,
+      }
+  }
+  return undefined
+}
+
 const toHistoryArtifactItem = (
   artifact: StudioArtifactResult,
   index: number,
@@ -123,6 +160,7 @@ const toHistoryArtifactItem = (
     contentUrl: artifact.content_url ?? '',
     contentKind: artifact.content_kind ?? 'inline',
     infoGraphicExtras: resolveInfoGraphicExtras(artifactKind, artifact.extras),
+    extras: artifact.extras,
     error:
       itemStatus === 'failed' || itemStatus === 'cancelled'
         ? buildTaskFailedMessage(artifact.status)
@@ -140,6 +178,8 @@ interface SubmitStudioArtifactTaskParams {
   sourceIds: string[]
   title: string
   actionId: StudioToolActionId
+  mindmap?: GenerateMindmapParameters
+  report?: GenerateReportParameters
   infoGraphic?: GenerateInfoGraphicParameters
   audioOverview?: GenerateAudioOverviewParameters
 }
@@ -228,6 +268,7 @@ export function useStudioArtifactTasks({
                 contentUrl: result.content_url ?? '',
                 contentKind: result.content_kind ?? 'inline',
                 infoGraphicExtras: resolveInfoGraphicExtras(nextKind, result.extras),
+                extras: result.extras,
               }
             }),
           )
@@ -391,12 +432,15 @@ export function useStudioArtifactTasks({
       sourceIds,
       title,
       actionId,
+      mindmap,
+      report,
       infoGraphic,
       audioOverview,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
       }
+      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview)
       const localId = createLocalArtifactId()
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
       setArtifactItems((prev) => [
@@ -412,6 +456,7 @@ export function useStudioArtifactTasks({
           content: '',
           contentUrl: '',
           contentKind: 'inline',
+          extras: localExtras,
           error: '',
           createdAt: Date.now(),
         },
@@ -423,6 +468,12 @@ export function useStudioArtifactTasks({
           notebook_id: notebookId,
           kind,
           source_ids: sourceIds,
+          ...(kind === 'mindmap'
+            ? { mindmap: buildMindmapRequestParams(mindmap) }
+            : {}),
+          ...(kind === 'report'
+            ? { report: buildReportRequestParams(report) }
+            : {}),
           ...(kind === 'info_graphic'
             ? { info_graphic: buildInfoGraphicRequestParams(infoGraphic) }
             : {}),

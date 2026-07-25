@@ -15,6 +15,7 @@ import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
+import { StudioArtifactExtrasPopover } from './StudioArtifactExtrasPopover'
 import { StudioAudioPlayer } from './StudioAudioPlayer'
 
 interface StudioArtifactInlinePreviewProps {
@@ -58,6 +59,10 @@ export function StudioArtifactInlinePreview({
           </Typography>
         </Box>
         <Stack direction="row" spacing={0.35} sx={{ ml: 1, alignItems: 'center', flexShrink: 0 }}>
+          <StudioArtifactExtrasPopover
+            artifact={artifact}
+            iconSx={inlinePreviewActionIconButtonSx}
+          />
           {canOpenOverlay ? (
             <Tooltip title="放大预览">
               <span>

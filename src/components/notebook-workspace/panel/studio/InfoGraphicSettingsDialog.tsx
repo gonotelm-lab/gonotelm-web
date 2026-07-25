@@ -18,6 +18,7 @@ import type {
   GenerateInfoGraphicParameters,
   StudioArtifactInfoGraphicDetailLevel,
   StudioArtifactInfoGraphicOrientation,
+  StudioArtifactInfoGraphicVisualStyle,
 } from '@/types/api'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
@@ -25,6 +26,7 @@ import {
   infoGraphicDetailLevelOptionList,
   infoGraphicLanguageOptionList,
   infoGraphicOrientationOptionList,
+  infoGraphicVisualStyleOptionList,
 } from './infoGraphicSettings'
 
 interface InfoGraphicSettingsDialogProps {
@@ -45,6 +47,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
   const orientation = draftParams.orientation || defaultInfoGraphicParameters.orientation
   const textLanguage = draftParams.text_language || defaultInfoGraphicParameters.text_language
   const detailLevel = draftParams.detail_level || defaultInfoGraphicParameters.detail_level || 'standard'
+  const visualStyle = draftParams.visual_style || defaultInfoGraphicParameters.visual_style || 'default'
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -110,6 +113,36 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
 
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              视觉风格
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              控制信息图的画面视觉风格。
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              value={visualStyle}
+              onChange={(_, nextValue: StudioArtifactInfoGraphicVisualStyle | null) => {
+                if (nextValue) {
+                  setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
+                }
+              }}
+              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+            >
+              {infoGraphicVisualStyleOptionList.map((option) => (
+                <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
+                  {option.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+              {infoGraphicVisualStyleOptionList.find((option) => option.value === visualStyle)?.description}
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               选择方向
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -145,6 +178,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
               multiline
               minRows={2}
               maxRows={2}
+              inputProps={{ maxLength: 300 }}
               placeholder="引导风格、配色或重点：「使用蓝色主题并突出 3 个关键数据。」"
               value={draftParams.extra_prompt || ''}
               onChange={(event) =>

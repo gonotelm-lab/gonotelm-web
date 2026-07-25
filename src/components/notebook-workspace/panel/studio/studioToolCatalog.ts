@@ -35,6 +35,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     availability: 'available',
     actionId: 'generate-mindmap',
     artifactKind: 'mindmap',
+    hasAdvancedConfig: true,
   },
   {
     id: 'report',
@@ -44,6 +45,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     availability: 'available',
     actionId: 'generate-report',
     artifactKind: 'report',
+    hasAdvancedConfig: true,
   },
   {
     id: 'flashcards',

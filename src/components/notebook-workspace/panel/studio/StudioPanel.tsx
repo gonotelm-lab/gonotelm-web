@@ -11,7 +11,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type { GenerateAudioOverviewParameters, GenerateInfoGraphicParameters } from '@/types/api'
+import type { GenerateAudioOverviewParameters, GenerateInfoGraphicParameters, GenerateMindmapParameters, GenerateReportParameters } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
@@ -20,8 +20,12 @@ import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
 import { AudioOverviewSettingsDialog } from './AudioOverviewSettingsDialog'
 import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
+import { MindmapSettingsDialog } from './MindmapSettingsDialog'
+import { ReportSettingsDialog } from './ReportSettingsDialog'
 import { defaultAudioOverviewParameters } from './audioOverviewSettings'
 import { defaultInfoGraphicParameters } from './infoGraphicSettings'
+import { defaultMindmapParameters } from './mindmapSettings'
+import { defaultReportParameters } from './reportSettings'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
@@ -89,30 +93,52 @@ export function StudioPanel({
   const [audioOverviewParams, setAudioOverviewParams] = useState<GenerateAudioOverviewParameters>(
     defaultAudioOverviewParameters,
   )
+  const [reportDialogOpen, setReportDialogOpen] = useState(false)
+  const [reportDialogKey, setReportDialogKey] = useState(0)
+  const [reportParams, setReportParams] = useState<GenerateReportParameters>(
+    defaultReportParameters,
+  )
+  const [mindmapDialogOpen, setMindmapDialogOpen] = useState(false)
+  const [mindmapDialogKey, setMindmapDialogKey] = useState(0)
+  const [mindmapParams, setMindmapParams] = useState<GenerateMindmapParameters>(
+    defaultMindmapParameters,
+  )
 
-  const handleCreateMindmap = () => {
+  const handleCreateMindmap = useCallback((params?: GenerateMindmapParameters) => {
     if (!canSubmitArtifactTask) {
       return
+    }
+    const submitParams = params ?? mindmapParams
+    if (params) {
+      setMindmapParams(params)
     }
     void submitArtifactTask({
       kind: 'mindmap',
       sourceIds: selectedReadySourceIds,
       title: '思维导图',
       actionId: 'generate-mindmap',
+      mindmap: submitParams,
     })
-  }
+    setMindmapDialogOpen(false)
+  }, [canSubmitArtifactTask, mindmapParams, selectedReadySourceIds, submitArtifactTask])
 
-  const handleCreateReport = () => {
+  const handleCreateReport = useCallback((params?: GenerateReportParameters) => {
     if (!canSubmitArtifactTask) {
       return
+    }
+    const submitParams = params ?? reportParams
+    if (params) {
+      setReportParams(params)
     }
     void submitArtifactTask({
       kind: 'report',
       sourceIds: selectedReadySourceIds,
       title: '报告',
       actionId: 'generate-report',
+      report: submitParams,
     })
-  }
+    setReportDialogOpen(false)
+  }, [canSubmitArtifactTask, reportParams, selectedReadySourceIds, submitArtifactTask])
 
   const handleCreateAudioOverview = useCallback((params?: GenerateAudioOverviewParameters) => {
     if (!canSubmitArtifactTask) {
@@ -168,14 +194,34 @@ export function StudioPanel({
     setAudioOverviewDialogOpen(true)
   }, [])
 
+  const handleCloseReportDialog = useCallback(() => {
+    setReportDialogOpen(false)
+  }, [])
+
+  const handleOpenMindmapDialog = useCallback(() => {
+    setMindmapDialogKey((prev) => prev + 1)
+    setMindmapDialogOpen(true)
+  }, [])
+
+  const handleCloseMindmapDialog = useCallback(() => {
+    setMindmapDialogOpen(false)
+  }, [])
+
+  const handleOpenReportDialog = useCallback(() => {
+    setReportDialogKey((prev) => prev + 1)
+    setReportDialogOpen(true)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
-    'generate-mindmap': handleCreateMindmap,
-    'generate-report': handleCreateReport,
+    'generate-mindmap': () => handleCreateMindmap(),
+    'generate-report': () => handleCreateReport(),
     'generate-info_graphic': () => handleCreateInfoGraphic(),
     'generate-audio_overview': () => handleCreateAudioOverview(),
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
+    'generate-mindmap': handleOpenMindmapDialog,
+    'generate-report': handleOpenReportDialog,
     'generate-info_graphic': handleOpenInfoGraphicDialog,
     'generate-audio_overview': handleOpenAudioOverviewDialog,
   }
@@ -201,7 +247,7 @@ export function StudioPanel({
         sx={{
           mt: panelTitleToBodySpacing,
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: 1,
         }}
       >
@@ -304,8 +350,13 @@ export function StudioPanel({
 
   const inlineSubpage = previewState.inlineOpen && previewTarget
     ? {
-        parentTitle: 'Studio',
-        title: previewTarget.title,
+        parentTitle: '工作区',
+        title: {
+          mindmap: '思维导图',
+          report: '报告',
+          info_graphic: '信息图',
+          audio_overview: '音频概览',
+        }[previewTarget.kind] || previewTarget.kind,
         content: (
           <StudioArtifactInlinePreview
             artifact={previewTarget}
@@ -366,6 +417,22 @@ export function StudioPanel({
         initialParams={audioOverviewParams}
         onClose={handleCloseAudioOverviewDialog}
         onGenerate={handleCreateAudioOverview}
+      />
+
+      <MindmapSettingsDialog
+        key={mindmapDialogKey}
+        open={mindmapDialogOpen}
+        initialParams={mindmapParams}
+        onClose={handleCloseMindmapDialog}
+        onGenerate={handleCreateMindmap}
+      />
+
+      <ReportSettingsDialog
+        key={reportDialogKey}
+        open={reportDialogOpen}
+        initialParams={reportParams}
+        onClose={handleCloseReportDialog}
+        onGenerate={handleCreateReport}
       />
     </Paper>
   )

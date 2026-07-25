@@ -140,17 +140,41 @@ export type StudioArtifactContentKind = 'inline' | 'storage'
 
 export type StudioArtifactInfoGraphicOrientation = 'portrait' | 'landscape' | 'square'
 export type StudioArtifactInfoGraphicDetailLevel = 'concise' | 'standard' | 'detailed'
+export type StudioArtifactInfoGraphicVisualStyle =
+  | 'default'
+  | 'hand-drawn'
+  | 'anime'
+  | 'cute'
+  | 'educational'
+  | 'minimal-2.5d'
 export type StudioArtifactAudioOverviewStyle =
   | 'deep-research'
   | 'abstract'
   | 'discussion'
   | 'debate'
 
+export type StudioArtifactReportStyle =
+  | 'default'
+  | 'brief'
+  | 'study-guide'
+  | 'detailed'
+
+export interface GenerateMindmapParameters {
+  tip?: string
+}
+
+export interface GenerateReportParameters {
+  style?: StudioArtifactReportStyle
+  language?: string
+  tip?: string
+}
+
 export interface GenerateInfoGraphicParameters {
   orientation?: StudioArtifactInfoGraphicOrientation
   text_language?: string
   extra_prompt?: string
   detail_level?: StudioArtifactInfoGraphicDetailLevel
+  visual_style?: StudioArtifactInfoGraphicVisualStyle
 }
 
 export interface GenerateAudioOverviewParameters {
@@ -159,11 +183,32 @@ export interface GenerateAudioOverviewParameters {
   style?: StudioArtifactAudioOverviewStyle
 }
 
+export interface MindmapArtifactExtras {
+  tip?: string
+}
+
+export interface ReportArtifactExtras {
+  style?: string
+  language?: string
+  tip?: string
+}
+
+export interface AudioOverviewArtifactExtras {
+  tip?: string
+  language?: string
+  style?: string
+  format?: string
+  channels?: number
+  sample_rate?: number
+  duration_ms?: number
+}
+
 export interface InfoGraphicArtifactExtras {
   prompt?: string
   text_language?: string
   orientation?: StudioArtifactInfoGraphicOrientation
   detail_level?: StudioArtifactInfoGraphicDetailLevel
+  visual_style?: StudioArtifactInfoGraphicVisualStyle
 }
 
 export interface StudioArtifactImageInfo {
@@ -175,6 +220,8 @@ export interface GenerateStudioArtifactRequest {
   notebook_id: string
   kind: StudioArtifactKind
   source_ids: string[]
+  mindmap?: GenerateMindmapParameters
+  report?: GenerateReportParameters
   info_graphic?: GenerateInfoGraphicParameters
   audio_overview?: GenerateAudioOverviewParameters
 }
@@ -201,7 +248,11 @@ export interface StudioArtifactResult {
   content_kind: StudioArtifactContentKind
   mime_type?: string
   image_info?: StudioArtifactImageInfo
-  extras?: InfoGraphicArtifactExtras
+  extras?:
+    | MindmapArtifactExtras
+    | ReportArtifactExtras
+    | InfoGraphicArtifactExtras
+    | AudioOverviewArtifactExtras
 }
 
 export interface ListNotebookStudioArtifactsResponse {

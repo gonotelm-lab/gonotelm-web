@@ -1,10 +1,19 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import type {
+  AudioOverviewArtifactExtras,
   InfoGraphicArtifactExtras,
+  MindmapArtifactExtras,
+  ReportArtifactExtras,
   StudioArtifactContentKind,
   StudioArtifactKind,
   StudioArtifactTaskStatus,
 } from '@/types/api'
+
+export type StudioArtifactExtras =
+  | MindmapArtifactExtras
+  | ReportArtifactExtras
+  | InfoGraphicArtifactExtras
+  | AudioOverviewArtifactExtras
 
 export type StudioToolActionId =
   | 'generate-mindmap'
@@ -38,6 +47,7 @@ export interface StudioArtifactItem {
   contentUrl: string
   contentKind: StudioArtifactContentKind
   infoGraphicExtras?: InfoGraphicArtifactExtras
+  extras?: StudioArtifactExtras
   error: string
   createdAt: number
 }
