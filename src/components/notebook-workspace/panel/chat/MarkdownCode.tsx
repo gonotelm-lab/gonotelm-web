@@ -6,6 +6,7 @@ import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 interface MarkdownCodeProps {
   inline?: boolean
@@ -21,7 +22,7 @@ const detectLanguage = (className?: string) => {
 
 const codeInteractionTokens = {
   copyFeedbackDurationMs: 1200,
-  actionIconSize: 15,
+  actionIconSize: workspaceIconSize.sm,
 }
 
 const codeFontFamily =
@@ -31,7 +32,7 @@ const inlineCodeTokens = {
   paddingX: 0.48,
   paddingY: 0.18,
   borderRadius: 0.75,
-  fontSize: 13.2,
+  fontSize: workspaceType.mono,
   lineHeight: 1.45,
 }
 
@@ -41,9 +42,9 @@ const codeBlockLayoutTokens = {
   borderRadius: 1.2,
   toolbarPaddingX: 1.1,
   toolbarPaddingY: 0.45,
-  toolbarLanguageFontSize: 12.5,
+  toolbarLanguageFontSize: workspaceType.xs,
   contentPadding: 1.25,
-  contentFontSize: 13.4,
+  contentFontSize: workspaceType.mono,
   contentLineHeight: 1.55,
 }
 

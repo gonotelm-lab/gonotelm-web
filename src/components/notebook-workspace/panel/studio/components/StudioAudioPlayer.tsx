@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material'
 import { workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceIconSize } from '../../../shared/ui/typeTokens'
 
 interface StudioAudioPlayerProps {
   audioUrl: string
@@ -33,9 +34,9 @@ function formatAudioTime(seconds: number): string {
 }
 
 function volumeIcon(value: number, muted: boolean) {
-  if (muted || value === 0) return <VolumeOffRoundedIcon sx={{ fontSize: 19 }} />
-  if (value < 0.5) return <VolumeDownRoundedIcon sx={{ fontSize: 19 }} />
-  return <VolumeUpRoundedIcon sx={{ fontSize: 19 }} />
+  if (muted || value === 0) return <VolumeOffRoundedIcon sx={{ fontSize: workspaceIconSize.lg }} />
+  if (value < 0.5) return <VolumeDownRoundedIcon sx={{ fontSize: workspaceIconSize.lg }} />
+  return <VolumeUpRoundedIcon sx={{ fontSize: workspaceIconSize.lg }} />
 }
 
 export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: StudioAudioPlayerProps) {
@@ -247,9 +248,9 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
             }}
           >
             {playing ? (
-              <PauseRoundedIcon sx={{ fontSize: 18 }} />
+              <PauseRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
             ) : (
-              <PlayArrowRoundedIcon sx={{ fontSize: 18, ml: 0.15 }} />
+              <PlayArrowRoundedIcon sx={{ fontSize: workspaceIconSize.md, ml: 0.15 }} />
             )}
           </IconButton>
 

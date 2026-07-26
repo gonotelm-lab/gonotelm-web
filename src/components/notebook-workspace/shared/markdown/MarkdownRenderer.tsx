@@ -10,6 +10,7 @@ import remarkMath from 'remark-math'
 import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
 import { workspaceSpace } from '../ui/layoutTokens'
 import { workspaceTransitionPresets } from '../ui/motionTokens'
+import { workspaceType } from '../ui/typeTokens'
 import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
 interface MarkdownRendererProps {
@@ -29,16 +30,16 @@ export interface CitationClickTarget {
 }
 
 const markdownBaseTypography = {
-  fontSize: 15,
+  fontSize: workspaceType.md,
   lineHeight: 1.65,
 }
 
-/** Reading rhythm on the 4/8/12/16/24 scale (content, not panel chrome). */
+/** Reading rhythm on the locked type scale (content, not panel chrome). */
 const markdownHeadingStyles = {
-  h1: { fontSize: 20, mt: workspaceSpace.lg, mb: workspaceSpace.sm },
-  h2: { fontSize: 18, mt: workspaceSpace.md, mb: workspaceSpace.sm },
-  h3: { fontSize: 16.5, mt: workspaceSpace.md, mb: workspaceSpace.xxs },
-  h4: { fontSize: 15.5, mt: workspaceSpace.sm, mb: workspaceSpace.xxs },
+  h1: { fontSize: workspaceType.xl, mt: workspaceSpace.lg, mb: workspaceSpace.sm },
+  h2: { fontSize: workspaceType.lg, mt: workspaceSpace.md, mb: workspaceSpace.sm },
+  h3: { fontSize: workspaceType.md, mt: workspaceSpace.md, mb: workspaceSpace.xxs },
+  h4: { fontSize: workspaceType.sm, mt: workspaceSpace.sm, mb: workspaceSpace.xxs },
 }
 
 const markdownSpacingTokens = {
@@ -55,7 +56,7 @@ const markdownSpacingTokens = {
 }
 
 const markdownTableTokens = {
-  fontSize: 13.5,
+  fontSize: workspaceType.sm,
   cellPaddingX: workspaceSpace.sm,
   cellPaddingY: workspaceSpace.xxs,
 }

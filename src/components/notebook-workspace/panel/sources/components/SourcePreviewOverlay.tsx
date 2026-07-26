@@ -20,6 +20,7 @@ import { inlinePreviewActionIconButtonSx } from '../../../shared/ui/previewActio
 import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegistry'
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
+import { workspaceIconSize } from '../../../shared/ui/typeTokens'
 
 interface SourcePreviewOverlayProps {
   open: boolean
@@ -129,7 +130,7 @@ export function SourcePreviewOverlay({
                   disabled={!canDownload}
                   sx={inlinePreviewActionIconButtonSx}
                 >
-                  <DownloadRoundedIcon sx={{ fontSize: 17 }} />
+                  <DownloadRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
                 </IconButton>
               </span>
             </Tooltip>
@@ -139,7 +140,7 @@ export function SourcePreviewOverlay({
               aria-label="关闭预览"
               sx={inlinePreviewActionIconButtonSx}
             >
-              <CloseRoundedIcon sx={{ fontSize: 17 }} />
+              <CloseRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
             </IconButton>
           </Stack>
         </Stack>

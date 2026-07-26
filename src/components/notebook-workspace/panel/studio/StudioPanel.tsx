@@ -48,6 +48,7 @@ import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
 import { studioToolCatalog } from './studioToolCatalog'
 import type { StudioToolActionId } from './types'
+import { workspaceType } from '../../shared/ui/typeTokens'
 
 interface StudioPanelProps {
   notebookId: string
@@ -622,7 +623,7 @@ export function StudioPanel({
                   variant="caption"
                   sx={{
                     display: 'block',
-                    fontSize: 12.2,
+                    fontSize: workspaceType.xs,
                     lineHeight: 1.35,
                     color: 'background.default',
                   }}

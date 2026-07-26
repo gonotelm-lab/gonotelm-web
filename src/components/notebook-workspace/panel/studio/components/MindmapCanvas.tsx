@@ -9,6 +9,7 @@ import {
   parseMermaidMindmap,
   type ParsedMindmapResult,
 } from '../mindmapParser'
+import { workspaceIconSize, workspaceType } from '../../../shared/ui/typeTokens'
 
 interface MindmapCanvasProps {
   mermaid: string
@@ -133,7 +134,7 @@ const buildNodeVisualByDepth = (
       border: tonePalette.level0Border,
       background: tonePalette.level0Background,
       fontColor: tonePalette.level0Text,
-      fontSize: 17,
+      fontSize: workspaceIconSize.md,
       fontWeight: '800',
     }
   }
@@ -142,7 +143,7 @@ const buildNodeVisualByDepth = (
       border: tonePalette.level1Border,
       background: tonePalette.level1Background,
       fontColor: tonePalette.level1Text,
-      fontSize: 14,
+      fontSize: workspaceType.sm,
       fontWeight: '600',
     }
   }
@@ -150,7 +151,7 @@ const buildNodeVisualByDepth = (
     border: tonePalette.nodeBorder,
     background: tonePalette.nodeBackground,
     fontColor: tonePalette.textPrimary,
-    fontSize: 14,
+    fontSize: workspaceType.sm,
     fontWeight: '500',
   }
 }

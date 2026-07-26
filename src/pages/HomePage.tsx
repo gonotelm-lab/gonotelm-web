@@ -99,7 +99,7 @@ export function HomePage() {
   return (
     <Container maxWidth="lg" sx={{ py: workspaceSpace.xl }}>
       <Stack spacing={workspaceLayout.panelPaddingY}>
-        <Typography variant="h6">我的笔记本</Typography>
+        <Typography variant="h5">我的笔记本</Typography>
         <Box
           sx={{
             borderBottom: '1px solid',

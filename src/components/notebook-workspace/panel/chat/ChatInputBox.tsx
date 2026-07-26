@@ -12,6 +12,7 @@ import {
 import { alpha } from '@mui/material/styles'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { workspaceType } from '../../shared/ui/typeTokens'
 
 export interface ChatInputInteractionState {
   isStreaming: boolean
@@ -45,7 +46,7 @@ const inputBoxLayoutTokens = {
 }
 
 const inputTextTokens = {
-  fontSize: 15,
+  fontSize: workspaceType.md,
   lineHeight: 1.55,
 }
 
@@ -62,7 +63,7 @@ const thinkingButtonTokens = {
   iconSize: 15,
   // Pill control (not card radius).
   borderRadius: 999,
-  fontSize: 12.8,
+  fontSize: workspaceType.xs,
   minHeight: 29,
   paddingX: workspaceSpace.md,
 }

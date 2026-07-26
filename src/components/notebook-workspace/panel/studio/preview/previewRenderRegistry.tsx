@@ -8,6 +8,7 @@ import { MindmapCanvas } from '../components/MindmapCanvas'
 import { QuizViewer } from '../components/QuizViewer'
 import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
 import { workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceType } from '@/components/notebook-workspace/shared/ui/typeTokens'
 
 export type StudioArtifactPreviewMode = 'inline' | 'overlay'
 
@@ -39,7 +40,7 @@ const renderFallbackPreview = (content: string) => (
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
         fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 13,
+        fontSize: workspaceType.sm,
         lineHeight: 1.5,
         color: 'text.primary',
       }}

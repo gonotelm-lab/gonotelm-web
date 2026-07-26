@@ -18,3 +18,9 @@ export {
 } from './layoutTokens'
 export type { WorkspaceLayout, WorkspaceSpace } from './layoutTokens'
 export { workspaceDialogLayout } from './dialogLayoutTokens'
+export {
+  workspaceIconSize,
+  workspaceType,
+  workspaceTypeRem,
+} from './typeTokens'
+export type { WorkspaceIconSize, WorkspaceType } from './typeTokens'

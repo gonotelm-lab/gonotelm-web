@@ -16,6 +16,7 @@ import {
 import { Link } from 'react-router-dom'
 import { workspaceRadius, workspaceSpace } from '../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
 
 interface WorkspaceHeaderProps {
   notebookName: string
@@ -104,7 +105,7 @@ export function WorkspaceHeader({
           aria-label="返回"
           sx={{ ml: 0, p: workspaceSpace.xxs }}
         >
-          <ArrowBackIcon sx={{ fontSize: '0.95rem' }} />
+          <ArrowBackIcon sx={{ fontSize: workspaceIconSize.md }} />
         </IconButton>
         <InputBase
           value={notebookName}
@@ -135,9 +136,9 @@ export function WorkspaceHeader({
             borderColor: 'transparent',
             bgcolor: 'background.paper',
             cursor: 'text',
-            fontSize: '0.95rem',
+            fontSize: workspaceTypeRem.lg,
             lineHeight: 1.35,
-            fontWeight: 500,
+            fontWeight: 600,
             transition: workspaceTransitionPresets.borderBg,
             '& input': {
               cursor: 'text',
@@ -169,7 +170,7 @@ export function WorkspaceHeader({
             disabled={!canDelete || isDeletingNotebook}
             sx={{ p: workspaceSpace.xxs }}
           >
-            <DeleteIcon sx={{ fontSize: '1rem' }} />
+            <DeleteIcon sx={{ fontSize: workspaceIconSize.md }} />
           </IconButton>
           {(isFetching || isUpdatingName || isDeletingNotebook) && <CircularProgress size={16} />}
         </Box>

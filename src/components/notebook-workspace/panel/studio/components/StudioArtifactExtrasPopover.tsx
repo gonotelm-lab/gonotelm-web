@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import type { StudioArtifactItem } from '../types'
+import { workspaceType } from '../../../shared/ui/typeTokens'
 
 interface StudioArtifactExtrasPopoverProps {
   artifact: StudioArtifactItem
@@ -214,7 +215,7 @@ export const StudioArtifactExtrasPopover = memo(function StudioArtifactExtrasPop
                       label={entry.value}
                       size="small"
                       variant="outlined"
-                      sx={{ height: 22, borderRadius: workspaceRadius.sm, '& .MuiChip-label': { px: workspaceSpace.sm, fontSize: 12 } }}
+                      sx={{ height: 22, borderRadius: workspaceRadius.sm, '& .MuiChip-label': { px: workspaceSpace.sm, fontSize: workspaceType.xs } }}
                     />
                   )}
                 </Box>

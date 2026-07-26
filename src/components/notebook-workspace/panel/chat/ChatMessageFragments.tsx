@@ -8,6 +8,7 @@ import { extractLatestPhaseSummary } from './streamEventReducer'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceAnimation } from '../../shared/ui/motionTokens'
 import type { ChatUiFragment, ChatUiFragmentType, ChatUiMessage } from './types'
+import { workspaceType } from '../../shared/ui/typeTokens'
 
 interface ChatMessageFragmentsProps {
   message: ChatUiMessage
@@ -101,7 +102,7 @@ export const ChatMessageFragments = memo(function ChatMessageFragments({
       <Typography
         variant="body2"
         sx={{
-          fontSize: 14.5,
+          fontSize: workspaceType.sm,
           lineHeight: 1.65,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',

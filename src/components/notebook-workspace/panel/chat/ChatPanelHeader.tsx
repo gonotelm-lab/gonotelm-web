@@ -6,6 +6,7 @@ import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { workspaceAnimation } from '../../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 const chatHeaderStackSpacing = workspaceSpace.xxs
 const sidePanelToggleButtonTokens = {
@@ -101,18 +102,23 @@ export function ChatPanelHeader({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<RefreshRoundedIcon className="chat-refresh-icon" sx={{ fontSize: 15 }} />}
+                startIcon={
+                  <RefreshRoundedIcon
+                    className="chat-refresh-icon"
+                    sx={{ fontSize: workspaceIconSize.sm }}
+                  />
+                }
                 onClick={onClearCurrentContext}
                 disabled={!hasChatId || isClearingContext || isStreaming}
                 sx={{
                   minWidth: 0,
-                  height: 28,
-                  px: workspaceSpace.sm,
+                  height: 32,
+                  px: workspaceSpace.md,
                   py: workspaceSpace.xxs,
                   // Pill control (not card radius).
                   borderRadius: 999,
                   textTransform: 'none',
-                  fontSize: 12.5,
+                  fontSize: workspaceType.sm,
                   lineHeight: 1.2,
                   whiteSpace: 'nowrap',
                   '& .chat-refresh-icon': {

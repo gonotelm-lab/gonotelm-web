@@ -4,6 +4,7 @@ import {
   workspaceRadius,
   workspaceSpace,
 } from '../notebook-workspace/shared/ui/layoutTokens'
+import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
 
 interface CreateNotebookEntryProps {
   onClick: () => void
@@ -24,14 +25,14 @@ export function CreateNotebookEntry({
       disabled={disabled}
       size={size}
       variant={variant}
-      startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
+      startIcon={<AddRoundedIcon sx={{ fontSize: workspaceIconSize.sm }} />}
       sx={{
-        minWidth: 72,
-        height: 30,
-        px: workspaceSpace.sm,
+        minWidth: 80,
+        height: 34,
+        px: workspaceSpace.md,
         borderRadius: workspaceRadius.md,
-        fontSize: 12,
-        lineHeight: 1.15,
+        fontSize: workspaceType.sm,
+        lineHeight: 1.2,
         fontWeight: 500,
         whiteSpace: 'nowrap',
         '& .MuiButton-startIcon': {

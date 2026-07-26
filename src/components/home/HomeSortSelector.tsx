@@ -10,6 +10,7 @@ import {
   workspaceRadius,
   workspaceSpace,
 } from '../notebook-workspace/shared/ui/layoutTokens'
+import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
 
 interface HomeSortSelectorProps {
   value: ListNotebooksSortBy
@@ -22,13 +23,13 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
   }
 
   return (
-    <FormControl size="small" sx={{ minWidth: 84 }}>
+    <FormControl size="small" sx={{ minWidth: 96 }}>
       <Select
         value={value}
         onChange={handleSortByChange}
         IconComponent={KeyboardArrowDownRoundedIcon}
         sx={{
-          height: 30,
+          height: 34,
           borderRadius: workspaceRadius.md,
           '& .MuiSelect-select': {
             display: 'flex',
@@ -39,24 +40,24 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
             boxSizing: 'border-box',
             py: 0,
             pl: workspaceSpace.sm,
-            pr: '22px !important',
-            fontSize: 12,
-            lineHeight: 1,
+            pr: '26px !important',
+            fontSize: workspaceType.sm,
+            lineHeight: 1.2,
             fontWeight: 500,
             textAlign: 'center',
           },
           '& .MuiSelect-icon': {
-            fontSize: 16,
-            right: 4,
+            fontSize: workspaceIconSize.sm,
+            right: 6,
             top: 'calc(50% - 8px)',
           },
         }}
         aria-label="笔记本排序方式"
       >
-        <MenuItem value="last_active" sx={{ fontSize: 12 }}>
+        <MenuItem value="last_active" sx={{ fontSize: workspaceType.sm }}>
           最近活跃
         </MenuItem>
-        <MenuItem value="create_time" sx={{ fontSize: 12 }}>
+        <MenuItem value="create_time" sx={{ fontSize: workspaceType.sm }}>
           创建时间
         </MenuItem>
       </Select>

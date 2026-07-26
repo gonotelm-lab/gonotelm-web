@@ -17,6 +17,7 @@ import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './useChatConversation'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { chatPanelLayoutTokens } from './layoutTokens'
+import { workspaceType } from '../../shared/ui/typeTokens'
 
 const scrollToBottomButtonTokens = {
   size: 32,
@@ -356,7 +357,7 @@ function ChatPanelContent({
             variant="caption"
             sx={{
               display: 'block',
-              fontSize: 12.2,
+              fontSize: workspaceType.xs,
               lineHeight: 1.35,
               color: 'background.default',
             }}

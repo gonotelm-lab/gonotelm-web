@@ -30,6 +30,7 @@ import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import type { SourceListItem } from './types/sourceTypes'
 import { useSourcePreviewController, type SourcePreviewRequest, type SourcePreviewState } from './preview/useSourcePreviewController'
+import { workspaceIconSize } from '../../shared/ui/typeTokens'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
 const sourceSelectionColumnWidthPx = 22
@@ -209,9 +210,9 @@ function SourcesPanelLayout({
                       checked={allSourcesChecked}
                       indeterminate={someSourcesChecked}
                       disableRipple
-                      icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
-                      checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
-                      indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: 16 }} />}
+                      icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
+                      checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
+                      indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
                       sx={{ p: 0, m: 0 }}
                       onChange={(e) => onToggleAll(e.target.checked)}
                     />

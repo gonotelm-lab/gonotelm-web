@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction } from '../../../shared/ui/motionTokens'
+import { workspaceType } from '../../../shared/ui/typeTokens'
 
 export interface FlashcardCard {
   front: string
@@ -70,7 +71,7 @@ const cardCornerIconSx = {
   position: 'absolute',
   top: 12,
   right: 12,
-  fontSize: 20,
+  fontSize: workspaceType.xl,
   color: 'text.disabled',
   opacity: 0.72,
   pointerEvents: 'none',

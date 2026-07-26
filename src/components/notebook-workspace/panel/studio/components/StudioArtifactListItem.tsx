@@ -28,6 +28,7 @@ import {
 } from '../artifactStatus'
 import { getStudioArtifactPreviewCapability } from '../preview/previewCapabilities'
 import type { StudioArtifactItem } from '../types'
+import { workspaceIconSize, workspaceType } from '@/components/notebook-workspace/shared/ui/typeTokens'
 
 interface StudioArtifactListItemProps {
   item: StudioArtifactItem
@@ -127,9 +128,9 @@ export function StudioArtifactListItem({
     display: 'flex',
     alignItems: 'center',
   }
-  const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
+  const actionMenuIconSx = { fontSize: workspaceIconSize.md, color: 'text.secondary' }
   const actionMenuTextSx = {
-    fontSize: 12.5,
+    fontSize: workspaceType.xs,
     lineHeight: 1.2,
     ml: 'auto',
     pl: workspaceSpace.md,
@@ -202,7 +203,7 @@ export function StudioArtifactListItem({
                 sx={(theme) => {
                   const statusTone = resolveArtifactStatusTone(visualStatus, theme)
                   return {
-                    fontSize: 17,
+                    fontSize: workspaceIconSize.md,
                     color: isCancelled ? 'text.disabled' : statusTone.icon,
                     flexShrink: 0,
                   }
@@ -248,7 +249,7 @@ export function StudioArtifactListItem({
                     setActionMenuAnchorEl(event.currentTarget)
                   }}
                 >
-                  <MoreHorizIcon sx={{ fontSize: 18 }} />
+                  <MoreHorizIcon sx={{ fontSize: workspaceIconSize.md }} />
                 </IconButton>
               </span>
             </Tooltip>

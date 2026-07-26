@@ -23,6 +23,7 @@ import {
   workspaceSpace,
 } from '../notebook-workspace/shared/ui/layoutTokens'
 import { workspaceInteraction } from '../notebook-workspace/shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
 
 interface NotebookCardProps {
   title: string
@@ -131,7 +132,7 @@ export function NotebookCard({
                 bgcolor: '#d9edff',
                 display: 'grid',
                 placeItems: 'center',
-                fontSize: 18,
+                fontSize: workspaceIconSize.md,
                 flexShrink: 0,
               }}
             >
@@ -144,7 +145,7 @@ export function NotebookCard({
               disabled={!canDelete || deleting}
               sx={{ mt: -workspaceSpace.xxs, mr: -workspaceSpace.sm }}
             >
-              <MoreVertIcon sx={{ fontSize: 18 }} />
+              <MoreVertIcon sx={{ fontSize: workspaceIconSize.md }} />
             </IconButton>
           </Stack>
           <Typography
@@ -202,8 +203,8 @@ export function NotebookCard({
             gap: workspaceLayout.listInlineGap,
           }}
         >
-          <DeleteIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography sx={{ fontSize: 12.5, lineHeight: 1.2 }}>删除</Typography>
+          <DeleteIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
+          <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>删除</Typography>
         </MenuItem>
       </Menu>
       <Dialog

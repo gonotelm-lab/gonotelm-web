@@ -5,6 +5,7 @@ import NotesIcon from '@mui/icons-material/Notes'
 import { Box, Paper, Stack, Typography } from '@mui/material'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction, workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
+import { workspaceIconSize } from '../../../shared/ui/typeTokens'
 
 interface AddSourceDialogHomeViewProps {
   disabled: boolean
@@ -117,7 +118,7 @@ export function AddSourceDialogHomeView({
           }}
         >
           <Box>
-            <CloudUploadIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+            <CloudUploadIcon sx={{ fontSize: workspaceIconSize.xl, color: 'primary.main' }} />
             <Typography variant="h6" sx={{ mt: 1 }}>
               上传来源
             </Typography>

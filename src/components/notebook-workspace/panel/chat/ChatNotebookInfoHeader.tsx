@@ -7,6 +7,7 @@ import type { Theme } from '@mui/material/styles'
 import { chatMessageContentTokens } from './layoutTokens'
 import { workspaceRadiusPx, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 const notebookInfoTokens = {
   marginTop: 0,
@@ -110,7 +111,7 @@ export function ChatNotebookInfoHeader({
             justifyContent: 'center',
           }}
         >
-          <DescriptionOutlinedIcon sx={{ fontSize: 17, color: notebookInfoTokens.iconColor }} />
+          <DescriptionOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: notebookInfoTokens.iconColor }} />
         </Box>
 
         <Typography
@@ -151,7 +152,7 @@ export function ChatNotebookInfoHeader({
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ fontSize: 12, letterSpacing: 0.2 }}
+          sx={{ fontSize: workspaceType.xs, letterSpacing: 0.2 }}
         >
           {sourceCountLabel}
         </Typography>

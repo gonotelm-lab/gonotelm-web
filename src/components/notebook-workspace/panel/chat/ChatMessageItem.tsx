@@ -36,6 +36,7 @@ import {
 } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
+import { workspaceIconSize } from '../../shared/ui/typeTokens'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
@@ -322,7 +323,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 <Tooltip title="跳转到来源预览">
                   <span>
                     <IconButton size="small" onClick={handleJumpToSourcePreview} sx={{ p: 0, color: 'primary.main' }}>
-                      <OpenInNewIcon sx={{ fontSize: 15 }} />
+                      <OpenInNewIcon sx={{ fontSize: workspaceIconSize.md }} />
                     </IconButton>
                   </span>
                 </Tooltip>

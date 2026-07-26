@@ -43,12 +43,13 @@ import {
   workspaceMotion,
   workspaceTransitionPresets,
 } from '../../../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../../../shared/ui/typeTokens'
 
 const sourceTitleMaxChars = 64
 const sourceExitTransition = `opacity ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, transform ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, max-height ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, padding ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, margin ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}`
 const sourceTypeIconSx = (theme: Theme) => ({
   color: theme.workspacePalette?.source?.typeIcon ?? 'text.secondary',
-  fontSize: 18,
+  fontSize: workspaceIconSize.md,
 })
 
 interface SourceListRowProps {
@@ -107,9 +108,9 @@ export function SourceListRow({
     display: 'flex',
     alignItems: 'center',
   }
-  const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
+  const actionMenuIconSx = { fontSize: workspaceIconSize.md, color: 'text.secondary' }
   const actionMenuTextSx = {
-    fontSize: 12.5,
+    fontSize: workspaceType.xs,
     lineHeight: 1.2,
     ml: 'auto',
     pl: workspaceSpace.md,
@@ -310,14 +311,14 @@ export function SourceListRow({
                 transition: workspaceTransitionPresets.opacityOnly,
               }}
             >
-              <MoreHorizIcon sx={{ fontSize: 18 }} />
+              <MoreHorizIcon sx={{ fontSize: workspaceIconSize.md }} />
             </IconButton>
           </Box>
           <Typography
             variant="body2"
             noWrap
             sx={(theme) => ({
-              fontSize: 13.5,
+              fontSize: workspaceType.sm,
                 color: isFailed
                   ? (theme.workspacePalette?.status?.error ?? 'error.main')
                   : 'text.primary',
@@ -342,8 +343,8 @@ export function SourceListRow({
               size="small"
               checked={optimisticChecked}
               disableRipple
-              icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 16 }} />}
-              checkedIcon={<CheckBoxIcon sx={{ fontSize: 16 }} />}
+              icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
+              checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
               sx={{ p: 0, m: 0 }}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => commitToggleSelection(e.target.checked)}

@@ -6,6 +6,7 @@ import { Box, ButtonBase, Stack, Tooltip, Typography } from '@mui/material'
 import type { StudioToolDefinition } from '../types'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction, workspaceMotion } from '../../../shared/ui/motionTokens'
+import { workspaceIconSize, workspaceType } from '../../../shared/ui/typeTokens'
 
 interface StudioToolCardProps {
   tool: StudioToolDefinition
@@ -103,7 +104,7 @@ export function StudioToolCard({
                     color: 'text.secondary',
                   }}
                 >
-                  <Icon sx={{ fontSize: 17 }} />
+                  <Icon sx={{ fontSize: workspaceIconSize.md }} />
                 </Box>
                 <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                   {tool.title}
@@ -112,7 +113,7 @@ export function StudioToolCard({
               {pending ? (
                 <HourglassBottomRoundedIcon
                   sx={(theme) => ({
-                    fontSize: 14.5,
+                    fontSize: workspaceType.sm,
                     color: theme.workspacePalette.status.warning,
                     flexShrink: 0,
                   })}
@@ -157,10 +158,10 @@ export function StudioToolCard({
                       },
                     }}
                   >
-                    <EditRoundedIcon sx={{ fontSize: 14.5 }} />
+                    <EditRoundedIcon sx={{ fontSize: workspaceIconSize.sm }} />
                   </Box>
                 ) : (
-                  <ArrowOutwardRoundedIcon sx={{ fontSize: 14.5, color: 'text.disabled' }} />
+                  <ArrowOutwardRoundedIcon sx={{ fontSize: workspaceIconSize.sm, color: 'text.disabled' }} />
                 )
               ) : null}
             </Stack>
