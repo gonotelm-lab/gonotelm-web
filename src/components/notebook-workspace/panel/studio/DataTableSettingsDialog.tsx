@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import type { GenerateDataTableParameters } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 
 interface DataTableSettingsDialogProps {
   open: boolean
@@ -28,15 +29,15 @@ export const DataTableSettingsDialog = memo(function DataTableSettingsDialog({
   const [draftParams, setDraftParams] = useState<GenerateDataTableParameters>(initialParams)
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成数据表</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               附加提示
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               可补充希望提取的字段、对比维度或表格侧重点。
             </Typography>
             <TextField
@@ -51,7 +52,7 @@ export const DataTableSettingsDialog = memo(function DataTableSettingsDialog({
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, tip: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

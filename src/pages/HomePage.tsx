@@ -14,6 +14,10 @@ import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
 import { NotebookCard } from '../components/home/NotebookCard'
+import {
+  workspaceLayout,
+  workspaceSpace,
+} from '../components/notebook-workspace/shared/ui/layoutTokens'
 import { buildCreateNotebookRequest } from './home/createNotebookRequest'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
 
@@ -93,8 +97,8 @@ export function HomePage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack spacing={2}>
+    <Container maxWidth="lg" sx={{ py: workspaceSpace.xl }}>
+      <Stack spacing={workspaceLayout.panelPaddingY}>
         <Typography variant="h6">我的笔记本</Typography>
         <Box
           sx={{
@@ -108,21 +112,25 @@ export function HomePage() {
             disabled={createNotebookMutation.isPending}
             size="small"
           />
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+          <Stack
+            direction="row"
+            spacing={workspaceLayout.listInlineGap}
+            sx={{ alignItems: 'center' }}
+          >
             {notebooksQuery.isFetching && <CircularProgress size={14} />}
             <HomeSortSelector value={sortBy} onChange={setSortBy} />
           </Stack>
         </Stack>
 
         {notebooksQuery.isLoading ? (
-          <Stack sx={{ py: 2, alignItems: 'center' }}>
+          <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
             <CircularProgress size={20} />
           </Stack>
         ) : notebookItems.length === 0 ? null : (
           <Box
             sx={{
               display: 'grid',
-              gap: 1,
+              gap: workspaceLayout.listRowGap,
               gridTemplateColumns: {
                 xs: '1fr',
                 sm: 'repeat(2, minmax(0, 1fr))',

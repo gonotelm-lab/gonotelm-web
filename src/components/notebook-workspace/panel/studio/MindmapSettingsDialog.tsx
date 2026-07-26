@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import type { GenerateMindmapParameters } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { defaultMindmapParameters } from './mindmapSettings'
 
 interface MindmapSettingsDialogProps {
@@ -29,15 +30,15 @@ export const MindmapSettingsDialog = memo(function MindmapSettingsDialog({
   const [draftParams, setDraftParams] = useState<GenerateMindmapParameters>(initialParams)
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成思维导图</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               附加提示
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               可补充强调重点、指定层级偏好或结构要求。
             </Typography>
             <TextField
@@ -52,7 +53,7 @@ export const MindmapSettingsDialog = memo(function MindmapSettingsDialog({
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, tip: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

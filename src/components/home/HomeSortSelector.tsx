@@ -6,6 +6,10 @@ import {
   type SelectChangeEvent,
 } from '@mui/material'
 import type { ListNotebooksSortBy } from '@/types/api'
+import {
+  workspaceRadius,
+  workspaceSpace,
+} from '../notebook-workspace/shared/ui/layoutTokens'
 
 interface HomeSortSelectorProps {
   value: ListNotebooksSortBy
@@ -25,7 +29,7 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
         IconComponent={KeyboardArrowDownRoundedIcon}
         sx={{
           height: 30,
-          borderRadius: 1,
+          borderRadius: workspaceRadius.md,
           '& .MuiSelect-select': {
             display: 'flex',
             alignItems: 'center',
@@ -34,7 +38,7 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
             minHeight: 'unset',
             boxSizing: 'border-box',
             py: 0,
-            pl: 1,
+            pl: workspaceSpace.sm,
             pr: '22px !important',
             fontSize: 12,
             lineHeight: 1,

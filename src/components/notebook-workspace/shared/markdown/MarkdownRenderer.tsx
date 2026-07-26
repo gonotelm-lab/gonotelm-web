@@ -8,6 +8,7 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
+import { workspaceSpace } from '../ui/layoutTokens'
 import { workspaceTransitionPresets } from '../ui/motionTokens'
 import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
@@ -28,35 +29,35 @@ export interface CitationClickTarget {
 }
 
 const markdownBaseTypography = {
-  fontSize: 14.8,
-  lineHeight: 1.72,
+  fontSize: 15,
+  lineHeight: 1.65,
 }
 
-// Markdown heading rhythm (content typography), not Workspace panel chrome spacing.
+/** Reading rhythm on the 4/8/12/16/24 scale (content, not panel chrome). */
 const markdownHeadingStyles = {
-  h1: { fontSize: 20, mt: 1.6, mb: 1 },
-  h2: { fontSize: 18, mt: 1.35, mb: 0.85 },
-  h3: { fontSize: 16.5, mt: 1.15, mb: 0.7 },
-  h4: { fontSize: 15.5, mt: 1, mb: 0.55 },
+  h1: { fontSize: 20, mt: workspaceSpace.lg, mb: workspaceSpace.sm },
+  h2: { fontSize: 18, mt: workspaceSpace.md, mb: workspaceSpace.sm },
+  h3: { fontSize: 16.5, mt: workspaceSpace.md, mb: workspaceSpace.xxs },
+  h4: { fontSize: 15.5, mt: workspaceSpace.sm, mb: workspaceSpace.xxs },
 }
 
 const markdownSpacingTokens = {
-  paragraphGap: 0.95,
-  listPaddingLeft: 2.8,
-  listItemTop: 0.22,
-  listItemGap: 0.42,
-  blockquoteTop: 0.95,
-  blockquotePaddingLeft: 1.4,
-  blockquotePaddingY: 0.2,
-  horizontalRuleY: 3,
-  tableMarginTop: 1,
-  tableMarginBottom: 0.5,
+  paragraphGap: workspaceSpace.sm,
+  listPaddingLeft: workspaceSpace.xl,
+  listItemTop: 0,
+  listItemGap: workspaceSpace.xxs,
+  blockquoteTop: workspaceSpace.sm,
+  blockquotePaddingLeft: workspaceSpace.md,
+  blockquotePaddingY: workspaceSpace.xxs,
+  horizontalRuleY: workspaceSpace.xl,
+  tableMarginTop: workspaceSpace.sm,
+  tableMarginBottom: workspaceSpace.xxs,
 }
 
 const markdownTableTokens = {
-  fontSize: 13.6,
-  cellPaddingX: 0.8,
-  cellPaddingY: 0.55,
+  fontSize: 13.5,
+  cellPaddingX: workspaceSpace.sm,
+  cellPaddingY: workspaceSpace.xxs,
 }
 
 const markdownSanitizeSchema = {

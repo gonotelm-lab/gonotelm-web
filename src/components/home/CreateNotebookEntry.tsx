@@ -1,5 +1,9 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import { Button } from '@mui/material'
+import {
+  workspaceRadius,
+  workspaceSpace,
+} from '../notebook-workspace/shared/ui/layoutTokens'
 
 interface CreateNotebookEntryProps {
   onClick: () => void
@@ -24,14 +28,14 @@ export function CreateNotebookEntry({
       sx={{
         minWidth: 72,
         height: 30,
-        px: 0.75,
-        borderRadius: 1,
+        px: workspaceSpace.sm,
+        borderRadius: workspaceRadius.md,
         fontSize: 12,
         lineHeight: 1.15,
         fontWeight: 500,
         whiteSpace: 'nowrap',
         '& .MuiButton-startIcon': {
-          marginRight: 0.375,
+          marginRight: workspaceSpace.xxs,
           marginLeft: 0,
         },
       }}

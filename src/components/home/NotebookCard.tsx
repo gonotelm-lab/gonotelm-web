@@ -16,6 +16,13 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
+import {
+  workspaceLayout,
+  workspaceRadius,
+  workspaceSpace,
+} from '../notebook-workspace/shared/ui/layoutTokens'
+import { workspaceInteraction } from '../notebook-workspace/shared/ui/motionTokens'
 
 interface NotebookCardProps {
   title: string
@@ -91,7 +98,7 @@ export function NotebookCard({
       variant="outlined"
       sx={{
         minHeight: 168,
-        borderRadius: 2,
+        borderRadius: workspaceRadius.lg,
         borderColor: 'divider',
         bgcolor: '#fbfcff',
       }}
@@ -99,14 +106,19 @@ export function NotebookCard({
       <CardActionArea
         onClick={onOpen}
         disabled={deleting}
-        sx={{ px: 1.75, py: 1.5, height: '100%' }}
+        sx={{
+          px: workspaceSpace.md,
+          py: workspaceSpace.md,
+          height: '100%',
+          cursor: deleting ? 'default' : workspaceInteraction.cursorPointer,
+        }}
       >
         <Stack
           sx={{
             minHeight: 136,
             display: 'grid',
             gridTemplateRows: 'auto minmax(0, 2.4em) minmax(0, 2.75em) auto',
-            rowGap: 1,
+            rowGap: workspaceLayout.listRowGap,
             alignItems: 'start',
           }}
         >
@@ -115,7 +127,7 @@ export function NotebookCard({
               sx={{
                 width: 32,
                 height: 32,
-                borderRadius: 1.5,
+                borderRadius: workspaceRadius.md,
                 bgcolor: '#d9edff',
                 display: 'grid',
                 placeItems: 'center',
@@ -130,7 +142,7 @@ export function NotebookCard({
               aria-label="笔记本操作"
               onClick={handleOpenActionMenu}
               disabled={!canDelete || deleting}
-              sx={{ mt: -0.25, mr: -0.75 }}
+              sx={{ mt: -workspaceSpace.xxs, mr: -workspaceSpace.sm }}
             >
               <MoreVertIcon sx={{ fontSize: 18 }} />
             </IconButton>
@@ -165,7 +177,11 @@ export function NotebookCard({
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
               {sourceCount} sources
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', pl: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ whiteSpace: 'nowrap', pl: workspaceSpace.sm }}
+            >
               {dateLabel}
             </Typography>
           </Stack>
@@ -180,7 +196,11 @@ export function NotebookCard({
         <MenuItem
           onClick={handleOpenDeleteDialog}
           disabled={!canDelete || deleting}
-          sx={{ minHeight: 34, px: 1.25, gap: 0.75 }}
+          sx={{
+            minHeight: 34,
+            px: workspaceSpace.md,
+            gap: workspaceLayout.listInlineGap,
+          }}
         >
           <DeleteIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Typography sx={{ fontSize: 12.5, lineHeight: 1.2 }}>删除</Typography>
@@ -191,6 +211,7 @@ export function NotebookCard({
         onClose={handleCloseDeleteDialog}
         fullWidth
         maxWidth="xs"
+        slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}
       >
         <DialogTitle>删除笔记本</DialogTitle>
         <DialogContent>
@@ -198,7 +219,11 @@ export function NotebookCard({
             删除后将移除该笔记本及其相关聊天与来源数据，此操作不可恢复。
           </Typography>
           {deleteErrorMessage ? (
-            <Typography variant="caption" color="error.main" sx={{ mt: 1, display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="error.main"
+              sx={{ mt: workspaceSpace.sm, display: 'block' }}
+            >
               {deleteErrorMessage}
             </Typography>
           ) : null}

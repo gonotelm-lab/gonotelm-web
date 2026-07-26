@@ -18,6 +18,7 @@ import type {
   GenerateReportParameters,
   StudioArtifactReportStyle,
 } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
   defaultReportParameters,
@@ -44,15 +45,15 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
   const style = draftParams.style || defaultReportParameters.style || 'default'
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成报告</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               选择语言
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制报告输出的语言。
             </Typography>
             <TextField
@@ -63,7 +64,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, language: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             >
               {reportLanguageOptionList.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -79,7 +80,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               生成风格
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制报告的组织方式和内容侧重。
             </Typography>
             <ToggleButtonGroup
@@ -90,7 +91,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
                   setDraftParams((prev) => ({ ...prev, style: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {reportStyleOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -98,7 +99,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {reportStyleOptionList.find((option) => option.value === style)?.description}
             </Typography>
           </Box>
@@ -121,7 +122,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, tip: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

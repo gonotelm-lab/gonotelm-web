@@ -20,6 +20,7 @@ import type {
   StudioArtifactInfoGraphicOrientation,
   StudioArtifactInfoGraphicVisualStyle,
 } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
   defaultInfoGraphicParameters,
@@ -50,15 +51,15 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
   const visualStyle = draftParams.visual_style || defaultInfoGraphicParameters.visual_style || 'default'
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成信息图</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               选择语言
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制信息图中可见文字的语言。
             </Typography>
             <TextField
@@ -69,7 +70,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, text_language: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             >
               {infoGraphicLanguageOptionList.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -85,7 +86,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               探索深度
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制模型探索来源内容的深入程度。
             </Typography>
             <ToggleButtonGroup
@@ -96,7 +97,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
                   setDraftParams((prev) => ({ ...prev, detail_level: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {infoGraphicDetailLevelOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -104,7 +105,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {infoGraphicDetailLevelOptionList.find((option) => option.value === detailLevel)?.description}
             </Typography>
           </Box>
@@ -115,7 +116,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               视觉风格
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制信息图的画面视觉风格。
             </Typography>
             <ToggleButtonGroup
@@ -126,7 +127,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
                   setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {infoGraphicVisualStyleOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -134,7 +135,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {infoGraphicVisualStyleOptionList.find((option) => option.value === visualStyle)?.description}
             </Typography>
           </Box>
@@ -145,7 +146,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               选择方向
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制信息图的画面比例。
             </Typography>
             <ToggleButtonGroup
@@ -156,7 +157,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
                   setDraftParams((prev) => ({ ...prev, orientation: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {infoGraphicOrientationOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -184,7 +185,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, extra_prompt: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

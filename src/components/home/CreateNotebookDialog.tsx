@@ -7,6 +7,8 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material'
+import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
+import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 
 interface CreateNotebookDialogProps {
   open: boolean
@@ -28,7 +30,13 @@ export function CreateNotebookDialog({
   onCreateWithName,
 }: CreateNotebookDialogProps) {
   return (
-    <Dialog open={open} onClose={submitting ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog
+      open={open}
+      onClose={submitting ? undefined : onClose}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}
+    >
       <DialogTitle>新建笔记本</DialogTitle>
       <DialogContent>
         <TextField
@@ -42,7 +50,7 @@ export function CreateNotebookDialog({
           disabled={submitting}
         />
         {errorMessage ? (
-          <Alert severity="error" sx={{ mt: 1 }}>
+          <Alert severity="error" sx={{ mt: workspaceSpace.sm }}>
             {errorMessage}
           </Alert>
         ) : null}

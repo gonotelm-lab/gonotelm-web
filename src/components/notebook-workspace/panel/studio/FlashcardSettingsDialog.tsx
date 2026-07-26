@@ -18,6 +18,7 @@ import type {
   StudioArtifactFlashcardCount,
   StudioArtifactFlashcardDifficulty,
 } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
   defaultFlashcardParameters,
@@ -44,15 +45,15 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
   const difficulty = draftParams.difficulty || defaultFlashcardParameters.difficulty || 'medium'
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成闪卡</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               数量风格
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               引导模型偏宏观或偏细节，不固定具体张数。
             </Typography>
             <ToggleButtonGroup
@@ -63,7 +64,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
                   setDraftParams((prev) => ({ ...prev, count: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {flashcardCountOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -71,7 +72,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {flashcardCountOptionList.find((option) => option.value === count)?.description}
             </Typography>
           </Box>
@@ -82,7 +83,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               难度
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制表述深度与考察强度。
             </Typography>
             <ToggleButtonGroup
@@ -93,7 +94,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
                   setDraftParams((prev) => ({ ...prev, difficulty: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {flashcardDifficultyOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -101,7 +102,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {flashcardDifficultyOptionList.find((option) => option.value === difficulty)?.description}
             </Typography>
           </Box>
@@ -124,7 +125,7 @@ export const FlashcardSettingsDialog = memo(function FlashcardSettingsDialog({
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, tip: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

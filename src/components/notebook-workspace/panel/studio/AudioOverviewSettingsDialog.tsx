@@ -18,6 +18,7 @@ import type {
   GenerateAudioOverviewParameters,
   StudioArtifactAudioOverviewStyle,
 } from '@/types/api'
+import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
 import {
   audioOverviewLanguageOptionList,
@@ -44,15 +45,15 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
   const style = draftParams.style || defaultAudioOverviewParameters.style || 'abstract'
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
       <DialogTitle>生成音频概览</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.25}>
+        <Stack spacing={workspaceDialogLayout.sectionStackSpacing}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               选择语言
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制音频概览输出文本的语言。
             </Typography>
             <TextField
@@ -63,7 +64,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, language: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             >
               {audioOverviewLanguageOptionList.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -79,7 +80,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               生成风格
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               控制音频概览的表达方式和内容组织。
             </Typography>
             <ToggleButtonGroup
@@ -90,7 +91,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
                   setDraftParams((prev) => ({ ...prev, style: nextValue }))
                 }
               }}
-              sx={{ mt: 1.25, flexWrap: 'wrap', gap: 0.75, border: 'none' }}
+              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
             >
               {audioOverviewStyleOptionList.map((option) => (
                 <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
@@ -98,7 +99,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.8, display: 'block' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {audioOverviewStyleOptionList.find((option) => option.value === style)?.description}
             </Typography>
           </Box>
@@ -121,7 +122,7 @@ export const AudioOverviewSettingsDialog = memo(function AudioOverviewSettingsDi
               onChange={(event) =>
                 setDraftParams((prev) => ({ ...prev, tip: event.target.value }))
               }
-              sx={{ mt: 1.25 }}
+              sx={{ mt: workspaceDialogLayout.controlMt }}
             />
           </Box>
         </Stack>

@@ -17,3 +17,4 @@ export {
   workspaceSpace,
 } from './layoutTokens'
 export type { WorkspaceLayout, WorkspaceSpace } from './layoutTokens'
+export { workspaceDialogLayout } from './dialogLayoutTokens'
