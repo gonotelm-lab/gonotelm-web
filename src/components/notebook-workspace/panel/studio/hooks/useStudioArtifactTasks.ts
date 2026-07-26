@@ -20,6 +20,7 @@ import type {
   GenerateAudioOverviewParameters,
   GenerateFlashcardParameters,
   GenerateQuizParameters,
+  GenerateDataTableParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -37,15 +38,18 @@ import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
 import { buildAudioOverviewRequestParams } from '../audioOverviewSettings'
 import { buildFlashcardRequestParams } from '../flashcardSettings'
 import { buildQuizRequestParams } from '../quizSettings'
+import { buildDataTableRequestParams } from '../datatableSettings'
+import {
+  resolveStudioArtifactActionId,
+  resolveStudioArtifactFallbackTitle,
+  resolveStudioArtifactKind,
+} from '../resolveStudioArtifactKind'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
 const studioArtifactListPageSize = 50
 const studioTimestampSecondUpperBound = 10_000_000_000
 type StudioArtifactItemAction = 'retry' | 'cancel' | 'delete'
-
-const createLocalArtifactId = () =>
-  `studio-local-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 const buildArtifactActionKey = (
   itemId: string,
@@ -77,33 +81,6 @@ const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
   return timestamp < studioTimestampSecondUpperBound ? timestamp * 1_000 : timestamp
 }
 
-const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => {
-  if (kind === 'report') return 'report'
-  if (kind === 'info_graphic') return 'info_graphic'
-  if (kind === 'audio_overview') return 'audio_overview'
-  if (kind === 'flashcard') return 'flashcard'
-  if (kind === 'quiz') return 'quiz'
-  return 'mindmap'
-}
-
-const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActionId => {
-  if (kind === 'report') return 'generate-report'
-  if (kind === 'info_graphic') return 'generate-info_graphic'
-  if (kind === 'audio_overview') return 'generate-audio_overview'
-  if (kind === 'flashcard') return 'generate-flashcard'
-  if (kind === 'quiz') return 'generate-quiz'
-  return 'generate-mindmap'
-}
-
-const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => {
-  if (kind === 'report') return '报告'
-  if (kind === 'info_graphic') return '信息图'
-  if (kind === 'audio_overview') return '音频概览'
-  if (kind === 'flashcard') return '闪卡'
-  if (kind === 'quiz') return '测验'
-  return '思维导图'
-}
-
 const resolveInfoGraphicExtras = (
   kind: StudioArtifactKind,
   extras: StudioArtifactResult['extras'],
@@ -121,6 +98,7 @@ const buildLocalExtras = (
   audioOverview?: GenerateAudioOverviewParameters,
   flashcard?: GenerateFlashcardParameters,
   quiz?: GenerateQuizParameters,
+  dataTable?: GenerateDataTableParameters,
 ): StudioArtifactItem['extras'] => {
   switch (kind) {
     case 'mindmap':
@@ -156,6 +134,10 @@ const buildLocalExtras = (
         count: quiz?.count,
         difficulty: quiz?.difficulty,
         tip: quiz?.tip,
+      }
+    case 'data_table':
+      return {
+        tip: dataTable?.tip,
       }
   }
   return undefined
@@ -208,6 +190,7 @@ interface SubmitStudioArtifactTaskParams {
   audioOverview?: GenerateAudioOverviewParameters
   flashcard?: GenerateFlashcardParameters
   quiz?: GenerateQuizParameters
+  data_table?: GenerateDataTableParameters
 }
 
 export function useStudioArtifactTasks({
@@ -216,6 +199,10 @@ export function useStudioArtifactTasks({
   const [artifactItems, setArtifactItems] = useState<StudioArtifactItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
+  const [actionErrorToast, setActionErrorToast] = useState<{
+    key: number
+    message: string
+  } | null>(null)
   const [pendingActions, setPendingActions] = useState<
     Partial<Record<StudioToolActionId, boolean>>
   >({})
@@ -226,6 +213,7 @@ export function useStudioArtifactTasks({
   const activeNotebookIdRef = useRef(notebookId)
   const artifactItemsRef = useRef(artifactItems)
   const historyLoadSeqRef = useRef(0)
+  const actionErrorToastKeyRef = useRef(0)
 
   useEffect(() => {
     activeNotebookIdRef.current = notebookId
@@ -464,32 +452,21 @@ export function useStudioArtifactTasks({
       audioOverview,
       flashcard,
       quiz,
+      data_table: dataTable,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
       }
-      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview, flashcard, quiz)
-      const localId = createLocalArtifactId()
+      const localExtras = buildLocalExtras(
+        kind,
+        report,
+        infoGraphic,
+        audioOverview,
+        flashcard,
+        quiz,
+        dataTable,
+      )
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
-      setArtifactItems((prev) => [
-        {
-          id: localId,
-          taskId: '',
-          kind,
-          actionId,
-          title,
-          status: 'pending',
-          sourceCount: sourceIds.length,
-          sourceIds,
-          content: '',
-          contentUrl: '',
-          contentKind: 'inline',
-          extras: localExtras,
-          error: '',
-          createdAt: Date.now(),
-        },
-        ...prev,
-      ])
 
       try {
         const response = await generateStudioArtifact({
@@ -514,43 +491,47 @@ export function useStudioArtifactTasks({
           ...(kind === 'quiz'
             ? { quiz: buildQuizRequestParams(quiz) }
             : {}),
+          ...(kind === 'data_table'
+            ? { data_table: buildDataTableRequestParams(dataTable) }
+            : {}),
         })
 
         const taskId = response.task_id
-        setArtifactItems((prev) =>
-          prev.map((item) =>
-            item.id === localId
-              ? {
-                  ...item,
-                  id: taskId,
-                  taskId,
-                  status: 'running',
-                  error: '',
-                }
-              : item,
-          ),
-        )
+        setArtifactItems((prev) => [
+          {
+            id: taskId,
+            taskId,
+            kind,
+            actionId,
+            title,
+            status: 'running',
+            sourceCount: sourceIds.length,
+            sourceIds,
+            content: '',
+            contentUrl: '',
+            contentKind: 'inline',
+            extras: localExtras,
+            error: '',
+            createdAt: Date.now(),
+          },
+          ...prev,
+        ])
       } catch (error) {
-        setArtifactItems((prev) =>
-          prev.map((item) =>
-            item.id === localId
-              ? {
-                  ...item,
-                  status: 'failed',
-                  error: buildStudioErrorMessage(
-                    error,
-                    '创建产物任务失败，请重试。',
-                  ),
-                }
-              : item,
-          ),
-        )
+        actionErrorToastKeyRef.current += 1
+        setActionErrorToast({
+          key: actionErrorToastKeyRef.current,
+          message: buildStudioErrorMessage(error, '创建产物任务失败，请重试。'),
+        })
       } finally {
         setPendingActions((prev) => ({ ...prev, [actionId]: false }))
       }
     },
     [notebookId],
   )
+
+  const clearActionErrorToast = useCallback(() => {
+    setActionErrorToast(null)
+  }, [])
 
   const retryArtifact = useCallback(
     async (item: StudioArtifactItem) => {
@@ -669,6 +650,8 @@ export function useStudioArtifactTasks({
     artifactItems,
     historyLoading,
     historyError,
+    actionErrorToast,
+    clearActionErrorToast,
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,

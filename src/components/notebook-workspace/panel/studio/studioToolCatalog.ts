@@ -87,8 +87,11 @@ export const studioToolCatalog: StudioToolDefinition[] = [
   {
     id: 'data-table',
     title: '数据表',
-    description: '即将支持',
+    description: '基于勾选来源生成数据表',
     icon: TableChartRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-data_table',
+    artifactKind: 'data_table',
+    hasAdvancedConfig: true,
   },
 ]

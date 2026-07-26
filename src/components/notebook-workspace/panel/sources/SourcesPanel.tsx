@@ -24,7 +24,6 @@ import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceInlinePreview } from './components/SourceInlinePreview'
 import { SourceListRow } from './components/SourceListRow'
 import { SourcePreviewOverlay } from './components/SourcePreviewOverlay'
-import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
@@ -127,11 +126,13 @@ function SourcesPanelLayout({
       />
       <Box
         sx={{
-          width: { xs: '100%', md: collapsed ? 0 : '100%' },
+          // 列宽由外层 grid CSS 变量驱动；这里再动 width/transform 会叠加重排导致卡顿
+          width: '100%',
           height: '100%',
           minWidth: 0,
           overflow: 'hidden',
-          transition: workspaceTransitionPresets.panelWidth,
+          contain: 'layout paint',
+          pointerEvents: collapsed ? 'none' : 'auto',
         }}
       >
         <Paper
@@ -146,10 +147,6 @@ function SourcesPanelLayout({
             overflow: 'hidden',
             bgcolor: 'background.paper',
             position: 'relative',
-            opacity: collapsed ? 0 : 1,
-            transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-            transition: workspaceTransitionPresets.panelTransformWithFade,
-            pointerEvents: collapsed ? 'none' : 'auto',
           }}
         >
           <PanelSubpageLayout

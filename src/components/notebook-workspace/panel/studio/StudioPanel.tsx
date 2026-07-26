@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import {
@@ -7,12 +8,14 @@ import {
   Divider,
   IconButton,
   Paper,
+  Snackbar,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material'
 import type {
   GenerateAudioOverviewParameters,
+  GenerateDataTableParameters,
   GenerateFlashcardParameters,
   GenerateInfoGraphicParameters,
   GenerateMindmapParameters,
@@ -27,11 +30,13 @@ import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
 import { AudioOverviewSettingsDialog } from './AudioOverviewSettingsDialog'
 import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
+import { DataTableSettingsDialog } from './DataTableSettingsDialog'
 import { FlashcardSettingsDialog } from './FlashcardSettingsDialog'
 import { MindmapSettingsDialog } from './MindmapSettingsDialog'
 import { QuizSettingsDialog } from './QuizSettingsDialog'
 import { ReportSettingsDialog } from './ReportSettingsDialog'
 import { defaultAudioOverviewParameters } from './audioOverviewSettings'
+import { defaultDataTableParameters } from './datatableSettings'
 import { defaultFlashcardParameters } from './flashcardSettings'
 import { defaultInfoGraphicParameters } from './infoGraphicSettings'
 import { defaultMindmapParameters } from './mindmapSettings'
@@ -74,6 +79,8 @@ export function StudioPanel({
     artifactItems,
     historyLoading,
     historyError,
+    actionErrorToast,
+    clearActionErrorToast,
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,
@@ -123,6 +130,11 @@ export function StudioPanel({
   const [quizDialogKey, setQuizDialogKey] = useState(0)
   const [quizParams, setQuizParams] = useState<GenerateQuizParameters>(
     defaultQuizParameters,
+  )
+  const [dataTableDialogOpen, setDataTableDialogOpen] = useState(false)
+  const [dataTableDialogKey, setDataTableDialogKey] = useState(0)
+  const [dataTableParams, setDataTableParams] = useState<GenerateDataTableParameters>(
+    defaultDataTableParameters,
   )
 
   const handleCreateMindmap = useCallback((params?: GenerateMindmapParameters) => {
@@ -233,6 +245,24 @@ export function StudioPanel({
     setQuizDialogOpen(false)
   }, [canSubmitArtifactTask, quizParams, selectedReadySourceIds, submitArtifactTask])
 
+  const handleCreateDataTable = useCallback((params?: GenerateDataTableParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    const submitParams = params ?? dataTableParams
+    if (params) {
+      setDataTableParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'data_table',
+      sourceIds: selectedReadySourceIds,
+      title: '数据表',
+      actionId: 'generate-data_table',
+      data_table: submitParams,
+    })
+    setDataTableDialogOpen(false)
+  }, [canSubmitArtifactTask, dataTableParams, selectedReadySourceIds, submitArtifactTask])
+
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)
   }, [])
@@ -287,6 +317,15 @@ export function StudioPanel({
     setQuizDialogOpen(false)
   }, [])
 
+  const handleOpenDataTableDialog = useCallback(() => {
+    setDataTableDialogKey((prev) => prev + 1)
+    setDataTableDialogOpen(true)
+  }, [])
+
+  const handleCloseDataTableDialog = useCallback(() => {
+    setDataTableDialogOpen(false)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': () => handleCreateMindmap(),
     'generate-report': () => handleCreateReport(),
@@ -294,6 +333,7 @@ export function StudioPanel({
     'generate-audio_overview': () => handleCreateAudioOverview(),
     'generate-flashcard': () => handleCreateFlashcard(),
     'generate-quiz': () => handleCreateQuiz(),
+    'generate-data_table': () => handleCreateDataTable(),
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
@@ -303,6 +343,7 @@ export function StudioPanel({
     'generate-audio_overview': handleOpenAudioOverviewDialog,
     'generate-flashcard': handleOpenFlashcardDialog,
     'generate-quiz': handleOpenQuizDialog,
+    'generate-data_table': handleOpenDataTableDialog,
   }
 
   const primaryContent = (
@@ -437,6 +478,7 @@ export function StudioPanel({
           audio_overview: '音频概览',
           flashcard: '闪卡',
           quiz: '测验',
+          data_table: '数据表',
         }[previewTarget.kind] || previewTarget.kind,
         content: (
           <StudioArtifactInlinePreview
@@ -531,6 +573,65 @@ export function StudioPanel({
         onClose={handleCloseQuizDialog}
         onGenerate={handleCreateQuiz}
       />
+
+      <DataTableSettingsDialog
+        key={dataTableDialogKey}
+        open={dataTableDialogOpen}
+        initialParams={dataTableParams}
+        onClose={handleCloseDataTableDialog}
+        onGenerate={handleCreateDataTable}
+      />
+
+      {typeof document !== 'undefined'
+        ? createPortal(
+            <Snackbar
+              key={actionErrorToast?.key}
+              open={Boolean(actionErrorToast)}
+              autoHideDuration={2400}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              // PanelSubpageLayout 有 transform，fixed 会相对右侧面板；挂到 body 才是视口正中
+              sx={{
+                top: '50%',
+                left: '50%',
+                right: 'auto',
+                bottom: 'auto',
+                transform: 'translate(-50%, -50%)',
+              }}
+              onClose={(_, reason) => {
+                if (reason === 'clickaway') {
+                  return
+                }
+                clearActionErrorToast()
+              }}
+            >
+              <Paper
+                elevation={2}
+                sx={{
+                  px: 1.5,
+                  py: 0.6,
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                  bgcolor: 'primary.dark',
+                  maxWidth: 420,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    fontSize: 12.2,
+                    lineHeight: 1.35,
+                    color: 'background.default',
+                  }}
+                >
+                  {actionErrorToast?.message ?? ''}
+                </Typography>
+              </Paper>
+            </Snackbar>,
+            document.body,
+          )
+        : null}
     </Paper>
   )
 }

@@ -37,6 +37,8 @@ vi.mock('./hooks/useStudioArtifactTasks', () => ({
     artifactItems: [],
     historyLoading: false,
     historyError: '',
+    actionErrorToast: null,
+    clearActionErrorToast: vi.fn(),
     pendingActions: {},
     reloadHistoryArtifacts: reloadHistoryArtifactsMock,
     submitArtifactTask: submitArtifactTaskMock,

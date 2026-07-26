@@ -38,6 +38,13 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
+  it('returns inline+overlay for data_table', () => {
+    expect(getStudioArtifactPreviewCapability('data_table')).toEqual({
+      inline: true,
+      overlay: true,
+    })
+  })
+
   it('falls back to overlay-only for unknown kinds', () => {
     expect(getStudioArtifactPreviewCapability('unknown-kind' as StudioArtifactKind)).toEqual({
       inline: false,

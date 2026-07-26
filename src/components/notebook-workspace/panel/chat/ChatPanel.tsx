@@ -231,6 +231,8 @@ function ChatPanelContent({
         flexDirection: 'column',
         overflow: 'hidden',
         bgcolor: 'background.paper',
+        // 双侧 panel 收展时隔离重排，减轻中间栏跟手卡顿
+        contain: 'layout paint',
       }}
     >
       <Box sx={{ px: chatPanelLayoutTokens.horizontalPadding }}>

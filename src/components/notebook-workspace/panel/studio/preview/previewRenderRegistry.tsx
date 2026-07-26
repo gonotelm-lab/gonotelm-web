@@ -150,6 +150,18 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
       </Box>
     ),
   },
+  data_table: {
+    renderInline: ({ content }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <MarkdownRenderer content={content} />
+      </Box>
+    ),
+    renderOverlay: ({ content }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <MarkdownRenderer content={content} />
+      </Box>
+    ),
+  },
 }
 
 export const renderStudioArtifactPreviewContent = ({

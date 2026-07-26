@@ -1,8 +1,10 @@
 export const workspaceMotion = {
   easingStandard: 'cubic-bezier(0.2, 0, 0, 1)',
+  easingPanelGrid: 'cubic-bezier(0.2, 0, 0, 1)',
   durationFastMs: 120,
   durationBaseMs: 180,
   durationPanelMs: 240,
+  durationPanelGridMs: 280,
   durationExitMs: 240,
 } as const
 
@@ -34,7 +36,7 @@ export const workspaceTransitionPresets = {
   panelTransform: `transform ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}`,
   panelWidth: `width ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}`,
   panelGridColumns:
-    `grid-template-columns ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}`,
+    `grid-template-columns ${workspaceMotion.durationPanelGridMs}ms ${workspaceMotion.easingPanelGrid}`,
   panelTransformWithFade:
     `transform ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}, ` +
     `opacity ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,

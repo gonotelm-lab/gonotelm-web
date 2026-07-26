@@ -9,6 +9,7 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
+import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay, workspaceTransitionPresets } from '@/components/notebook-workspace/shared'
@@ -110,7 +111,9 @@ export function StudioArtifactListItem({
           ? StyleRoundedIcon
           : item.kind === 'quiz'
             ? QuizRoundedIcon
-            : AccountTreeRoundedIcon
+            : item.kind === 'data_table'
+              ? TableChartRoundedIcon
+              : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {

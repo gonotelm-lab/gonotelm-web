@@ -102,7 +102,7 @@ export function StudioArtifactPreviewOverlay({
 
     const extension = artifact.kind === 'mindmap'
       ? 'mmd'
-      : artifact.kind === 'report'
+      : artifact.kind === 'report' || artifact.kind === 'data_table'
         ? 'md'
         : artifact.kind === 'flashcard' || artifact.kind === 'quiz'
           ? 'json'

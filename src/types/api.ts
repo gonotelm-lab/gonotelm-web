@@ -133,6 +133,7 @@ export type StudioArtifactKind =
   | 'audio_overview'
   | 'flashcard'
   | 'quiz'
+  | 'data_table'
 
 export type StudioArtifactFlashcardCount = 'few' | 'default' | 'many'
 export type StudioArtifactFlashcardDifficulty = 'easy' | 'medium' | 'hard'
@@ -206,6 +207,10 @@ export interface GenerateQuizParameters {
   tip?: string
 }
 
+export interface GenerateDataTableParameters {
+  tip?: string
+}
+
 export interface MindmapArtifactExtras {
   tip?: string
 }
@@ -246,6 +251,10 @@ export interface QuizArtifactExtras {
   tip?: string
 }
 
+export interface DataTableArtifactExtras {
+  tip?: string
+}
+
 export interface StudioArtifactImageInfo {
   width: number
   height: number
@@ -261,6 +270,7 @@ export interface GenerateStudioArtifactRequest {
   audio_overview?: GenerateAudioOverviewParameters
   flashcard?: GenerateFlashcardParameters
   quiz?: GenerateQuizParameters
+  data_table?: GenerateDataTableParameters
 }
 
 export interface GenerateStudioArtifactResponse {
@@ -292,6 +302,7 @@ export interface StudioArtifactResult {
     | AudioOverviewArtifactExtras
     | FlashcardArtifactExtras
     | QuizArtifactExtras
+    | DataTableArtifactExtras
 }
 
 export interface ListNotebookStudioArtifactsResponse {

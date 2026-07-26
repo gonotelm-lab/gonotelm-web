@@ -275,7 +275,7 @@ export function useStudioPreviewController({
     }
     const extension = previewTarget.kind === 'mindmap'
       ? 'mmd'
-      : previewTarget.kind === 'report'
+      : previewTarget.kind === 'report' || previewTarget.kind === 'data_table'
         ? 'md'
         : 'txt'
     const blob = new Blob([previewState.content], { type: 'text/plain;charset=utf-8' })

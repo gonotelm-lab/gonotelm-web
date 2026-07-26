@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box } from '@mui/material'
@@ -30,7 +30,10 @@ import {
   WorkspaceHeader,
   type SourceListItem,
 } from '../components/notebook-workspace'
-import { workspaceTransitionPresets } from '../components/notebook-workspace/shared/ui/motionTokens'
+import {
+  workspaceMotion,
+  workspaceTransitionPresets,
+} from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
@@ -44,8 +47,6 @@ const workspacePanelMaxWidthRatio = 0.5
 const workspaceCenterMinWidthPx = 420
 const workspaceResizeHandleWidthPx = 10
 const workspacePanelGridTransition = workspaceTransitionPresets.panelGridColumns
-const workspacePanelWidthTransition = workspaceTransitionPresets.panelWidth
-const workspacePanelContentTransition = workspaceTransitionPresets.panelTransformWithFade
 const workspaceSourcesColumnVar = '--workspace-sources-column'
 const workspaceInsightsColumnVar = '--workspace-insights-column'
 const workspaceLeftHandleColumnVar = '--workspace-left-handle-column'
@@ -122,6 +123,7 @@ export function NotebookWorkspacePage() {
   const [insightsPanelWidthPx, setInsightsPanelWidthPx] = useState(workspacePanelDefaultWidthPx)
   const [workspaceContainerWidthPx, setWorkspaceContainerWidthPx] = useState(0)
   const [activeResizeSide, setActiveResizeSide] = useState<'left' | 'right' | null>(null)
+  const [isPanelLayoutAnimating, setIsPanelLayoutAnimating] = useState(false)
   const [selectedSourceIds, setSelectedSourceIds] = useState<Record<string, boolean>>({})
   const [removingSourceIds, setRemovingSourceIds] = useState<Record<string, boolean>>({})
   const [isHydratingSources, setIsHydratingSources] = useState(false)
@@ -148,6 +150,59 @@ export function NotebookWorkspacePage() {
   const insightsPanelCollapsedRef = useRef(isInsightsPanelCollapsed)
   const stopPanelResizeRef = useRef<(() => void) | null>(null)
   const citationPreviewRequestSeqRef = useRef(0)
+  const panelLayoutAnimTimerRef = useRef<number | null>(null)
+  const panelLayoutCommitTimerRef = useRef<number | null>(null)
+  const panelLayoutCommitPendingRef = useRef(false)
+
+  const syncWorkspacePanelGridFromRefs = useCallback(
+    (overrides?: {
+      sourcesCollapsed?: boolean
+      insightsCollapsed?: boolean
+      sourcesWidth?: number
+      insightsWidth?: number
+    }) => {
+      const container = workspacePanelsRef.current
+      if (!container) return
+      applyWorkspacePanelGridColumns(container, {
+        sourcesCollapsed: overrides?.sourcesCollapsed ?? sourcesPanelCollapsedRef.current,
+        insightsCollapsed: overrides?.insightsCollapsed ?? insightsPanelCollapsedRef.current,
+        sourcesWidth: Math.round(overrides?.sourcesWidth ?? sourcesPanelWidthRef.current),
+        insightsWidth: Math.round(overrides?.insightsWidth ?? insightsPanelWidthRef.current),
+      })
+    },
+    [],
+  )
+
+  const schedulePanelLayoutReactCommit = useCallback(() => {
+    // 列宽已在点击时同步改掉；React 提交必须延后，否则整页重渲染会堵住首帧，看起来像空等 1s
+    // 从 ref 对齐全部 panel 状态，避免连点收展时只提交最后一次回调而丢状态
+    panelLayoutCommitPendingRef.current = true
+    if (panelLayoutCommitTimerRef.current !== null) {
+      window.clearTimeout(panelLayoutCommitTimerRef.current)
+    }
+    panelLayoutCommitTimerRef.current = window.setTimeout(() => {
+      panelLayoutCommitTimerRef.current = null
+      const nextSourcesCollapsed = sourcesPanelCollapsedRef.current
+      const nextInsightsCollapsed = insightsPanelCollapsedRef.current
+      const nextSourcesWidth = Math.round(sourcesPanelWidthRef.current)
+      const nextInsightsWidth = Math.round(insightsPanelWidthRef.current)
+      startTransition(() => {
+        setIsSourcesPanelCollapsed(nextSourcesCollapsed)
+        setIsInsightsPanelCollapsed(nextInsightsCollapsed)
+        // 收起时也保留宽度，展开才能还原手动调整后的尺寸
+        setSourcesPanelWidthPx(nextSourcesWidth)
+        setInsightsPanelWidthPx(nextInsightsWidth)
+        setIsPanelLayoutAnimating(true)
+      })
+      if (panelLayoutAnimTimerRef.current !== null) {
+        window.clearTimeout(panelLayoutAnimTimerRef.current)
+      }
+      panelLayoutAnimTimerRef.current = window.setTimeout(() => {
+        setIsPanelLayoutAnimating(false)
+        panelLayoutAnimTimerRef.current = null
+      }, workspaceMotion.durationPanelGridMs)
+    }, 0)
+  }, [])
 
   const resetWorkspaceUiState = useCallback(() => {
     setRemovingSourceIds({})
@@ -176,10 +231,10 @@ export function NotebookWorkspacePage() {
       if (nextInsightsCollapsed !== isInsightsPanelCollapsed) {
         setIsInsightsPanelCollapsed(nextInsightsCollapsed)
       }
-      if (!nextSourcesCollapsed && nextSourcesWidth !== sourcesPanelWidthPx) {
+      if (nextSourcesWidth !== sourcesPanelWidthPx) {
         setSourcesPanelWidthPx(nextSourcesWidth)
       }
-      if (!nextInsightsCollapsed && nextInsightsWidth !== insightsPanelWidthPx) {
+      if (nextInsightsWidth !== insightsPanelWidthPx) {
         setInsightsPanelWidthPx(nextInsightsWidth)
       }
     },
@@ -203,6 +258,14 @@ export function NotebookWorkspacePage() {
       removeSourceTimersRef.current = []
       stopPanelResizeRef.current?.()
       stopPanelResizeRef.current = null
+      if (panelLayoutCommitTimerRef.current !== null) {
+        window.clearTimeout(panelLayoutCommitTimerRef.current)
+        panelLayoutCommitTimerRef.current = null
+      }
+      if (panelLayoutAnimTimerRef.current !== null) {
+        window.clearTimeout(panelLayoutAnimTimerRef.current)
+        panelLayoutAnimTimerRef.current = null
+      }
     }
   }, [])
 
@@ -223,19 +286,26 @@ export function NotebookWorkspacePage() {
   }, [isInsightsPanelCollapsed])
 
   useEffect(() => {
-    const container = workspacePanelsRef.current
-    if (!container) return
-    applyWorkspacePanelGridColumns(container, {
+    if (
+      isSourcesPanelCollapsed === sourcesPanelCollapsedRef.current &&
+      isInsightsPanelCollapsed === insightsPanelCollapsedRef.current
+    ) {
+      panelLayoutCommitPendingRef.current = false
+    }
+    // 点击收展已先改 DOM；pending 期间勿用旧 React state 把列宽打回去
+    if (panelLayoutCommitPendingRef.current) return
+    syncWorkspacePanelGridFromRefs({
       sourcesCollapsed: isSourcesPanelCollapsed,
       insightsCollapsed: isInsightsPanelCollapsed,
-      sourcesWidth: Math.round(sourcesPanelWidthPx),
-      insightsWidth: Math.round(insightsPanelWidthPx),
+      sourcesWidth: sourcesPanelWidthPx,
+      insightsWidth: insightsPanelWidthPx,
     })
   }, [
     insightsPanelWidthPx,
     isInsightsPanelCollapsed,
     isSourcesPanelCollapsed,
     sourcesPanelWidthPx,
+    syncWorkspacePanelGridFromRefs,
   ])
 
   const handleSourceReady = useCallback(() => {
@@ -929,12 +999,8 @@ export function NotebookWorkspacePage() {
         insightsPanelWidthRef.current = nextInsightsWidth
         setIsSourcesPanelCollapsed(nextSourcesCollapsed)
         setIsInsightsPanelCollapsed(nextInsightsCollapsed)
-        if (!nextSourcesCollapsed) {
-          setSourcesPanelWidthPx(nextSourcesWidth)
-        }
-        if (!nextInsightsCollapsed) {
-          setInsightsPanelWidthPx(nextInsightsWidth)
-        }
+        setSourcesPanelWidthPx(nextSourcesWidth)
+        setInsightsPanelWidthPx(nextInsightsWidth)
         setActiveResizeSide(null)
         if (stopPanelResizeRef.current === stopResize) {
           stopPanelResizeRef.current = null
@@ -949,12 +1015,33 @@ export function NotebookWorkspacePage() {
     [getLeftPanelWidthBounds, getRightPanelWidthBounds],
   )
 
+  const handleCollapseSourcesPanel = useCallback(() => {
+    sourcesPanelCollapsedRef.current = true
+    syncWorkspacePanelGridFromRefs({ sourcesCollapsed: true })
+    schedulePanelLayoutReactCommit()
+  }, [schedulePanelLayoutReactCommit, syncWorkspacePanelGridFromRefs])
+
+  const handleCollapseInsightsPanel = useCallback(() => {
+    insightsPanelCollapsedRef.current = true
+    syncWorkspacePanelGridFromRefs({ insightsCollapsed: true })
+    schedulePanelLayoutReactCommit()
+  }, [schedulePanelLayoutReactCommit, syncWorkspacePanelGridFromRefs])
+
   const handleExpandSourcesPanel = useCallback(() => {
     const containerWidth =
       workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
+    const preferredWidth =
+      sourcesPanelWidthRef.current > 0
+        ? sourcesPanelWidthRef.current
+        : workspacePanelDefaultWidthPx
     if (containerWidth <= 0) {
-      setIsSourcesPanelCollapsed(false)
-      setSourcesPanelWidthPx(workspacePanelDefaultWidthPx)
+      sourcesPanelCollapsedRef.current = false
+      sourcesPanelWidthRef.current = preferredWidth
+      syncWorkspacePanelGridFromRefs({
+        sourcesCollapsed: false,
+        sourcesWidth: preferredWidth,
+      })
+      schedulePanelLayoutReactCommit()
       return
     }
 
@@ -968,22 +1055,37 @@ export function NotebookWorkspacePage() {
     }
 
     const nextWidth = Math.round(
-      clampNumber(
-        Math.max(sourcesPanelWidthRef.current, workspacePanelDefaultWidthPx),
-        leftBounds.minWidth,
-        leftBounds.maxWidth,
-      ),
+      clampNumber(preferredWidth, leftBounds.minWidth, leftBounds.maxWidth),
     )
-    setIsSourcesPanelCollapsed(false)
-    setSourcesPanelWidthPx(nextWidth)
-  }, [getLeftPanelWidthBounds, workspaceContainerWidthPx])
+    sourcesPanelCollapsedRef.current = false
+    sourcesPanelWidthRef.current = nextWidth
+    syncWorkspacePanelGridFromRefs({
+      sourcesCollapsed: false,
+      sourcesWidth: nextWidth,
+    })
+    schedulePanelLayoutReactCommit()
+  }, [
+    getLeftPanelWidthBounds,
+    schedulePanelLayoutReactCommit,
+    syncWorkspacePanelGridFromRefs,
+    workspaceContainerWidthPx,
+  ])
 
   const handleExpandInsightsPanel = useCallback(() => {
     const containerWidth =
       workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
+    const preferredWidth =
+      insightsPanelWidthRef.current > 0
+        ? insightsPanelWidthRef.current
+        : workspacePanelDefaultWidthPx
     if (containerWidth <= 0) {
-      setIsInsightsPanelCollapsed(false)
-      setInsightsPanelWidthPx(workspacePanelDefaultWidthPx)
+      insightsPanelCollapsedRef.current = false
+      insightsPanelWidthRef.current = preferredWidth
+      syncWorkspacePanelGridFromRefs({
+        insightsCollapsed: false,
+        insightsWidth: preferredWidth,
+      })
+      schedulePanelLayoutReactCommit()
       return
     }
 
@@ -997,15 +1099,21 @@ export function NotebookWorkspacePage() {
     }
 
     const nextWidth = Math.round(
-      clampNumber(
-        Math.max(insightsPanelWidthRef.current, workspacePanelDefaultWidthPx),
-        rightBounds.minWidth,
-        rightBounds.maxWidth,
-      ),
+      clampNumber(preferredWidth, rightBounds.minWidth, rightBounds.maxWidth),
     )
-    setIsInsightsPanelCollapsed(false)
-    setInsightsPanelWidthPx(nextWidth)
-  }, [getRightPanelWidthBounds, workspaceContainerWidthPx])
+    insightsPanelCollapsedRef.current = false
+    insightsPanelWidthRef.current = nextWidth
+    syncWorkspacePanelGridFromRefs({
+      insightsCollapsed: false,
+      insightsWidth: nextWidth,
+    })
+    schedulePanelLayoutReactCommit()
+  }, [
+    getRightPanelWidthBounds,
+    schedulePanelLayoutReactCommit,
+    syncWorkspacePanelGridFromRefs,
+    workspaceContainerWidthPx,
+  ])
 
   const handleOpenCitationJump = useCallback((request: ChatCitationJumpRequest) => {
     handleExpandSourcesPanel()
@@ -1087,13 +1195,13 @@ export function NotebookWorkspacePage() {
             collapsed={isSourcesPanelCollapsed}
             isBusy={isBusy}
             isHydrating={isHydratingSources}
-            isPanelResizing={Boolean(activeResizeSide)}
+            isPanelResizing={Boolean(activeResizeSide) || isPanelLayoutAnimating}
             loadingSkeletonCount={notebookQuery.data?.source_count ?? 0}
             sourceListItems={sourceListItems}
             removingMap={removingSourceIds}
             allSourcesChecked={allSourcesChecked}
             someSourcesChecked={someSourcesChecked}
-            onCollapse={() => setIsSourcesPanelCollapsed(true)}
+            onCollapse={handleCollapseSourcesPanel}
             onCreateFile={handleCreateFileSources}
             onCreateUrl={(url) => handleCreateSimpleSource('url', url)}
             onCreateText={(text) => handleCreateSimpleSource('text', text)}
@@ -1182,31 +1290,24 @@ export function NotebookWorkspacePage() {
 
           <Box
             sx={{
-              width: { xs: '100%', md: isInsightsPanelCollapsed ? 0 : '100%' },
+              // 列宽由 grid CSS 变量驱动；勿再叠 width/transform，避免与 grid 过渡双重重排
+              width: '100%',
               height: '100%',
               minWidth: 0,
               overflow: 'hidden',
-              transition: workspacePanelWidthTransition,
-              ...(activeResizeSide ? { transition: 'none' } : null),
+              contain: 'layout paint',
+              pointerEvents: {
+                xs: 'auto',
+                md: isInsightsPanelCollapsed ? 'none' : 'auto',
+              },
             }}
           >
-            <Box
-              sx={{
-                width: '100%',
-                height: '100%',
-                opacity: { xs: 1, md: isInsightsPanelCollapsed ? 0 : 1 },
-                transform: { xs: 'translateX(0)', md: isInsightsPanelCollapsed ? 'translateX(100%)' : 'translateX(0)' },
-                transition: activeResizeSide ? 'none' : workspacePanelContentTransition,
-                pointerEvents: { xs: 'auto', md: isInsightsPanelCollapsed ? 'none' : 'auto' },
-              }}
-            >
-              <StudioPanel
-                notebookId={id}
-                selectedSourceIds={selectedSourceIdList}
-                readySourceIds={readySourceIdList}
-                onCollapse={() => setIsInsightsPanelCollapsed(true)}
-              />
-            </Box>
+            <StudioPanel
+              notebookId={id}
+              selectedSourceIds={selectedSourceIdList}
+              readySourceIds={readySourceIdList}
+              onCollapse={handleCollapseInsightsPanel}
+            />
           </Box>
         </Box>
       </Box>

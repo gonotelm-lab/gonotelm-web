@@ -56,4 +56,13 @@ describe('resolveStudioPreviewEntryMode', () => {
       }),
     ).toBe('overlay')
   })
+
+  it('routes completed data_table to inline mode', () => {
+    expect(
+      resolveStudioPreviewEntryMode({
+        kind: 'data_table',
+        status: 'completed',
+      }),
+    ).toBe('inline')
+  })
 })

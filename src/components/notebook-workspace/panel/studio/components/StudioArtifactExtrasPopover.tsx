@@ -132,6 +132,12 @@ function resolveExtrasEntries(artifact: StudioArtifactItem): ExtrasEntry[] {
         { label: '附加提示', value: e.tip?.trim() || '—' },
       ]
     }
+    case 'data_table': {
+      const e = extras as { tip?: string }
+      return [
+        { label: '附加提示', value: e.tip?.trim() || '—' },
+      ]
+    }
   }
   return []
 }
