@@ -23,6 +23,7 @@ import type {
   GenerateReportParameters,
 } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
+import { workspaceLayout, workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactInlinePreview } from './components/StudioArtifactInlinePreview'
@@ -57,8 +58,8 @@ interface StudioPanelProps {
 
 const studioPanelTitle = '工作区'
 const studioListDividerSpacing = {
-  mt: 1.2,
-  mb: 0.8,
+  mt: workspaceSpace.md,
+  mb: workspaceSpace.sm,
 }
 
 export function StudioPanel({
@@ -368,7 +369,7 @@ export function StudioPanel({
           mt: panelTitleToBodySpacing,
           display: 'grid',
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: 1,
+          gap: workspaceLayout.listRowGap,
         }}
       >
         {studioToolCatalog.map((tool) => {
@@ -414,14 +415,14 @@ export function StudioPanel({
         </Tooltip>
       </Stack>
       {historyError ? (
-        <Alert severity="error" sx={{ mt: 0.9, py: 0.25 }}>
+        <Alert severity="error" sx={{ mt: workspaceSpace.sm, py: workspaceSpace.xxs }}>
           {historyError}
         </Alert>
       ) : null}
 
       <Box
         sx={(theme) => ({
-          mt: 1,
+          mt: workspaceSpace.sm,
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
@@ -441,7 +442,7 @@ export function StudioPanel({
             </Typography>
           </Stack>
         ) : (
-          <Stack spacing={0.8} sx={{ pr: 0.3 }}>
+          <Stack spacing={workspaceLayout.listRowGap} sx={{ pr: workspaceSpace.xxs }}>
             {artifactItems.map((item) => (
               <StudioArtifactListItem
                 key={item.id}
@@ -501,7 +502,8 @@ export function StudioPanel({
     <Paper
       variant="outlined"
       sx={{
-        p: 2,
+        px: workspaceLayout.panelPaddingX,
+        py: workspaceLayout.panelPaddingY,
         height: '100%',
         minHeight: 0,
         display: 'flex',
@@ -607,9 +609,9 @@ export function StudioPanel({
               <Paper
                 elevation={2}
                 sx={{
-                  px: 1.5,
-                  py: 0.6,
-                  borderRadius: 1.5,
+                  px: workspaceSpace.md,
+                  py: workspaceSpace.xxs,
+                  borderRadius: workspaceRadius.md,
                   border: '1px solid',
                   borderColor: 'primary.main',
                   bgcolor: 'primary.dark',

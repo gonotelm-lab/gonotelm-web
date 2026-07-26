@@ -12,7 +12,12 @@ import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
-import { FlowLoadingOverlay, workspaceTransitionPresets } from '@/components/notebook-workspace/shared'
+import {
+  FlowLoadingOverlay,
+  workspaceLayout,
+  workspaceSpace,
+  workspaceTransitionPresets,
+} from '@/components/notebook-workspace/shared'
 import {
   isStudioTaskCompleted,
   isStudioTaskRetryable,
@@ -118,12 +123,17 @@ export function StudioArtifactListItem({
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {
     minHeight: 34,
-    px: 1.25,
+    px: workspaceSpace.md,
     display: 'flex',
     alignItems: 'center',
   }
   const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
-  const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
+  const actionMenuTextSx = {
+    fontSize: 12.5,
+    lineHeight: 1.2,
+    ml: 'auto',
+    pl: workspaceSpace.md,
+  }
 
   return (
     <Paper
@@ -134,10 +144,10 @@ export function StudioArtifactListItem({
           return {
             position: 'relative',
             overflow: 'hidden',
-            p: 1.1,
+            p: workspaceSpace.md,
             cursor: canPreview ? 'pointer' : 'default',
             bgcolor: 'background.paper',
-            transition: workspaceTransitionPresets.borderBg,
+            transition: workspaceTransitionPresets.interactiveColorBorder,
             borderColor: statusTone.border,
             '&:hover': {
               borderColor: statusTone.accent,
@@ -183,7 +193,11 @@ export function StudioArtifactListItem({
       <Stack sx={{ position: 'relative', zIndex: 1 }}>
         <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Stack sx={{ minWidth: 0, flex: 1 }}>
-            <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={workspaceLayout.listInlineGap}
+              sx={{ alignItems: 'center', minWidth: 0 }}
+            >
               <KindIcon
                 sx={(theme) => {
                   const statusTone = resolveArtifactStatusTone(visualStatus, theme)
@@ -207,8 +221,9 @@ export function StudioArtifactListItem({
               noWrap
               sx={() => {
                 return {
-                  mt: 0.25,
-                  ml: 3.15,
+                  mt: workspaceSpace.xxs,
+                  // Align under title text: 17px icon + listInlineGap.
+                  ml: `calc(17px + ${workspaceLayout.listInlineGap * 8}px)`,
                   display: 'block',
                   color: isCancelled ? 'text.disabled' : 'text.secondary',
                 }
@@ -217,7 +232,11 @@ export function StudioArtifactListItem({
               {itemMetaLabel}
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={0.55} sx={{ alignItems: 'center', flexShrink: 0, ml: 0.6 }}>
+          <Stack
+            direction="row"
+            spacing={workspaceSpace.xxs}
+            sx={{ alignItems: 'center', flexShrink: 0, ml: workspaceSpace.xxs }}
+          >
             <Tooltip title="更多操作">
               <span>
                 <IconButton

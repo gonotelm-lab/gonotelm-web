@@ -11,6 +11,11 @@ import {
   Typography,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
+import {
+  workspaceLayout,
+  workspaceRadius,
+  workspaceSpace,
+} from '../../../shared/ui/layoutTokens'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
@@ -140,7 +145,7 @@ export function StudioArtifactPreviewOverlay({
             maxWidth: 'none',
             maxHeight: 'calc(100dvh - 32px)',
             m: 0,
-            borderRadius: 1.6,
+            borderRadius: workspaceRadius.lg,
             border: 'none',
             boxShadow: 'none',
             overflow: 'hidden',
@@ -154,8 +159,8 @@ export function StudioArtifactPreviewOverlay({
         <Stack
           direction="row"
           sx={{
-            px: 2.2,
-            py: 1.3,
+            px: workspaceLayout.panelPaddingY,
+            py: workspaceSpace.md,
             borderBottom: 1,
             borderColor: 'divider',
             justifyContent: 'space-between',
@@ -169,13 +174,17 @@ export function StudioArtifactPreviewOverlay({
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ mt: 0.25, display: 'block' }}
+              sx={{ mt: workspaceSpace.xxs, display: 'block' }}
               noWrap
             >
               {subtitle}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center', flexShrink: 0, ml: 1.2 }}>
+          <Stack
+            direction="row"
+            spacing={workspaceSpace.sm}
+            sx={{ alignItems: 'center', flexShrink: 0, ml: workspaceSpace.md }}
+          >
             {artifact && (
               <StudioArtifactExtrasPopover
                 artifact={artifact}
@@ -205,8 +214,8 @@ export function StudioArtifactPreviewOverlay({
           ...(isMindmapArtifact || isInfographicArtifact
             ? { p: 0 }
             : isReportArtifact
-              ? { px: 5, py: 1.4 }
-              : { p: 1.4 }),
+              ? { px: workspaceSpace.xl, py: workspaceSpace.md }
+              : { p: workspaceSpace.md }),
           }}
         >
           {loading ? (
@@ -216,7 +225,7 @@ export function StudioArtifactPreviewOverlay({
               </Typography>
             </Stack>
           ) : error ? (
-            <Stack spacing={1.2} sx={{ maxWidth: 840 }}>
+            <Stack spacing={workspaceLayout.listRowGap} sx={{ maxWidth: 840 }}>
               <Alert severity="error">{error}</Alert>
               <Box>
                 <Button size="small" variant="outlined" onClick={onRetryLoad}>

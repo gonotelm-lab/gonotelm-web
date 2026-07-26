@@ -7,6 +7,7 @@ import { FlashcardViewer } from '../components/FlashcardViewer'
 import { MindmapCanvas } from '../components/MindmapCanvas'
 import { QuizViewer } from '../components/QuizViewer'
 import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
+import { workspaceSpace } from '../../../shared/ui/layoutTokens'
 
 export type StudioArtifactPreviewMode = 'inline' | 'overlay'
 
@@ -25,7 +26,7 @@ const renderFallbackPreview = (content: string) => (
   <Paper
     variant="outlined"
     sx={{
-      p: 1.2,
+      p: workspaceSpace.md,
       borderStyle: 'dashed',
       bgcolor: 'background.default',
       borderColor: 'divider',
@@ -134,8 +135,8 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          px: 2,
-          py: 2,
+          px: workspaceSpace.lg,
+          py: workspaceSpace.lg,
           boxSizing: 'border-box',
         }}
       >
@@ -145,7 +146,7 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
   },
   quiz: {
     renderOverlay: ({ content, mode }) => (
-      <Box sx={{ width: '100%', height: '100%', minHeight: 0, px: 2, py: 2, boxSizing: 'border-box' }}>
+      <Box sx={{ width: '100%', height: '100%', minHeight: 0, px: workspaceSpace.lg, py: workspaceSpace.lg, boxSizing: 'border-box' }}>
         <QuizViewer content={content} mode={mode} />
       </Box>
     ),

@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
+import { workspaceSpace } from '../../../shared/ui/layoutTokens'
 import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
@@ -55,11 +56,19 @@ export function StudioArtifactInlinePreview({
           <Typography variant="h5" sx={{ fontWeight: 600 }} noWrap>
             {artifact.title}
           </Typography>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 0.55 }}>
+          <Typography
+            variant="subtitle2"
+            color="text.secondary"
+            sx={{ mt: workspaceSpace.xxs }}
+          >
             基于 {sourceCount} 个来源
           </Typography>
         </Box>
-        <Stack direction="row" spacing={0.35} sx={{ ml: 1, alignItems: 'center', flexShrink: 0 }}>
+        <Stack
+          direction="row"
+          spacing={workspaceSpace.xxs}
+          sx={{ ml: workspaceSpace.sm, alignItems: 'center', flexShrink: 0 }}
+        >
           <StudioArtifactExtrasPopover
             artifact={artifact}
             iconSx={inlinePreviewActionIconButtonSx}
@@ -96,7 +105,7 @@ export function StudioArtifactInlinePreview({
 
       <Box
         sx={{
-          mt: 1.2,
+          mt: workspaceSpace.md,
           flex: 1,
           minHeight: 0,
           overflow: isMindmapArtifact || isFlashcardArtifact ? 'hidden' : 'auto',

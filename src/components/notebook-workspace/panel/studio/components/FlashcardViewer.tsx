@@ -12,6 +12,9 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceInteraction } from '../../../shared/ui/motionTokens'
+
 export interface FlashcardCard {
   front: string
   back: string
@@ -51,9 +54,9 @@ const cardFaceSx = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  px: { xs: 2.5, sm: 4 },
-  py: { xs: 2.5, sm: 4 },
-  borderRadius: 2,
+  px: { xs: workspaceSpace.lg, sm: workspaceSpace.xl },
+  py: { xs: workspaceSpace.lg, sm: workspaceSpace.xl },
+  borderRadius: workspaceRadius.lg,
   border: '1px solid',
   borderColor: 'divider',
   overflow: 'auto',
@@ -127,7 +130,7 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
         width: '100%',
         height: '100%',
         minHeight: 0,
-        gap: 1.5,
+        gap: workspaceSpace.md,
         alignItems: isOverlay ? 'center' : 'stretch',
         justifyContent: isOverlay ? 'center' : 'flex-start',
       }}
@@ -165,7 +168,7 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
               position: 'relative',
               width: '100%',
               height: '100%',
-              cursor: 'pointer',
+              cursor: workspaceInteraction.cursorPointer,
               userSelect: 'none',
               outline: 'none',
               transformStyle: 'preserve-3d',
@@ -177,7 +180,7 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
                 : 'rotateY(0deg)',
               '&:focus-visible': {
                 boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}33`,
-                borderRadius: 2,
+                borderRadius: workspaceRadius.lg,
               },
             }}
           >
@@ -271,7 +274,7 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
                   paper: {
                     sx: {
                       maxWidth: 320,
-                      p: 1.5,
+                      p: workspaceSpace.md,
                     },
                   },
                 }}

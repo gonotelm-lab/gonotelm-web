@@ -9,6 +9,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import type { StudioArtifactItem } from '../types'
 
 interface StudioArtifactExtrasPopoverProps {
@@ -176,14 +177,14 @@ export const StudioArtifactExtrasPopover = memo(function StudioArtifactExtrasPop
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         slotProps={{
           paper: {
-            sx: { maxWidth: 360, p: 1.5, mt: 0.5 },
+            sx: { maxWidth: 360, p: workspaceSpace.md, mt: workspaceSpace.xxs, borderRadius: workspaceRadius.lg },
           },
         }}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: workspaceSpace.sm }}>
           生成参数
         </Typography>
-        <Stack spacing={0.75}>
+        <Stack spacing={workspaceSpace.sm}>
           {entries.map((entry) => (
             <Stack
               key={entry.label}
@@ -213,7 +214,7 @@ export const StudioArtifactExtrasPopover = memo(function StudioArtifactExtrasPop
                       label={entry.value}
                       size="small"
                       variant="outlined"
-                      sx={{ height: 22, '& .MuiChip-label': { px: 0.8, fontSize: 12 } }}
+                      sx={{ height: 22, borderRadius: workspaceRadius.sm, '& .MuiChip-label': { px: workspaceSpace.sm, fontSize: 12 } }}
                     />
                   )}
                 </Box>

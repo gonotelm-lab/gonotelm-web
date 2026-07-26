@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 
 export interface QuizQuestion {
   question: string
@@ -126,14 +127,14 @@ export function QuizViewer({ content }: QuizViewerProps) {
 
   if (phase === 'summary') {
     return (
-      <Stack sx={{ height: '100%', minHeight: 0, gap: 2, overflow: 'auto', p: 0.5 }}>
+      <Stack sx={{ height: '100%', minHeight: 0, gap: workspaceSpace.lg, overflow: 'auto', p: workspaceSpace.xxs }}>
         <Box
           sx={{
-            borderRadius: 2,
+            borderRadius: workspaceRadius.lg,
             border: '1px solid',
             borderColor: 'divider',
             bgcolor: 'background.default',
-            p: 2.5,
+            p: workspaceSpace.lg,
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 650 }}>
@@ -149,7 +150,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
             本题组覆盖主题
           </Typography>
-          <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
+          <Stack direction="row" spacing={workspaceSpace.sm} useFlexGap sx={{ flexWrap: 'wrap' }}>
             {(parsed.themes || []).map((theme) => (
               <Chip key={theme} size="small" label={theme} />
             ))}
@@ -160,7 +161,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
             后续学习建议
           </Typography>
-          <Stack spacing={0.75}>
+          <Stack spacing={workspaceSpace.sm}>
             {(parsed.follow_up_hint || []).map((hint) => (
               <Typography key={hint} variant="body2" color="text.secondary">
                 · {hint}
@@ -194,12 +195,12 @@ export function QuizViewer({ content }: QuizViewerProps) {
         minHeight: 0,
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: '200px 1fr' },
-        gap: 1.5,
+        gap: workspaceSpace.md,
       }}
     >
       <Box
         sx={{
-          borderRadius: 2,
+          borderRadius: workspaceRadius.lg,
           border: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.default',
@@ -207,12 +208,12 @@ export function QuizViewer({ content }: QuizViewerProps) {
           overflow: 'auto',
         }}
       >
-        <Typography variant="caption" color="text.secondary" sx={{ px: 1.5, pt: 1.25, display: 'block' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ px: workspaceSpace.md, pt: workspaceSpace.md, display: 'block' }}>
           {isReview
             ? `复盘 · 正确 ${correctCount}/${total}`
             : `题目列表 · 已答 ${answeredCount}/${total}`}
         </Typography>
-        <List dense disablePadding sx={{ py: 0.5 }}>
+        <List dense disablePadding sx={{ py: workspaceSpace.xxs }}>
           {parsed.questions.map((item, idx) => {
             const answered = (answers[idx] || []).length > 0
             const multi = (item.answer_index?.length || 0) > 1
@@ -251,12 +252,12 @@ export function QuizViewer({ content }: QuizViewerProps) {
       <Stack
         sx={{
           minHeight: 0,
-          borderRadius: 2,
+          borderRadius: workspaceRadius.lg,
           border: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
           p: 2,
-          gap: 1.5,
+          gap: workspaceSpace.md,
           overflow: 'auto',
         }}
       >
@@ -328,9 +329,9 @@ export function QuizViewer({ content }: QuizViewerProps) {
                     bgcolor = alpha(theme.palette.error.main, 0.1)
                   }
                   return {
-                    px: 1.5,
-                    py: 1.25,
-                    borderRadius: 1.5,
+                    px: workspaceSpace.md,
+                    py: workspaceSpace.md,
+                    borderRadius: workspaceRadius.md,
                     border: '1px solid',
                     borderColor,
                     bgcolor,
@@ -360,12 +361,12 @@ export function QuizViewer({ content }: QuizViewerProps) {
         {isReview ? (
           <Box
             sx={{
-              borderRadius: 1.5,
+              borderRadius: workspaceRadius.md,
               border: '1px solid',
               borderColor: 'divider',
               bgcolor: 'background.default',
-              px: 1.5,
-              py: 1.25,
+              px: workspaceSpace.md,
+              py: workspaceSpace.md,
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 650, mb: 0.75 }}>
@@ -380,7 +381,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
             <Typography
               variant="body2"
               sx={{
-                mt: 0.75,
+                mt: workspaceSpace.sm,
                 color: isCurrentCorrect ? 'success.main' : 'error.main',
                 fontWeight: 600,
               }}

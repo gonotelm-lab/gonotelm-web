@@ -4,7 +4,8 @@ import HourglassBottomRoundedIcon from '@mui/icons-material/HourglassBottomRound
 import { alpha } from '@mui/material/styles'
 import { Box, ButtonBase, Stack, Tooltip, Typography } from '@mui/material'
 import type { StudioToolDefinition } from '../types'
-import { workspaceMotion } from '../../../shared/ui/motionTokens'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceInteraction, workspaceMotion } from '../../../shared/ui/motionTokens'
 
 interface StudioToolCardProps {
   tool: StudioToolDefinition
@@ -45,17 +46,17 @@ export function StudioToolCard({
           sx={{
             display: 'block',
             width: '100%',
-            borderRadius: 1.5,
+            borderRadius: workspaceRadius.md,
             textAlign: 'left',
           }}
         >
           <Box
             sx={(theme) => ({
               width: '100%',
-              p: 1,
+              p: workspaceSpace.sm,
               border: '1px solid',
               borderColor: selected ? 'primary.main' : 'divider',
-              borderRadius: 1.5,
+              borderRadius: workspaceRadius.md,
               opacity: disabled && !pending ? 0.62 : 1,
               bgcolor:
                 selected
@@ -71,7 +72,7 @@ export function StudioToolCard({
               boxShadow: selected ? `0 0 0 1px ${alpha(theme.palette.primary.main, 0.1)}` : 'none',
               ...(interactive
                 ? {
-                    cursor: 'pointer',
+                    cursor: workspaceInteraction.cursorPointer,
                     '&:hover': {
                       borderColor: 'primary.main',
                       bgcolor: alpha(theme.palette.primary.main, 0.08),
@@ -86,7 +87,11 @@ export function StudioToolCard({
             })}
           >
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minWidth: 0 }}>
+              <Stack
+                direction="row"
+                spacing={workspaceSpace.sm}
+                sx={{ alignItems: 'center', minWidth: 0 }}
+              >
                 <Box
                   sx={{
                     width: 20,
@@ -142,7 +147,7 @@ export function StudioToolCard({
                       alignItems: 'center',
                       justifyContent: 'center',
                       borderRadius: '50%',
-                      cursor: 'pointer',
+                      cursor: workspaceInteraction.cursorPointer,
                       color: 'text.secondary',
                       '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
                       '&:focus-visible': {
