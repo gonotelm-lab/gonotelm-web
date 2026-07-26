@@ -104,7 +104,7 @@ export function StudioArtifactPreviewOverlay({
       ? 'mmd'
       : artifact.kind === 'report'
         ? 'md'
-        : artifact.kind === 'flashcard'
+        : artifact.kind === 'flashcard' || artifact.kind === 'quiz'
           ? 'json'
           : 'txt'
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })

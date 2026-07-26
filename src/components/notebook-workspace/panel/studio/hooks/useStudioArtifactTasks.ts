@@ -19,6 +19,7 @@ import type {
   GenerateInfoGraphicParameters,
   GenerateAudioOverviewParameters,
   GenerateFlashcardParameters,
+  GenerateQuizParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -35,6 +36,7 @@ import { buildReportRequestParams } from '../reportSettings'
 import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
 import { buildAudioOverviewRequestParams } from '../audioOverviewSettings'
 import { buildFlashcardRequestParams } from '../flashcardSettings'
+import { buildQuizRequestParams } from '../quizSettings'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
@@ -80,6 +82,7 @@ const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => {
   if (kind === 'info_graphic') return 'info_graphic'
   if (kind === 'audio_overview') return 'audio_overview'
   if (kind === 'flashcard') return 'flashcard'
+  if (kind === 'quiz') return 'quiz'
   return 'mindmap'
 }
 
@@ -88,6 +91,7 @@ const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActi
   if (kind === 'info_graphic') return 'generate-info_graphic'
   if (kind === 'audio_overview') return 'generate-audio_overview'
   if (kind === 'flashcard') return 'generate-flashcard'
+  if (kind === 'quiz') return 'generate-quiz'
   return 'generate-mindmap'
 }
 
@@ -96,6 +100,7 @@ const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => {
   if (kind === 'info_graphic') return '信息图'
   if (kind === 'audio_overview') return '音频概览'
   if (kind === 'flashcard') return '闪卡'
+  if (kind === 'quiz') return '测验'
   return '思维导图'
 }
 
@@ -115,6 +120,7 @@ const buildLocalExtras = (
   infoGraphic?: GenerateInfoGraphicParameters,
   audioOverview?: GenerateAudioOverviewParameters,
   flashcard?: GenerateFlashcardParameters,
+  quiz?: GenerateQuizParameters,
 ): StudioArtifactItem['extras'] => {
   switch (kind) {
     case 'mindmap':
@@ -144,6 +150,12 @@ const buildLocalExtras = (
         count: flashcard?.count,
         difficulty: flashcard?.difficulty,
         tip: flashcard?.tip,
+      }
+    case 'quiz':
+      return {
+        count: quiz?.count,
+        difficulty: quiz?.difficulty,
+        tip: quiz?.tip,
       }
   }
   return undefined
@@ -195,6 +207,7 @@ interface SubmitStudioArtifactTaskParams {
   infoGraphic?: GenerateInfoGraphicParameters
   audioOverview?: GenerateAudioOverviewParameters
   flashcard?: GenerateFlashcardParameters
+  quiz?: GenerateQuizParameters
 }
 
 export function useStudioArtifactTasks({
@@ -450,11 +463,12 @@ export function useStudioArtifactTasks({
       infoGraphic,
       audioOverview,
       flashcard,
+      quiz,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
       }
-      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview, flashcard)
+      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview, flashcard, quiz)
       const localId = createLocalArtifactId()
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
       setArtifactItems((prev) => [
@@ -496,6 +510,9 @@ export function useStudioArtifactTasks({
             : {}),
           ...(kind === 'flashcard'
             ? { flashcard: buildFlashcardRequestParams(flashcard) }
+            : {}),
+          ...(kind === 'quiz'
+            ? { quiz: buildQuizRequestParams(quiz) }
             : {}),
         })
 

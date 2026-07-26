@@ -47,4 +47,13 @@ describe('resolveStudioPreviewEntryMode', () => {
       }),
     ).toBe('overlay')
   })
+
+  it('routes completed quiz to overlay mode', () => {
+    expect(
+      resolveStudioPreviewEntryMode({
+        kind: 'quiz',
+        status: 'completed',
+      }),
+    ).toBe('overlay')
+  })
 })

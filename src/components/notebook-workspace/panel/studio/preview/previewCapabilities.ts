@@ -31,6 +31,10 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     inline: true,
     overlay: true,
   },
+  quiz: {
+    inline: false,
+    overlay: true,
+  },
 }
 
 export const getStudioArtifactPreviewCapability = (

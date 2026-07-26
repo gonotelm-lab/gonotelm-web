@@ -60,9 +60,12 @@ export const studioToolCatalog: StudioToolDefinition[] = [
   {
     id: 'quiz',
     title: '测验',
-    description: '即将支持',
+    description: '基于勾选来源生成测验',
     icon: QuizRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-quiz',
+    artifactKind: 'quiz',
+    hasAdvancedConfig: true,
   },
   {
     id: 'info_graphic',

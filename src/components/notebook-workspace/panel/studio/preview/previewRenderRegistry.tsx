@@ -5,6 +5,7 @@ import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
 import { FlashcardViewer } from '../components/FlashcardViewer'
 import { MindmapCanvas } from '../components/MindmapCanvas'
+import { QuizViewer } from '../components/QuizViewer'
 import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
 
 export type StudioArtifactPreviewMode = 'inline' | 'overlay'
@@ -139,6 +140,13 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
         }}
       >
         <FlashcardViewer content={content} mode={mode} />
+      </Box>
+    ),
+  },
+  quiz: {
+    renderOverlay: ({ content, mode }) => (
+      <Box sx={{ width: '100%', height: '100%', minHeight: 0, px: 2, py: 2, boxSizing: 'border-box' }}>
+        <QuizViewer content={content} mode={mode} />
       </Box>
     ),
   },

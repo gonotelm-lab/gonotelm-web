@@ -109,7 +109,8 @@ function resolveExtrasEntries(artifact: StudioArtifactItem): ExtrasEntry[] {
         { label: '附加提示', value: e.tip?.trim() || '—' },
       ]
     }
-    case 'flashcard': {
+    case 'flashcard':
+    case 'quiz': {
       const e = extras as {
         count?: string
         difficulty?: string

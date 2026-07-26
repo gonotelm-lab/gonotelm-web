@@ -7,6 +7,7 @@ import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
+import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
@@ -107,7 +108,9 @@ export function StudioArtifactListItem({
         ? GraphicEqRoundedIcon
         : item.kind === 'flashcard'
           ? StyleRoundedIcon
-          : AccountTreeRoundedIcon
+          : item.kind === 'quiz'
+            ? QuizRoundedIcon
+            : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {

@@ -16,6 +16,7 @@ import type {
   GenerateFlashcardParameters,
   GenerateInfoGraphicParameters,
   GenerateMindmapParameters,
+  GenerateQuizParameters,
   GenerateReportParameters,
 } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
@@ -28,11 +29,13 @@ import { AudioOverviewSettingsDialog } from './AudioOverviewSettingsDialog'
 import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
 import { FlashcardSettingsDialog } from './FlashcardSettingsDialog'
 import { MindmapSettingsDialog } from './MindmapSettingsDialog'
+import { QuizSettingsDialog } from './QuizSettingsDialog'
 import { ReportSettingsDialog } from './ReportSettingsDialog'
 import { defaultAudioOverviewParameters } from './audioOverviewSettings'
 import { defaultFlashcardParameters } from './flashcardSettings'
 import { defaultInfoGraphicParameters } from './infoGraphicSettings'
 import { defaultMindmapParameters } from './mindmapSettings'
+import { defaultQuizParameters } from './quizSettings'
 import { defaultReportParameters } from './reportSettings'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
@@ -115,6 +118,11 @@ export function StudioPanel({
   const [flashcardDialogKey, setFlashcardDialogKey] = useState(0)
   const [flashcardParams, setFlashcardParams] = useState<GenerateFlashcardParameters>(
     defaultFlashcardParameters,
+  )
+  const [quizDialogOpen, setQuizDialogOpen] = useState(false)
+  const [quizDialogKey, setQuizDialogKey] = useState(0)
+  const [quizParams, setQuizParams] = useState<GenerateQuizParameters>(
+    defaultQuizParameters,
   )
 
   const handleCreateMindmap = useCallback((params?: GenerateMindmapParameters) => {
@@ -207,6 +215,24 @@ export function StudioPanel({
     setFlashcardDialogOpen(false)
   }, [canSubmitArtifactTask, flashcardParams, selectedReadySourceIds, submitArtifactTask])
 
+  const handleCreateQuiz = useCallback((params?: GenerateQuizParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    const submitParams = params ?? quizParams
+    if (params) {
+      setQuizParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'quiz',
+      sourceIds: selectedReadySourceIds,
+      title: '测验',
+      actionId: 'generate-quiz',
+      quiz: submitParams,
+    })
+    setQuizDialogOpen(false)
+  }, [canSubmitArtifactTask, quizParams, selectedReadySourceIds, submitArtifactTask])
+
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)
   }, [])
@@ -252,12 +278,22 @@ export function StudioPanel({
     setFlashcardDialogOpen(false)
   }, [])
 
+  const handleOpenQuizDialog = useCallback(() => {
+    setQuizDialogKey((prev) => prev + 1)
+    setQuizDialogOpen(true)
+  }, [])
+
+  const handleCloseQuizDialog = useCallback(() => {
+    setQuizDialogOpen(false)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': () => handleCreateMindmap(),
     'generate-report': () => handleCreateReport(),
     'generate-info_graphic': () => handleCreateInfoGraphic(),
     'generate-audio_overview': () => handleCreateAudioOverview(),
     'generate-flashcard': () => handleCreateFlashcard(),
+    'generate-quiz': () => handleCreateQuiz(),
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
@@ -266,6 +302,7 @@ export function StudioPanel({
     'generate-info_graphic': handleOpenInfoGraphicDialog,
     'generate-audio_overview': handleOpenAudioOverviewDialog,
     'generate-flashcard': handleOpenFlashcardDialog,
+    'generate-quiz': handleOpenQuizDialog,
   }
 
   const primaryContent = (
@@ -399,6 +436,7 @@ export function StudioPanel({
           info_graphic: '信息图',
           audio_overview: '音频概览',
           flashcard: '闪卡',
+          quiz: '测验',
         }[previewTarget.kind] || previewTarget.kind,
         content: (
           <StudioArtifactInlinePreview
@@ -484,6 +522,14 @@ export function StudioPanel({
         initialParams={flashcardParams}
         onClose={handleCloseFlashcardDialog}
         onGenerate={handleCreateFlashcard}
+      />
+
+      <QuizSettingsDialog
+        key={quizDialogKey}
+        open={quizDialogOpen}
+        initialParams={quizParams}
+        onClose={handleCloseQuizDialog}
+        onGenerate={handleCreateQuiz}
       />
     </Paper>
   )

@@ -31,6 +31,13 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
+  it('returns overlay-only preview capability for quiz', () => {
+    expect(getStudioArtifactPreviewCapability('quiz')).toEqual({
+      inline: false,
+      overlay: true,
+    })
+  })
+
   it('falls back to overlay-only for unknown kinds', () => {
     expect(getStudioArtifactPreviewCapability('unknown-kind' as StudioArtifactKind)).toEqual({
       inline: false,

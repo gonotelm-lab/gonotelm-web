@@ -4,6 +4,7 @@ import type {
   FlashcardArtifactExtras,
   InfoGraphicArtifactExtras,
   MindmapArtifactExtras,
+  QuizArtifactExtras,
   ReportArtifactExtras,
   StudioArtifactContentKind,
   StudioArtifactKind,
@@ -16,6 +17,7 @@ export type StudioArtifactExtras =
   | InfoGraphicArtifactExtras
   | AudioOverviewArtifactExtras
   | FlashcardArtifactExtras
+  | QuizArtifactExtras
 
 export type StudioToolActionId =
   | 'generate-mindmap'
@@ -23,6 +25,7 @@ export type StudioToolActionId =
   | 'generate-info_graphic'
   | 'generate-audio_overview'
   | 'generate-flashcard'
+  | 'generate-quiz'
 
 export type StudioToolAvailability = 'available' | 'coming-soon'
 
