@@ -44,9 +44,18 @@ import {
   workspaceTransitionPresets,
 } from '../../../shared/ui/motionTokens'
 import { workspaceIconSize, workspaceType } from '../../../shared/ui/typeTokens'
+import {
+  sourceListRowHeightPx,
+  sourceSelectionColumnWidthPx,
+  sourceTypeIconBoxPx,
+} from '../sourceListLayout'
 
 const sourceTitleMaxChars = 64
-const sourceExitTransition = `opacity ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, transform ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, max-height ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, padding ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, margin ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}`
+const sourceExitTransition =
+  `opacity ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, ` +
+  `transform ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, ` +
+  `height ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, ` +
+  `margin ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}`
 const sourceTypeIconSx = (theme: Theme) => ({
   color: theme.workspacePalette?.source?.typeIcon ?? 'text.secondary',
   fontSize: workspaceIconSize.md,
@@ -68,7 +77,7 @@ interface SourceListRowProps {
 
 export function SourceListRow({
   item,
-  selectionColumnWidth = 22,
+  selectionColumnWidth = sourceSelectionColumnWidthPx,
   checked,
   removing,
   isBusy,
@@ -235,16 +244,19 @@ export function SourceListRow({
     <Box
       onClick={handleToggleRow}
       sx={{
-        my: removing ? 0 : workspaceSpace.xxs,
-        py: removing ? 0 : workspaceSpace.sm,
-        maxHeight: removing ? 0 : 58,
+        boxSizing: 'border-box',
+        height: removing ? 0 : sourceListRowHeightPx,
+        px: workspaceSpace.xxs,
         opacity: removing ? 0 : 1,
-        transform: removing ? 'translateX(-4px)' : 'translateX(0)',
+        transform: removing ? 'translateX(-4px)' : 'none',
         position: 'relative',
         overflow: 'hidden',
         borderRadius: workspaceRadius.md,
         bgcolor: 'transparent',
         cursor: rowSelectable ? workspaceInteraction.cursorPointer : 'default',
+        display: 'flex',
+        alignItems: 'center',
+        columnGap: workspaceLayout.listInlineGap,
         transition: removing
           ? sourceExitTransition
           : workspaceTransitionPresets.interactiveColorBorder,
@@ -266,91 +278,98 @@ export function SourceListRow({
     >
       <FlowLoadingOverlay active={isAwaitingReady && !removing} />
 
-      <Box
+      <Stack
+        direction="row"
+        spacing={workspaceLayout.listInlineGap}
         sx={{
           minWidth: 0,
           alignItems: 'center',
+          flex: 1,
           position: 'relative',
           zIndex: 1,
-          display: 'grid',
-          gridTemplateColumns: `minmax(0, 1fr) ${selectionColumnWidth}px`,
-          columnGap: workspaceLayout.listInlineGap,
         }}
       >
-        <Stack
-          direction="row"
-          spacing={workspaceLayout.listInlineGap}
-          sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
-        >
-          <Box sx={{ position: 'relative', width: 18, height: 18 }}>
-            <Box
-              className="source-type-icon"
-              sx={{
-                width: '100%',
-                height: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: 1,
-                transition: workspaceTransitionPresets.opacityOnly,
-              }}
-            >
-              {sourceTypeIcon}
-            </Box>
-            <IconButton
-              className="source-action-trigger"
-              size="small"
-              aria-label="来源操作"
-              onClick={openActionMenu}
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                opacity: { xs: 1, md: 0 },
-                pointerEvents: { xs: 'auto', md: 'none' },
-                p: 0,
-                transition: workspaceTransitionPresets.opacityOnly,
-              }}
-            >
-              <MoreHorizIcon sx={{ fontSize: workspaceIconSize.md }} />
-            </IconButton>
-          </Box>
-          <Typography
-            variant="body2"
-            noWrap
-            sx={(theme) => ({
-              fontSize: workspaceType.sm,
-                color: isFailed
-                  ? (theme.workspacePalette?.status?.error ?? 'error.main')
-                  : 'text.primary',
-            })}
-          >
-            {item.name}
-          </Typography>
-        </Stack>
         <Box
           sx={{
-            width: selectionColumnWidth,
-            display: 'inline-flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            position: 'relative',
+            width: sourceTypeIconBoxPx,
+            height: sourceTypeIconBoxPx,
             flexShrink: 0,
           }}
         >
-          {isProcessing ? (
-            <CircularProgress size={16} thickness={5} />
-          ) : (
-            <Checkbox
-              size="small"
-              checked={optimisticChecked}
-              disableRipple
-              icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
-              checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
-              sx={{ p: 0, m: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => commitToggleSelection(e.target.checked)}
-            />
-          )}
+          <Box
+            className="source-type-icon"
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 1,
+              transition: workspaceTransitionPresets.opacityOnly,
+            }}
+          >
+            {sourceTypeIcon}
+          </Box>
+          <IconButton
+            className="source-action-trigger"
+            size="small"
+            aria-label="来源操作"
+            onClick={openActionMenu}
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              opacity: { xs: 1, md: 0 },
+              pointerEvents: { xs: 'auto', md: 'none' },
+              p: 0,
+              transition: workspaceTransitionPresets.opacityOnly,
+            }}
+          >
+            <MoreHorizIcon sx={{ fontSize: workspaceIconSize.md }} />
+          </IconButton>
         </Box>
+        <Typography
+          variant="body2"
+          noWrap
+          sx={(theme) => ({
+            m: 0,
+            fontSize: workspaceType.sm,
+            lineHeight: 1.25,
+            color: isFailed
+              ? (theme.workspacePalette?.status?.error ?? 'error.main')
+              : 'text.primary',
+          })}
+        >
+          {item.name}
+        </Typography>
+      </Stack>
+      <Box
+        sx={{
+          width: selectionColumnWidth,
+          minWidth: selectionColumnWidth,
+          height: '100%',
+          display: 'inline-flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {isProcessing ? (
+          <CircularProgress size={16} thickness={5} />
+        ) : (
+          <Checkbox
+            size="small"
+            checked={optimisticChecked}
+            disableRipple
+            icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
+            checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
+            sx={{ p: 0, m: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => commitToggleSelection(e.target.checked)}
+          />
+        )}
       </Box>
 
       <Menu

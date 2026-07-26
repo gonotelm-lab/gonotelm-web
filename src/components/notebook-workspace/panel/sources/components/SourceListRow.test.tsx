@@ -32,9 +32,7 @@ const createRenderer = () => {
         onRetryItem={async () => undefined}
         onRenameItem={async () => undefined}
         onPreviewItem={() => undefined}
-        onShowTree={() => undefined}
         previewLoading={false}
-        treeLoading={false}
       />,
     )
   })

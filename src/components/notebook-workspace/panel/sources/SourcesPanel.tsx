@@ -30,10 +30,14 @@ import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import type { SourceListItem } from './types/sourceTypes'
 import { useSourcePreviewController, type SourcePreviewRequest, type SourcePreviewState } from './preview/useSourcePreviewController'
-import { workspaceIconSize } from '../../shared/ui/typeTokens'
+import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
+import {
+  sourceListRowHeightPx,
+  sourceSelectionColumnWidthPx,
+  sourceTypeIconBoxPx,
+} from './sourceListLayout'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
-const sourceSelectionColumnWidthPx = 22
 
 interface SourcesPanelProps {
   collapsed: boolean
@@ -133,8 +137,8 @@ function SourcesPanelLayout({
           width: '100%',
           height: '100%',
           minWidth: 0,
+          minHeight: 0,
           overflow: 'hidden',
-          contain: 'layout paint',
           pointerEvents: collapsed ? 'none' : 'auto',
         }}
       >
@@ -145,6 +149,7 @@ function SourcesPanelLayout({
             py: workspaceLayout.panelPaddingY,
             width: '100%',
             height: '100%',
+            minWidth: 0,
             minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
@@ -155,8 +160,23 @@ function SourcesPanelLayout({
         >
           <PanelSubpageLayout
             primaryContent={(
-              <Stack sx={{ height: '100%', minHeight: 0 }}>
-                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Stack
+                sx={{
+                  flex: 1,
+                  height: '100%',
+                  minWidth: 0,
+                  minHeight: 0,
+                  overflow: 'hidden',
+                }}
+              >
+                <Stack
+                  direction="row"
+                  sx={{
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <Typography variant={panelTitleVariant} sx={panelTitleSx}>
                     来源
                   </Typography>
@@ -170,7 +190,10 @@ function SourcesPanelLayout({
                   </IconButton>
                 </Stack>
 
-                <Stack spacing={workspaceSpace.md} sx={{ mt: panelTitleToBodySpacing }}>
+                <Stack
+                  spacing={workspaceSpace.md}
+                  sx={{ mt: panelTitleToBodySpacing, flexShrink: 0 }}
+                >
                   <Button
                     variant="outlined"
                     fullWidth
@@ -182,66 +205,84 @@ function SourcesPanelLayout({
                   </Button>
                 </Stack>
 
-                <Divider sx={{ my: workspaceLayout.panelPaddingY }} />
+                <Divider sx={{ my: workspaceLayout.panelPaddingY, flexShrink: 0 }} />
 
+                {/*
+                  「所有来源」必须与列表同处一个 overflow 容器：F12 贴底后视口变矮会出滚动条，
+                  若表头在滚动区外，列表勾选列会被滚动条占宽顶偏，出现错位。
+                */}
                 <Box
-                  sx={{
-                    minWidth: 0,
-                    pr: workspaceSpace.xxs,
-                    display: 'grid',
-                    gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
-                    alignItems: 'center',
-                    columnGap: workspaceLayout.listInlineGap,
-                  }}
-                >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
-                    所有来源
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: sourceSelectionColumnWidthPx,
-                      display: 'inline-flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Checkbox
-                      size="small"
-                      checked={allSourcesChecked}
-                      indeterminate={someSourcesChecked}
-                      disableRipple
-                      icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
-                      checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
-                      indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
-                      sx={{ p: 0, m: 0 }}
-                      onChange={(e) => onToggleAll(e.target.checked)}
-                    />
-                  </Box>
-                </Box>
-
-                <Stack
-                  spacing={0}
                   sx={(theme) => ({
-                    mt: workspaceSpace.md,
                     flex: 1,
                     minHeight: 0,
                     overflowY: 'auto',
-                    pr: workspaceSpace.xxs,
+                    overflowX: 'hidden',
                     ...subtleScrollbarSx(theme),
                   })}
                 >
-                  {showListLoadingSkeleton
-                    ? Array.from({ length: skeletonItemCount }).map((_, index) => (
-                        <Box
-                          key={`source-skeleton-${index}`}
-                          sx={{ py: workspaceSpace.sm }}
-                        >
+                  <Box>
+                    <Box
+                      sx={{
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1,
+                        boxSizing: 'border-box',
+                        height: sourceListRowHeightPx,
+                        minWidth: 0,
+                        px: workspaceSpace.xxs,
+                        display: 'flex',
+                        alignItems: 'center',
+                        columnGap: workspaceLayout.listInlineGap,
+                        bgcolor: 'background.paper',
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          flex: 1,
+                          minWidth: 0,
+                          m: 0,
+                          fontSize: workspaceType.sm,
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        所有来源
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: sourceSelectionColumnWidthPx,
+                          minWidth: sourceSelectionColumnWidthPx,
+                          height: '100%',
+                          display: 'inline-flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Checkbox
+                          size="small"
+                          checked={allSourcesChecked}
+                          indeterminate={someSourcesChecked}
+                          disableRipple
+                          icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
+                          checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
+                          indeterminateIcon={<IndeterminateCheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
+                          sx={{ p: 0, m: 0 }}
+                          onChange={(e) => onToggleAll(e.target.checked)}
+                        />
+                      </Box>
+                    </Box>
+
+                    {showListLoadingSkeleton
+                      ? Array.from({ length: skeletonItemCount }).map((_, index) => (
                           <Box
+                            key={`source-skeleton-${index}`}
                             sx={{
-                              minWidth: 0,
-                              display: 'grid',
-                              gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
+                              boxSizing: 'border-box',
+                              height: sourceListRowHeightPx,
+                              px: workspaceSpace.xxs,
+                              display: 'flex',
                               alignItems: 'center',
                               columnGap: workspaceLayout.listInlineGap,
                             }}
@@ -253,14 +294,19 @@ function SourcesPanelLayout({
                             >
                               <Box
                                 sx={{
-                                  width: 18,
-                                  height: 18,
+                                  width: sourceTypeIconBoxPx,
+                                  height: sourceTypeIconBoxPx,
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
+                                  flexShrink: 0,
                                 }}
                               >
-                                <Skeleton variant="rounded" width={18} height={18} />
+                                <Skeleton
+                                  variant="rounded"
+                                  width={sourceTypeIconBoxPx}
+                                  height={sourceTypeIconBoxPx}
+                                />
                               </Box>
                               <Skeleton
                                 variant="rounded"
@@ -272,6 +318,8 @@ function SourcesPanelLayout({
                             <Box
                               sx={{
                                 width: sourceSelectionColumnWidthPx,
+                                minWidth: sourceSelectionColumnWidthPx,
+                                height: '100%',
                                 display: 'inline-flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -281,30 +329,30 @@ function SourcesPanelLayout({
                               <Skeleton variant="rounded" width={16} height={16} />
                             </Box>
                           </Box>
-                        </Box>
-                      ))
-                    : sourceListItems.length > 0
-                      ? sourceListItems.map((item) => (
-                          <SourceListRow
-                            key={item.id}
-                            item={item}
-                            checked={Boolean(checkedMap[item.id])}
-                            removing={Boolean(removingMap[item.id])}
-                            isBusy={isBusy}
-                            onToggleItem={onToggleItem}
-                            onDeleteItem={onDeleteItem}
-                            onRetryItem={onRetryItem}
-                            onRenameItem={onRenameItem}
-                            onPreviewItem={openPreviewFromMenu}
-                            selectionColumnWidth={sourceSelectionColumnWidthPx}
-                            previewLoading={Boolean(
-                              previewState.loading &&
-                              previewState.sourceId === item.id,
-                            )}
-                          />
                         ))
-                      : null}
-                </Stack>
+                      : sourceListItems.length > 0
+                        ? sourceListItems.map((item) => (
+                            <SourceListRow
+                              key={item.id}
+                              item={item}
+                              checked={Boolean(checkedMap[item.id])}
+                              removing={Boolean(removingMap[item.id])}
+                              isBusy={isBusy}
+                              onToggleItem={onToggleItem}
+                              onDeleteItem={onDeleteItem}
+                              onRetryItem={onRetryItem}
+                              onRenameItem={onRenameItem}
+                              onPreviewItem={openPreviewFromMenu}
+                              selectionColumnWidth={sourceSelectionColumnWidthPx}
+                              previewLoading={Boolean(
+                                previewState.loading &&
+                                previewState.sourceId === item.id,
+                              )}
+                            />
+                          ))
+                        : null}
+                  </Box>
+                </Box>
               </Stack>
             )}
             subpage={previewState.inlineOpen
