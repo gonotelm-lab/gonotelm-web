@@ -42,7 +42,8 @@ const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
 const sourceRemoveAnimationMs = 300
 const textSourceTitleMaxChars = 20
-const workspacePanelDefaultWidthPx = 460
+const workspaceSourcesPanelDefaultWidthPx = 280
+const workspaceInsightsPanelDefaultWidthPx = 460
 const workspacePanelMinWidthPx = 220
 const workspacePanelAutoCollapseWidthPx = 170
 const workspacePanelMaxWidthRatio = 0.5
@@ -121,8 +122,12 @@ export function NotebookWorkspacePage() {
   const queryClient = useQueryClient()
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
-  const [sourcesPanelWidthPx, setSourcesPanelWidthPx] = useState(workspacePanelDefaultWidthPx)
-  const [insightsPanelWidthPx, setInsightsPanelWidthPx] = useState(workspacePanelDefaultWidthPx)
+  const [sourcesPanelWidthPx, setSourcesPanelWidthPx] = useState(
+    workspaceSourcesPanelDefaultWidthPx,
+  )
+  const [insightsPanelWidthPx, setInsightsPanelWidthPx] = useState(
+    workspaceInsightsPanelDefaultWidthPx,
+  )
   const [workspaceContainerWidthPx, setWorkspaceContainerWidthPx] = useState(0)
   const [activeResizeSide, setActiveResizeSide] = useState<'left' | 'right' | null>(null)
   const [isPanelLayoutAnimating, setIsPanelLayoutAnimating] = useState(false)
@@ -1066,7 +1071,7 @@ export function NotebookWorkspacePage() {
     const preferredWidth =
       sourcesPanelWidthRef.current > 0
         ? sourcesPanelWidthRef.current
-        : workspacePanelDefaultWidthPx
+        : workspaceSourcesPanelDefaultWidthPx
     if (containerWidth <= 0) {
       sourcesPanelCollapsedRef.current = false
       sourcesPanelWidthRef.current = preferredWidth
@@ -1110,7 +1115,7 @@ export function NotebookWorkspacePage() {
     const preferredWidth =
       insightsPanelWidthRef.current > 0
         ? insightsPanelWidthRef.current
-        : workspacePanelDefaultWidthPx
+        : workspaceInsightsPanelDefaultWidthPx
     if (containerWidth <= 0) {
       insightsPanelCollapsedRef.current = false
       insightsPanelWidthRef.current = preferredWidth
@@ -1210,8 +1215,8 @@ export function NotebookWorkspacePage() {
             overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
-              md: `var(${workspaceSourcesColumnVar}, ${workspacePanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspacePanelDefaultWidthPx}px)`,
-              xl: `var(${workspaceSourcesColumnVar}, ${workspacePanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspacePanelDefaultWidthPx}px)`,
+              md: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
+              xl: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
             },
             gridTemplateRows: {
               xs: 'repeat(3, minmax(0, 1fr))',
