@@ -1,6 +1,7 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import type {
   AudioOverviewArtifactExtras,
+  FlashcardArtifactExtras,
   InfoGraphicArtifactExtras,
   MindmapArtifactExtras,
   ReportArtifactExtras,
@@ -14,12 +15,14 @@ export type StudioArtifactExtras =
   | ReportArtifactExtras
   | InfoGraphicArtifactExtras
   | AudioOverviewArtifactExtras
+  | FlashcardArtifactExtras
 
 export type StudioToolActionId =
   | 'generate-mindmap'
   | 'generate-report'
   | 'generate-info_graphic'
   | 'generate-audio_overview'
+  | 'generate-flashcard'
 
 export type StudioToolAvailability = 'available' | 'coming-soon'
 

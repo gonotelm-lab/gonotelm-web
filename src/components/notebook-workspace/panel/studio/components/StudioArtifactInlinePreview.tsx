@@ -46,6 +46,7 @@ export function StudioArtifactInlinePreview({
     : Boolean(content.trim())
   const canDownload = !loading && !error && hasDownloadableContent
   const isMindmapArtifact = artifact.kind === 'mindmap'
+  const isFlashcardArtifact = artifact.kind === 'flashcard'
 
   return (
     <Stack sx={{ height: '100%', minHeight: 0 }}>
@@ -98,7 +99,7 @@ export function StudioArtifactInlinePreview({
           mt: 1.2,
           flex: 1,
           minHeight: 0,
-          overflow: isMindmapArtifact ? 'hidden' : 'auto',
+          overflow: isMindmapArtifact || isFlashcardArtifact ? 'hidden' : 'auto',
         }}
       >
         {loading ? (

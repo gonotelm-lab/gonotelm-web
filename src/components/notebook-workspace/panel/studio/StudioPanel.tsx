@@ -11,7 +11,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type { GenerateAudioOverviewParameters, GenerateInfoGraphicParameters, GenerateMindmapParameters, GenerateReportParameters } from '@/types/api'
+import type {
+  GenerateAudioOverviewParameters,
+  GenerateFlashcardParameters,
+  GenerateInfoGraphicParameters,
+  GenerateMindmapParameters,
+  GenerateReportParameters,
+} from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
@@ -20,9 +26,11 @@ import { StudioArtifactListItem } from './components/StudioArtifactListItem'
 import { StudioArtifactPreviewOverlay } from './components/StudioArtifactPreviewOverlay'
 import { AudioOverviewSettingsDialog } from './AudioOverviewSettingsDialog'
 import { InfoGraphicSettingsDialog } from './InfoGraphicSettingsDialog'
+import { FlashcardSettingsDialog } from './FlashcardSettingsDialog'
 import { MindmapSettingsDialog } from './MindmapSettingsDialog'
 import { ReportSettingsDialog } from './ReportSettingsDialog'
 import { defaultAudioOverviewParameters } from './audioOverviewSettings'
+import { defaultFlashcardParameters } from './flashcardSettings'
 import { defaultInfoGraphicParameters } from './infoGraphicSettings'
 import { defaultMindmapParameters } from './mindmapSettings'
 import { defaultReportParameters } from './reportSettings'
@@ -103,6 +111,11 @@ export function StudioPanel({
   const [mindmapParams, setMindmapParams] = useState<GenerateMindmapParameters>(
     defaultMindmapParameters,
   )
+  const [flashcardDialogOpen, setFlashcardDialogOpen] = useState(false)
+  const [flashcardDialogKey, setFlashcardDialogKey] = useState(0)
+  const [flashcardParams, setFlashcardParams] = useState<GenerateFlashcardParameters>(
+    defaultFlashcardParameters,
+  )
 
   const handleCreateMindmap = useCallback((params?: GenerateMindmapParameters) => {
     if (!canSubmitArtifactTask) {
@@ -176,6 +189,24 @@ export function StudioPanel({
     setInfoGraphicDialogOpen(false)
   }, [canSubmitArtifactTask, infoGraphicParams, selectedReadySourceIds, submitArtifactTask])
 
+  const handleCreateFlashcard = useCallback((params?: GenerateFlashcardParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    const submitParams = params ?? flashcardParams
+    if (params) {
+      setFlashcardParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'flashcard',
+      sourceIds: selectedReadySourceIds,
+      title: '闪卡',
+      actionId: 'generate-flashcard',
+      flashcard: submitParams,
+    })
+    setFlashcardDialogOpen(false)
+  }, [canSubmitArtifactTask, flashcardParams, selectedReadySourceIds, submitArtifactTask])
+
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)
   }, [])
@@ -212,11 +243,21 @@ export function StudioPanel({
     setReportDialogOpen(true)
   }, [])
 
+  const handleOpenFlashcardDialog = useCallback(() => {
+    setFlashcardDialogKey((prev) => prev + 1)
+    setFlashcardDialogOpen(true)
+  }, [])
+
+  const handleCloseFlashcardDialog = useCallback(() => {
+    setFlashcardDialogOpen(false)
+  }, [])
+
   const actionHandlers: Record<StudioToolActionId, () => void> = {
     'generate-mindmap': () => handleCreateMindmap(),
     'generate-report': () => handleCreateReport(),
     'generate-info_graphic': () => handleCreateInfoGraphic(),
     'generate-audio_overview': () => handleCreateAudioOverview(),
+    'generate-flashcard': () => handleCreateFlashcard(),
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
@@ -224,6 +265,7 @@ export function StudioPanel({
     'generate-report': handleOpenReportDialog,
     'generate-info_graphic': handleOpenInfoGraphicDialog,
     'generate-audio_overview': handleOpenAudioOverviewDialog,
+    'generate-flashcard': handleOpenFlashcardDialog,
   }
 
   const primaryContent = (
@@ -356,6 +398,7 @@ export function StudioPanel({
           report: '报告',
           info_graphic: '信息图',
           audio_overview: '音频概览',
+          flashcard: '闪卡',
         }[previewTarget.kind] || previewTarget.kind,
         content: (
           <StudioArtifactInlinePreview
@@ -433,6 +476,14 @@ export function StudioPanel({
         initialParams={reportParams}
         onClose={handleCloseReportDialog}
         onGenerate={handleCreateReport}
+      />
+
+      <FlashcardSettingsDialog
+        key={flashcardDialogKey}
+        open={flashcardDialogOpen}
+        initialParams={flashcardParams}
+        onClose={handleCloseFlashcardDialog}
+        onGenerate={handleCreateFlashcard}
       />
     </Paper>
   )

@@ -18,6 +18,7 @@ import type {
   GenerateReportParameters,
   GenerateInfoGraphicParameters,
   GenerateAudioOverviewParameters,
+  GenerateFlashcardParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -33,6 +34,7 @@ import { buildMindmapRequestParams } from '../mindmapSettings'
 import { buildReportRequestParams } from '../reportSettings'
 import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
 import { buildAudioOverviewRequestParams } from '../audioOverviewSettings'
+import { buildFlashcardRequestParams } from '../flashcardSettings'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
@@ -77,6 +79,7 @@ const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => {
   if (kind === 'report') return 'report'
   if (kind === 'info_graphic') return 'info_graphic'
   if (kind === 'audio_overview') return 'audio_overview'
+  if (kind === 'flashcard') return 'flashcard'
   return 'mindmap'
 }
 
@@ -84,6 +87,7 @@ const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioToolActi
   if (kind === 'report') return 'generate-report'
   if (kind === 'info_graphic') return 'generate-info_graphic'
   if (kind === 'audio_overview') return 'generate-audio_overview'
+  if (kind === 'flashcard') return 'generate-flashcard'
   return 'generate-mindmap'
 }
 
@@ -91,6 +95,7 @@ const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => {
   if (kind === 'report') return '报告'
   if (kind === 'info_graphic') return '信息图'
   if (kind === 'audio_overview') return '音频概览'
+  if (kind === 'flashcard') return '闪卡'
   return '思维导图'
 }
 
@@ -101,7 +106,7 @@ const resolveInfoGraphicExtras = (
   if (kind !== 'info_graphic' || !extras) {
     return undefined
   }
-  return extras
+  return extras as InfoGraphicArtifactExtras
 }
 
 const buildLocalExtras = (
@@ -109,6 +114,7 @@ const buildLocalExtras = (
   report?: GenerateReportParameters,
   infoGraphic?: GenerateInfoGraphicParameters,
   audioOverview?: GenerateAudioOverviewParameters,
+  flashcard?: GenerateFlashcardParameters,
 ): StudioArtifactItem['extras'] => {
   switch (kind) {
     case 'mindmap':
@@ -132,6 +138,12 @@ const buildLocalExtras = (
         tip: audioOverview?.tip,
         language: audioOverview?.language,
         style: audioOverview?.style,
+      }
+    case 'flashcard':
+      return {
+        count: flashcard?.count,
+        difficulty: flashcard?.difficulty,
+        tip: flashcard?.tip,
       }
   }
   return undefined
@@ -182,6 +194,7 @@ interface SubmitStudioArtifactTaskParams {
   report?: GenerateReportParameters
   infoGraphic?: GenerateInfoGraphicParameters
   audioOverview?: GenerateAudioOverviewParameters
+  flashcard?: GenerateFlashcardParameters
 }
 
 export function useStudioArtifactTasks({
@@ -436,11 +449,12 @@ export function useStudioArtifactTasks({
       report,
       infoGraphic,
       audioOverview,
+      flashcard,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
       }
-      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview)
+      const localExtras = buildLocalExtras(kind, report, infoGraphic, audioOverview, flashcard)
       const localId = createLocalArtifactId()
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
       setArtifactItems((prev) => [
@@ -479,6 +493,9 @@ export function useStudioArtifactTasks({
             : {}),
           ...(kind === 'audio_overview'
             ? { audio_overview: buildAudioOverviewRequestParams(audioOverview) }
+            : {}),
+          ...(kind === 'flashcard'
+            ? { flashcard: buildFlashcardRequestParams(flashcard) }
             : {}),
         })
 

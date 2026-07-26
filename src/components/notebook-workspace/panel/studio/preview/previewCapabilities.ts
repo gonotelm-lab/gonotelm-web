@@ -27,6 +27,10 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     inline: true,
     overlay: false,
   },
+  flashcard: {
+    inline: true,
+    overlay: true,
+  },
 }
 
 export const getStudioArtifactPreviewCapability = (

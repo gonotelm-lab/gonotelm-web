@@ -3,6 +3,7 @@ import { Box, Paper, Typography } from '@mui/material'
 import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdown'
 import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
+import { FlashcardViewer } from '../components/FlashcardViewer'
 import { MindmapCanvas } from '../components/MindmapCanvas'
 import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
 
@@ -114,6 +115,30 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
           audioUrl={artifact.contentUrl}
           title={artifact.title}
         />
+      </Box>
+    ),
+  },
+  flashcard: {
+    renderInline: ({ content, mode }) => (
+      <Box sx={{ height: '100%', minHeight: 0 }}>
+        <FlashcardViewer content={content} mode={mode} />
+      </Box>
+    ),
+    renderOverlay: ({ content, mode }) => (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: 2,
+          py: 2,
+          boxSizing: 'border-box',
+        }}
+      >
+        <FlashcardViewer content={content} mode={mode} />
       </Box>
     ),
   },

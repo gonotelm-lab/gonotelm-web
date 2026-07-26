@@ -109,6 +109,28 @@ function resolveExtrasEntries(artifact: StudioArtifactItem): ExtrasEntry[] {
         { label: '附加提示', value: e.tip?.trim() || '—' },
       ]
     }
+    case 'flashcard': {
+      const e = extras as {
+        count?: string
+        difficulty?: string
+        tip?: string
+      }
+      const countLabels: Record<string, string> = {
+        few: '少',
+        default: '默认',
+        many: '多',
+      }
+      const difficultyLabels: Record<string, string> = {
+        easy: '简单',
+        medium: '中等',
+        hard: '困难',
+      }
+      return [
+        { label: '数量风格', value: countLabels[e.count || ''] || e.count || '默认' },
+        { label: '难度', value: difficultyLabels[e.difficulty || ''] || e.difficulty || '中等' },
+        { label: '附加提示', value: e.tip?.trim() || '—' },
+      ]
+    }
   }
   return []
 }

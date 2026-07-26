@@ -104,7 +104,9 @@ export function StudioArtifactPreviewOverlay({
       ? 'mmd'
       : artifact.kind === 'report'
         ? 'md'
-        : 'txt'
+        : artifact.kind === 'flashcard'
+          ? 'json'
+          : 'txt'
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
     const blobUrl = URL.createObjectURL(blob)
     const anchor = document.createElement('a')

@@ -7,6 +7,7 @@ import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
+import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay, workspaceTransitionPresets } from '@/components/notebook-workspace/shared'
@@ -104,7 +105,9 @@ export function StudioArtifactListItem({
       ? ImageRoundedIcon
       : item.kind === 'audio_overview'
         ? GraphicEqRoundedIcon
-      : AccountTreeRoundedIcon
+        : item.kind === 'flashcard'
+          ? StyleRoundedIcon
+          : AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {

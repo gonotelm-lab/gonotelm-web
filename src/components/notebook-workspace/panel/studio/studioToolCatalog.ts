@@ -48,11 +48,14 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     hasAdvancedConfig: true,
   },
   {
-    id: 'flashcards',
+    id: 'flashcard',
     title: '闪卡',
-    description: '即将支持',
+    description: '基于勾选来源生成闪卡',
     icon: StyleRoundedIcon,
-    availability: 'coming-soon',
+    availability: 'available',
+    actionId: 'generate-flashcard',
+    artifactKind: 'flashcard',
+    hasAdvancedConfig: true,
   },
   {
     id: 'quiz',

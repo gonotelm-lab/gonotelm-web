@@ -126,7 +126,15 @@ export interface GetSourceParsedContentResponse {
   url?: string
 }
 
-export type StudioArtifactKind = 'mindmap' | 'report' | 'info_graphic' | 'audio_overview'
+export type StudioArtifactKind =
+  | 'mindmap'
+  | 'report'
+  | 'info_graphic'
+  | 'audio_overview'
+  | 'flashcard'
+
+export type StudioArtifactFlashcardCount = 'few' | 'default' | 'many'
+export type StudioArtifactFlashcardDifficulty = 'easy' | 'medium' | 'hard'
 
 export type StudioArtifactTaskStatus =
   | 'pending'
@@ -183,6 +191,12 @@ export interface GenerateAudioOverviewParameters {
   style?: StudioArtifactAudioOverviewStyle
 }
 
+export interface GenerateFlashcardParameters {
+  count?: StudioArtifactFlashcardCount
+  difficulty?: StudioArtifactFlashcardDifficulty
+  tip?: string
+}
+
 export interface MindmapArtifactExtras {
   tip?: string
 }
@@ -211,6 +225,12 @@ export interface InfoGraphicArtifactExtras {
   visual_style?: StudioArtifactInfoGraphicVisualStyle
 }
 
+export interface FlashcardArtifactExtras {
+  count?: string
+  difficulty?: string
+  tip?: string
+}
+
 export interface StudioArtifactImageInfo {
   width: number
   height: number
@@ -224,6 +244,7 @@ export interface GenerateStudioArtifactRequest {
   report?: GenerateReportParameters
   info_graphic?: GenerateInfoGraphicParameters
   audio_overview?: GenerateAudioOverviewParameters
+  flashcard?: GenerateFlashcardParameters
 }
 
 export interface GenerateStudioArtifactResponse {
@@ -253,6 +274,7 @@ export interface StudioArtifactResult {
     | ReportArtifactExtras
     | InfoGraphicArtifactExtras
     | AudioOverviewArtifactExtras
+    | FlashcardArtifactExtras
 }
 
 export interface ListNotebookStudioArtifactsResponse {
