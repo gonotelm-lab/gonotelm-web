@@ -17,10 +17,11 @@ import {
   workspaceSpace,
 } from '../../../shared/ui/layoutTokens'
 import { inlinePreviewActionIconButtonSx } from '../../../shared/ui/previewActionStyles'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
+import { workspaceIconSize } from '../../../shared/ui/typeTokens'
 import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegistry'
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
-import { workspaceIconSize } from '../../../shared/ui/typeTokens'
 
 interface SourcePreviewOverlayProps {
   open: boolean
@@ -145,12 +146,13 @@ export function SourcePreviewOverlay({
           </Stack>
         </Stack>
         <Box
-          sx={{
+          sx={(theme) => ({
             flex: 1,
             minHeight: 0,
             p: workspaceSpace.md,
             overflow: 'auto',
-          }}
+            ...subtleScrollbarSx(theme),
+          })}
         >
           {loading ? (
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>

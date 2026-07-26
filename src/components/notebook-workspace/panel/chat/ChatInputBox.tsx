@@ -9,9 +9,9 @@ import {
   Paper,
   TextField,
 } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
 export interface ChatInputInteractionState {
@@ -52,11 +52,6 @@ const inputTextTokens = {
 
 const inputActionButtonTokens = {
   size: 30,
-}
-const inputTextareaScrollbarTokens = {
-  width: 5,
-  height: 5,
-  thumbRadius: 999,
 }
 const thinkingButtonTokens = {
   controlsGap: workspaceSpace.xxs,
@@ -146,27 +141,7 @@ export function ChatInputBox({
             lineHeight: inputTextTokens.lineHeight,
             alignItems: 'flex-start',
           },
-          '& textarea': {
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'transparent transparent',
-          },
-          '& textarea::-webkit-scrollbar': {
-            width: inputTextareaScrollbarTokens.width,
-            height: inputTextareaScrollbarTokens.height,
-          },
-          '& textarea::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '& textarea::-webkit-scrollbar-thumb': {
-            borderRadius: inputTextareaScrollbarTokens.thumbRadius,
-            backgroundColor: 'transparent',
-          },
-          '& textarea:hover': {
-            scrollbarColor: `${alpha(theme.palette.primary.main, 0.2)} transparent`,
-          },
-          '& textarea:hover::-webkit-scrollbar-thumb': {
-            backgroundColor: alpha(theme.palette.primary.main, 0.2),
-          },
+          ...subtleScrollbarSx(theme, { within: '& textarea' }),
         })}
       />
 

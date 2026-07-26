@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction } from '../../../shared/ui/motionTokens'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
 import { workspaceType } from '../../../shared/ui/typeTokens'
 
 export interface FlashcardCard {
@@ -186,15 +187,15 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
             }}
           >
             <Box
-              sx={{
+              sx={(theme) => ({
                 ...cardFaceSx,
-                bgcolor: (theme) =>
-                  theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
                 boxShadow: isOverlay
                   ? '0 18px 48px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08)'
                   : '0 8px 22px rgba(15, 23, 42, 0.1)',
                 transition: `box-shadow ${flipDurationMs}ms ease`,
-              }}
+                ...subtleScrollbarSx(theme),
+              })}
             >
               <HelpOutlineRoundedIcon sx={cardCornerIconSx} aria-hidden />
               <Typography
@@ -213,15 +214,15 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
             </Box>
 
             <Box
-              sx={{
+              sx={(theme) => ({
                 ...cardFaceSx,
-                bgcolor: (theme) =>
-                  theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
                 boxShadow: isOverlay
                   ? '0 18px 48px rgba(15, 23, 42, 0.2), 0 4px 12px rgba(15, 23, 42, 0.1)'
                   : '0 8px 22px rgba(15, 23, 42, 0.12)',
                 transform: 'rotateY(180deg) translateZ(1px)',
-              }}
+                ...subtleScrollbarSx(theme),
+              })}
             >
               <TaskAltRoundedIcon sx={cardCornerIconSx} aria-hidden />
               <Typography

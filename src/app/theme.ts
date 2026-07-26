@@ -1,6 +1,7 @@
 import { alpha, createTheme } from '@mui/material/styles'
 import type { WorkspaceColorPalette } from '@/components/notebook-workspace/shared/ui/workspaceColorPalette'
 import { workspaceColorPalette } from '@/components/notebook-workspace/shared/ui/workspaceColorPalette'
+import { subtleScrollbarSx } from '@/components/notebook-workspace/shared/ui/scrollbar'
 import { workspaceTypeRem } from '@/components/notebook-workspace/shared/ui/typeTokens'
 
 declare module '@mui/material/styles' {
@@ -138,6 +139,13 @@ export const appTheme = createTheme({
         root: {
           borderRadius: 10,
         },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          ...subtleScrollbarSx(theme),
+        }),
       },
     },
   },

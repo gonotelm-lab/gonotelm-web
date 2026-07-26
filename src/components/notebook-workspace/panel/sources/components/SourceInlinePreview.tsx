@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded'
 import ZoomOutMapRoundedIcon from '@mui/icons-material/ZoomOutMapRounded'
 import {
@@ -14,13 +15,13 @@ import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
 import {
   workspaceLayout,
-  workspaceRadius,
   workspaceSpace,
 } from '../../../shared/ui/layoutTokens'
 import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
 
 interface SourceInlinePreviewProps {
   sourceName: string
@@ -35,11 +36,11 @@ interface SourceInlinePreviewProps {
   onOpenOverlay: () => void
   onDownload: () => void
   onRetryLoad: () => void
+  /**
+   * While the workspace panel is being resized, freeze preview content width
+   * so markdown does not reflow every frame. Content stays mounted to preserve scroll.
+   */
   degradedByResizing: boolean
-}
-
-const viewTypeLabelMap: Record<SourcePreviewViewType, string> = {
-  content: '预览',
 }
 
 export function SourceInlinePreview({
@@ -57,20 +58,32 @@ export function SourceInlinePreview({
   onRetryLoad,
   degradedByResizing,
 }: SourceInlinePreviewProps) {
+  const scrollRootRef = useRef<HTMLDivElement | null>(null)
+  const [frozenWidthPx, setFrozenWidthPx] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    if (!degradedByResizing) {
+      if (frozenWidthPx !== null) {
+        setFrozenWidthPx(null)
+      }
+      return
+    }
+    if (frozenWidthPx !== null) {
+      return
+    }
+    const root = scrollRootRef.current
+    if (!root) {
+      return
+    }
+    setFrozenWidthPx(root.clientWidth)
+  }, [degradedByResizing, frozenWidthPx])
 
   return (
     <Stack sx={{ height: '100%', minHeight: 0 }}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }} noWrap>
             {sourceName}
-          </Typography>
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            sx={{ mt: workspaceSpace.xxs }}
-          >
-            {viewTypeLabelMap[viewType]}
           </Typography>
         </Box>
         <Stack
@@ -109,25 +122,19 @@ export function SourceInlinePreview({
       </Stack>
 
       <Box
+        ref={scrollRootRef}
         data-source-preview-scroll-root="true"
-        sx={{ mt: workspaceSpace.md, flex: 1, minHeight: 0, overflow: 'auto' }}
+        data-preview-layout-frozen={frozenWidthPx != null ? 'true' : 'false'}
+        sx={(theme) => ({
+          mt: workspaceSpace.md,
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          overflowX: frozenWidthPx != null ? 'hidden' : 'auto',
+          ...subtleScrollbarSx(theme),
+        })}
       >
-        {degradedByResizing ? (
-          <Box
-            sx={{
-              height: '100%',
-              borderRadius: workspaceRadius.lg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'background.default',
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              拖拽中已启用轻量预览，松开后恢复完整内容
-            </Typography>
-          </Box>
-        ) : loading ? (
+        {loading ? (
           <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               正在加载预览内容...
@@ -145,11 +152,25 @@ export function SourceInlinePreview({
         ) : notice ? (
           <Alert severity="info">{notice}</Alert>
         ) : (
-          renderSourcePreviewContent({
-            viewType,
-            markdown,
-            focusRange,
-          })
+          <Box
+            data-testid="source-inline-preview-body"
+            sx={{
+              boxSizing: 'border-box',
+              width: frozenWidthPx ?? '100%',
+              ...(frozenWidthPx != null
+                ? {
+                    minWidth: frozenWidthPx,
+                    maxWidth: frozenWidthPx,
+                  }
+                : null),
+            }}
+          >
+            {renderSourcePreviewContent({
+              viewType,
+              markdown,
+              focusRange,
+            })}
+          </Box>
         )}
       </Box>
     </Stack>

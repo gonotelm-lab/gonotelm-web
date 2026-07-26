@@ -5,6 +5,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import { workspaceSpace } from './layoutTokens'
 import { workspaceTransitionPresets } from './motionTokens'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
+import { subtleScrollbarSx } from './scrollbar'
 
 const panelSubpageTransition = workspaceTransitionPresets.panelTransform
 
@@ -75,12 +76,15 @@ export function PanelSubpageLayout({
               <Divider sx={{ my: workspaceSpace.md }} />
               <Box
                 ref={subpageBodyRef}
-                sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowY: 'auto',
-                  ...subpageBodySx,
-                }}
+                sx={[
+                  (theme) => ({
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: 'auto',
+                    ...subtleScrollbarSx(theme),
+                  }),
+                  ...(subpageBodySx ? (Array.isArray(subpageBodySx) ? subpageBodySx : [subpageBodySx]) : []),
+                ]}
               >
                 {subpage.content}
               </Box>

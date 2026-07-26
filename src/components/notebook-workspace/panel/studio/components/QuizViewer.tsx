@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
 
 export interface QuizQuestion {
   question: string
@@ -127,7 +128,16 @@ export function QuizViewer({ content }: QuizViewerProps) {
 
   if (phase === 'summary') {
     return (
-      <Stack sx={{ height: '100%', minHeight: 0, gap: workspaceSpace.lg, overflow: 'auto', p: workspaceSpace.xxs }}>
+      <Stack
+        sx={(theme) => ({
+          height: '100%',
+          minHeight: 0,
+          gap: workspaceSpace.lg,
+          overflow: 'auto',
+          p: workspaceSpace.xxs,
+          ...subtleScrollbarSx(theme),
+        })}
+      >
         <Box
           sx={{
             borderRadius: workspaceRadius.lg,
@@ -199,14 +209,15 @@ export function QuizViewer({ content }: QuizViewerProps) {
       }}
     >
       <Box
-        sx={{
+        sx={(theme) => ({
           borderRadius: workspaceRadius.lg,
           border: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.default',
           minHeight: 0,
           overflow: 'auto',
-        }}
+          ...subtleScrollbarSx(theme),
+        })}
       >
         <Typography variant="caption" color="text.secondary" sx={{ px: workspaceSpace.md, pt: workspaceSpace.md, display: 'block' }}>
           {isReview
@@ -250,7 +261,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
       </Box>
 
       <Stack
-        sx={{
+        sx={(theme) => ({
           minHeight: 0,
           borderRadius: workspaceRadius.lg,
           border: '1px solid',
@@ -259,7 +270,8 @@ export function QuizViewer({ content }: QuizViewerProps) {
           p: 2,
           gap: workspaceSpace.md,
           overflow: 'auto',
-        }}
+          ...subtleScrollbarSx(theme),
+        })}
       >
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="caption" color="text.secondary">

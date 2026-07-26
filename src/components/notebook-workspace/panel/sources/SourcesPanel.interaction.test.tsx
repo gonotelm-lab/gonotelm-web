@@ -169,7 +169,7 @@ describe('SourcesPanel interaction', () => {
     const subpageTitle = renderer.root.findByProps({
       'data-testid': 'subpage-title',
     })
-    expect(subpageTitle.children.join('')).toContain('来源一')
+    expect(subpageTitle.children.join('')).toBe('预览')
   })
 
   it('内联预览点击放大后打开 overlay', async () => {

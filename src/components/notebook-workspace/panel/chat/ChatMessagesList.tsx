@@ -66,11 +66,6 @@ export const ChatMessagesList = memo(function ChatMessagesList({
         overflowAnchor: 'none',
         px: 0,
         ...subtleScrollbarSx(theme),
-        scrollbarWidth: 'auto',
-        scrollbarColor: 'auto',
-        '&:hover': {
-          scrollbarColor: 'auto',
-        },
       })}
     >
       <Box sx={{ px: messageListLayoutTokens.innerPaddingX }}>

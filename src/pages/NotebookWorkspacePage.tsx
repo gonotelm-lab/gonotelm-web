@@ -129,7 +129,6 @@ export function NotebookWorkspacePage() {
     workspaceInsightsPanelDefaultWidthPx,
   )
   const [workspaceContainerWidthPx, setWorkspaceContainerWidthPx] = useState(0)
-  const [activeResizeSide, setActiveResizeSide] = useState<'left' | 'right' | null>(null)
   const [isPanelLayoutAnimating, setIsPanelLayoutAnimating] = useState(false)
   const [selectedSourceIds, setSelectedSourceIds] = useState<Record<string, boolean>>({})
   const [removingSourceIds, setRemovingSourceIds] = useState<Record<string, boolean>>({})
@@ -151,6 +150,8 @@ export function NotebookWorkspacePage() {
   const resetWorkspace = useWorkspaceStore((s) => s.reset)
   const removeSourceTimersRef = useRef<number[]>([])
   const workspacePanelsRef = useRef<HTMLDivElement | null>(null)
+  const leftResizeHandleRef = useRef<HTMLDivElement | null>(null)
+  const rightResizeHandleRef = useRef<HTMLDivElement | null>(null)
   const sourcesPanelWidthRef = useRef(sourcesPanelWidthPx)
   const insightsPanelWidthRef = useRef(insightsPanelWidthPx)
   const sourcesPanelCollapsedRef = useRef(isSourcesPanelCollapsed)
@@ -885,19 +886,26 @@ export function NotebookWorkspacePage() {
       if (!container) return
 
       event.preventDefault()
-      setActiveResizeSide(side)
 
+      // Keep the first pointerdown frame free of React commits (heavy markdown re-render
+      // was making the drag feel sticky). Drive chrome + grid via DOM only until pointerup.
+      const activeHandle =
+        side === 'left' ? leftResizeHandleRef.current : rightResizeHandleRef.current
       const previousUserSelect = document.body.style.userSelect
       const previousCursor = document.body.style.cursor
+      const previousTransition = container.style.transition
       document.body.style.userSelect = 'none'
       document.body.style.cursor = 'col-resize'
+      container.style.transition = 'none'
+      activeHandle?.setAttribute('data-resize-active', 'true')
 
       const initialRect = container.getBoundingClientRect()
       const containerWidth = initialRect.width
       if (containerWidth <= 0) {
         document.body.style.userSelect = previousUserSelect
         document.body.style.cursor = previousCursor
-        setActiveResizeSide(null)
+        container.style.transition = previousTransition
+        activeHandle?.removeAttribute('data-resize-active')
         return
       }
       let nextSourcesCollapsed = sourcesPanelCollapsedRef.current
@@ -1031,6 +1039,8 @@ export function NotebookWorkspacePage() {
         applyResizeByClientX(latestClientX)
         document.body.style.userSelect = previousUserSelect
         document.body.style.cursor = previousCursor
+        container.style.transition = previousTransition
+        activeHandle?.removeAttribute('data-resize-active')
         sourcesPanelCollapsedRef.current = nextSourcesCollapsed
         insightsPanelCollapsedRef.current = nextInsightsCollapsed
         sourcesPanelWidthRef.current = nextSourcesWidth
@@ -1039,7 +1049,6 @@ export function NotebookWorkspacePage() {
         setIsInsightsPanelCollapsed(nextInsightsCollapsed)
         setSourcesPanelWidthPx(nextSourcesWidth)
         setInsightsPanelWidthPx(nextInsightsWidth)
-        setActiveResizeSide(null)
         if (stopPanelResizeRef.current === stopResize) {
           stopPanelResizeRef.current = null
         }
@@ -1049,6 +1058,8 @@ export function NotebookWorkspacePage() {
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', stopResize)
       window.addEventListener('pointercancel', stopResize)
+      // First paint follows the pointer immediately (no waiting for the next move/rAF).
+      applyResizeByClientX(latestClientX)
     },
     [getLeftPanelWidthBounds, getRightPanelWidthBounds],
   )
@@ -1222,7 +1233,7 @@ export function NotebookWorkspacePage() {
               xs: 'repeat(3, minmax(0, 1fr))',
               md: 'minmax(0, 1fr)',
             },
-            transition: activeResizeSide ? 'none' : workspacePanelGridTransition,
+            transition: workspacePanelGridTransition,
             '& > *': {
               minWidth: 0,
               minHeight: 0,
@@ -1233,7 +1244,7 @@ export function NotebookWorkspacePage() {
             collapsed={isSourcesPanelCollapsed}
             isBusy={isBusy}
             isHydrating={isHydratingSources}
-            isPanelResizing={Boolean(activeResizeSide) || isPanelLayoutAnimating}
+            isPanelResizing={isPanelLayoutAnimating}
             loadingSkeletonCount={notebookQuery.data?.source_count ?? 0}
             sourceListItems={sourceListItems}
             removingMap={removingSourceIds}
@@ -1253,6 +1264,7 @@ export function NotebookWorkspacePage() {
           />
 
           <Box
+            ref={leftResizeHandleRef}
             role="separator"
             aria-orientation="vertical"
             aria-label="调整来源面板宽度"
@@ -1274,11 +1286,14 @@ export function NotebookWorkspacePage() {
                 // Pill shape for resize handle hit affordance (not card radius).
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
-                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'divider',
+                bgcolor: 'divider',
                 transition: workspaceTransitionPresets.backgroundOnly,
               },
               '&:hover::before': {
-                bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'text.secondary',
+                bgcolor: 'text.secondary',
+              },
+              '&[data-resize-active="true"]::before, &[data-resize-active="true"]:hover::before': {
+                bgcolor: 'primary.main',
               },
             }}
           />
@@ -1298,6 +1313,7 @@ export function NotebookWorkspacePage() {
           />
 
           <Box
+            ref={rightResizeHandleRef}
             role="separator"
             aria-orientation="vertical"
             aria-label="调整右侧面板宽度"
@@ -1319,11 +1335,14 @@ export function NotebookWorkspacePage() {
                 // Pill shape for resize handle hit affordance (not card radius).
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
-                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'divider',
+                bgcolor: 'divider',
                 transition: workspaceTransitionPresets.backgroundOnly,
               },
               '&:hover::before': {
-                bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'text.secondary',
+                bgcolor: 'text.secondary',
+              },
+              '&[data-resize-active="true"]::before, &[data-resize-active="true"]:hover::before': {
+                bgcolor: 'primary.main',
               },
             }}
           />

@@ -6,6 +6,7 @@ import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 interface MarkdownCodeProps {
@@ -199,12 +200,13 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
       </Box>
 
       <Box
-        sx={{
+        sx={(theme) => ({
           m: 0,
           p: codeBlockLayoutTokens.contentPadding,
           bgcolor: 'grey.100',
           overflowX: 'auto',
-        }}
+          ...subtleScrollbarSx(theme),
+        })}
       >
         <SyntaxHighlighter
           language={language === 'text' ? undefined : language}

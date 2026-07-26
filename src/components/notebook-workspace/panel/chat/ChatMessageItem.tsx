@@ -35,6 +35,7 @@ import {
   workspaceSpace,
 } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
+import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { workspaceIconSize } from '../../shared/ui/typeTokens'
 
@@ -333,7 +334,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               {`位置: ${citationPositionText}`}
             </Typography>
             <Box
-              sx={{
+              sx={(theme) => ({
                 mt: citationCardTokens.contentMarginTop,
                 maxHeight: citationCardTokens.contentMaxHeight,
                 overflowY: 'auto',
@@ -343,7 +344,8 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 px: citationCardTokens.contentPaddingX,
                 py: citationCardTokens.contentPaddingY,
                 bgcolor: 'background.default',
-              }}
+                ...subtleScrollbarSx(theme),
+              })}
             >
               {isCitationLoading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: citationCardTokens.loadingGap, py: citationCardTokens.loadingPaddingY }}>

@@ -16,6 +16,7 @@ import {
   workspaceRadius,
   workspaceSpace,
 } from '../../../shared/ui/layoutTokens'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
@@ -207,16 +208,17 @@ export function StudioArtifactPreviewOverlay({
         </Stack>
 
         <Box
-          sx={{
+          sx={(theme) => ({
             flex: 1,
             minHeight: 0,
             overflow: 'auto',
-          ...(isMindmapArtifact || isInfographicArtifact
-            ? { p: 0 }
-            : isReportArtifact
-              ? { px: workspaceSpace.xl, py: workspaceSpace.md }
-              : { p: workspaceSpace.md }),
-          }}
+            ...(isMindmapArtifact || isInfographicArtifact
+              ? { p: 0 }
+              : isReportArtifact
+                ? { px: workspaceSpace.xl, py: workspaceSpace.md }
+                : { p: workspaceSpace.md }),
+            ...subtleScrollbarSx(theme),
+          })}
         >
           {loading ? (
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>

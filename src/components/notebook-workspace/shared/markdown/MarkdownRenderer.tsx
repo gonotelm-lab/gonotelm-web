@@ -10,6 +10,7 @@ import remarkMath from 'remark-math'
 import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
 import { workspaceSpace } from '../ui/layoutTokens'
 import { workspaceTransitionPresets } from '../ui/motionTokens'
+import { subtleScrollbarSx } from '../ui/scrollbar'
 import { workspaceType } from '../ui/typeTokens'
 import { normalizeMarkdownDelimiters } from './markdownNormalization'
 
@@ -150,12 +151,13 @@ export function MarkdownRenderer({
 
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         ...markdownBaseTypography,
         fontSize,
         color: 'text.primary',
         fontVariantLigatures: 'none',
         fontFeatureSettings: '"liga" 0, "calt" 0',
+        ...subtleScrollbarSx(theme, { within: '& .katex-display > .katex' }),
         '& h1, & h2, & h3, & h4': {
           m: 0,
           fontWeight: 700,
@@ -281,7 +283,7 @@ export function MarkdownRenderer({
         '& .math.math-display + .math.math-display': {
           mt: 0.28,
         },
-      }}
+      })}
     >
       <ReactMarkdown
         remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkBreaks, remarkMath]}

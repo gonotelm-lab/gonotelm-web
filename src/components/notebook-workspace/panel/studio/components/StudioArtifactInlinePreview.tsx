@@ -16,6 +16,7 @@ import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
+import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
 import { StudioArtifactExtrasPopover } from './StudioArtifactExtrasPopover'
 import { StudioAudioPlayer } from './StudioAudioPlayer'
 
@@ -104,12 +105,13 @@ export function StudioArtifactInlinePreview({
       </Stack>
 
       <Box
-        sx={{
+        sx={(theme) => ({
           mt: workspaceSpace.md,
           flex: 1,
           minHeight: 0,
           overflow: isMindmapArtifact || isFlashcardArtifact ? 'hidden' : 'auto',
-        }}
+          ...(isMindmapArtifact || isFlashcardArtifact ? null : subtleScrollbarSx(theme)),
+        })}
       >
         {loading ? (
           <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>

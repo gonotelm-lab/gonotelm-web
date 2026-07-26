@@ -66,6 +66,7 @@ interface SourcesPanelLayoutProps {
   previewState: SourcePreviewState
   canOpenOverlay: boolean
   canDownload: boolean
+  /** Heavy markdown: freeze content width during panel resize (keep mounted). */
   degradedByResizing: boolean
   closeInlinePreview: () => void
   openOverlayFromInline: () => void
@@ -309,7 +310,7 @@ function SourcesPanelLayout({
             subpage={previewState.inlineOpen
               ? {
                   parentTitle: '来源',
-                  title: previewState.sourceName,
+                  title: '预览',
                   content: (
                     <SourceInlinePreview
                       sourceName={previewState.sourceName}
@@ -332,11 +333,11 @@ function SourcesPanelLayout({
                 }
               : null}
             subpageBodyRef={previewBodyRef}
-            subpageBodySx={(theme) => ({
+            subpageBodySx={{
               pr: 0.5,
-              overflowX: 'hidden',
-              ...subtleScrollbarSx(theme),
-            })}
+              // Scroll lives in SourceInlinePreview (shared subtle scrollbar).
+              overflow: 'hidden',
+            }}
           />
         </Paper>
       </Box>
@@ -446,7 +447,6 @@ export function SourcesPanel(props: SourcesPanelProps) {
     loadingSkeletonCount,
     sourceListItems,
     previewRequest,
-    isPanelResizing = false,
   } = props
   const [dialogOpen, setDialogOpen] = useState(false)
   const handledPreviewRequestIdRef = useRef<number>(0)
@@ -465,7 +465,6 @@ export function SourcesPanel(props: SourcesPanelProps) {
     retryActivePreview,
     openOverlayFromInline,
     downloadActivePreview,
-    isHeavyPreview,
   } = useSourcePreviewController({
     sourceListItems,
   })
@@ -519,7 +518,7 @@ export function SourcesPanel(props: SourcesPanelProps) {
       previewState={previewState}
       canOpenOverlay={canOpenOverlay}
       canDownload={canDownload}
-      degradedByResizing={isPanelResizing && isHeavyPreview}
+      degradedByResizing={false}
       closeInlinePreview={handleCloseInlinePreview}
       openOverlayFromInline={openOverlayFromInline}
       downloadActivePreview={downloadActivePreview}
