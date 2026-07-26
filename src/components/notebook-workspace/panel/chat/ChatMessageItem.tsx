@@ -36,7 +36,7 @@ import {
 } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
-import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
+import { workspaceIconSize } from '../../shared/ui/typeTokens'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
@@ -355,10 +355,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                   {citationLoadError}
                 </Typography>
               ) : (
-                <MarkdownRenderer
-                  content={activeCitationDoc?.content || '暂无内容'}
-                  fontSize={workspaceType.sm}
-                />
+                <MarkdownRenderer content={activeCitationDoc?.content || '暂无内容'} />
               )}
             </Box>
           </Box>

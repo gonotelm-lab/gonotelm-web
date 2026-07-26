@@ -1,6 +1,5 @@
 import type { MouseEvent } from 'react'
 import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
-import { workspaceType } from '../../shared/ui/typeTokens'
 
 interface AssistantMarkdownProps {
   content: string
@@ -11,7 +10,6 @@ export function AssistantMarkdown({ content, onCitationClick }: AssistantMarkdow
   return (
     <MarkdownRenderer
       content={content}
-      fontSize={workspaceType.sm}
       renderCitationAsSuperscript
       justifyParagraphs
       onCitationClick={onCitationClick}

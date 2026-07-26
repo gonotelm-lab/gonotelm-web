@@ -1,11 +1,10 @@
 /**
- * Locked type scale (px): 12 / 14 / 16 / 18 / 20
- * Aligns with ui-ux-pro-max modular scale + Indigo Porcelain T2 (Noto Sans SC / JetBrains Mono).
+ * Locked type scale (px): 12 / 14 / 18 / 20
+ * No 16 step — body and chrome share 14 for denser reading.
  */
 export const workspaceType = {
   xs: 12,
   sm: 14,
-  md: 16,
   lg: 18,
   xl: 20,
   mono: 14,
@@ -22,7 +21,6 @@ export const workspaceIconSize = {
 export const workspaceTypeRem = {
   xs: '0.75rem',
   sm: '0.875rem',
-  md: '1rem',
   lg: '1.125rem',
   xl: '1.25rem',
 } as const

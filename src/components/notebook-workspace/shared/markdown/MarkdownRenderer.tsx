@@ -16,7 +16,7 @@ import { normalizeMarkdownDelimiters } from './markdownNormalization'
 interface MarkdownRendererProps {
   content: string
   citations?: string[]
-  /** Body text size; defaults to reading scale (16). Chat messages pass 14. */
+  /** Body text size; defaults to sm (14). */
   fontSize?: number
   renderCitationAsSuperscript?: boolean
   justifyParagraphs?: boolean
@@ -32,7 +32,7 @@ export interface CitationClickTarget {
 }
 
 const markdownBaseTypography = {
-  fontSize: workspaceType.md,
+  fontSize: workspaceType.sm,
   lineHeight: 1.65,
 }
 
@@ -40,8 +40,8 @@ const markdownBaseTypography = {
 const markdownHeadingStyles = {
   h1: { fontSize: workspaceType.xl, mt: workspaceSpace.lg, mb: workspaceSpace.sm },
   h2: { fontSize: workspaceType.lg, mt: workspaceSpace.md, mb: workspaceSpace.sm },
-  h3: { fontSize: workspaceType.md, mt: workspaceSpace.md, mb: workspaceSpace.xxs },
-  h4: { fontSize: workspaceType.sm, mt: workspaceSpace.sm, mb: workspaceSpace.xxs },
+  h3: { fontSize: workspaceType.sm, mt: workspaceSpace.md, mb: workspaceSpace.xxs },
+  h4: { fontSize: workspaceType.xs, mt: workspaceSpace.sm, mb: workspaceSpace.xxs },
 }
 
 const markdownSpacingTokens = {
@@ -131,7 +131,7 @@ const readCitationIndexFromChildren = (children: ReactNode) => {
 
 export function MarkdownRenderer({
   content,
-  fontSize = workspaceType.md,
+  fontSize = workspaceType.sm,
   renderCitationAsSuperscript = false,
   justifyParagraphs = false,
   onCitationClick,

@@ -52,7 +52,7 @@ export const appTheme = createTheme({
   typography: {
     fontFamily:
       '"Noto Sans SC", "Noto Sans CJK SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-    fontSize: 16,
+    fontSize: 14,
     h5: {
       fontSize: workspaceTypeRem.xl,
       fontWeight: 600,
@@ -66,7 +66,7 @@ export const appTheme = createTheme({
       lineHeight: 1.35,
     },
     subtitle1: {
-      fontSize: workspaceTypeRem.md,
+      fontSize: workspaceTypeRem.sm,
       fontWeight: 600,
       letterSpacing: '0.01em',
       lineHeight: 1.4,
@@ -78,7 +78,7 @@ export const appTheme = createTheme({
       lineHeight: 1.4,
     },
     body1: {
-      fontSize: workspaceTypeRem.md,
+      fontSize: workspaceTypeRem.sm,
       lineHeight: 1.5,
     },
     body2: {
