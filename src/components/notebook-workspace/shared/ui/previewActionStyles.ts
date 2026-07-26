@@ -1,5 +1,7 @@
+import { workspaceSpace } from './layoutTokens'
+
 export const inlinePreviewActionIconButtonSx = {
-  p: 0.45,
+  p: workspaceSpace.xxs,
 } as const
 
 export const inlinePreviewActionIconSx = {

@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import { Box, Divider, IconButton, Stack, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material/styles'
+import { workspaceSpace } from './layoutTokens'
 import { workspaceTransitionPresets } from './motionTokens'
 import { panelTitleSx, panelTitleVariant } from './panelStyles'
 
@@ -71,7 +72,7 @@ export function PanelSubpageLayout({
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Stack>
-              <Divider sx={{ my: 1.2 }} />
+              <Divider sx={{ my: workspaceSpace.md }} />
               <Box
                 ref={subpageBodyRef}
                 sx={{

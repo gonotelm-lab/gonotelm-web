@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Link } from 'react-router-dom'
+import { workspaceRadius, workspaceSpace } from '../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../shared/ui/motionTokens'
 
 interface WorkspaceHeaderProps {
@@ -87,11 +88,11 @@ export function WorkspaceHeader({
       <Box
         sx={{
           width: '100%',
-          px: { xs: 0.75, md: 1 },
-          py: 0.5,
+          px: { xs: workspaceSpace.sm, md: workspaceSpace.sm },
+          py: workspaceSpace.xxs,
           display: 'flex',
           alignItems: 'center',
-          gap: 0.5,
+          gap: workspaceSpace.xxs,
         }}
       >
         <IconButton
@@ -101,7 +102,7 @@ export function WorkspaceHeader({
           color="inherit"
           size="small"
           aria-label="返回"
-          sx={{ ml: 0, p: 0.5 }}
+          sx={{ ml: 0, p: workspaceSpace.xxs }}
         >
           <ArrowBackIcon sx={{ fontSize: '0.95rem' }} />
         </IconButton>
@@ -127,9 +128,9 @@ export function WorkspaceHeader({
             flex: 1,
             minWidth: 0,
             maxWidth: { xs: '100%', md: 560 },
-            px: 1.1,
-            py: 0.25,
-            borderRadius: 1,
+            px: workspaceSpace.sm,
+            py: workspaceSpace.xxs,
+            borderRadius: workspaceRadius.md,
             border: 1,
             borderColor: 'transparent',
             bgcolor: 'background.paper',
@@ -157,7 +158,7 @@ export function WorkspaceHeader({
             ml: 'auto',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 0.5,
+            gap: workspaceSpace.xxs,
             flexShrink: 0,
           }}
         >
@@ -166,7 +167,7 @@ export function WorkspaceHeader({
             aria-label="删除笔记本"
             onClick={handleOpenDeleteDialog}
             disabled={!canDelete || isDeletingNotebook}
-            sx={{ p: 0.5 }}
+            sx={{ p: workspaceSpace.xxs }}
           >
             <DeleteIcon sx={{ fontSize: '1rem' }} />
           </IconButton>

@@ -30,6 +30,7 @@ import {
   WorkspaceHeader,
   type SourceListItem,
 } from '../components/notebook-workspace'
+import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
 import {
   workspaceMotion,
   workspaceTransitionPresets,
@@ -1161,8 +1162,8 @@ export function NotebookWorkspacePage() {
           width: '100%',
           flex: 1,
           minHeight: 0,
-          px: 1,
-          py: 1,
+          px: workspaceSpace.sm,
+          py: workspaceSpace.sm,
           overflow: 'hidden',
           bgcolor: 'background.default',
         }}
@@ -1171,7 +1172,7 @@ export function NotebookWorkspacePage() {
           ref={workspacePanelsRef}
           sx={{
             display: 'grid',
-            gap: { xs: 1, md: 0 },
+            gap: { xs: workspaceSpace.sm, md: 0 },
             height: '100%',
             minHeight: 0,
             overflow: 'hidden',
@@ -1233,6 +1234,7 @@ export function NotebookWorkspacePage() {
                 top: 0,
                 bottom: 0,
                 width: 2,
+                // Pill shape for resize handle hit affordance (not card radius).
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
                 bgcolor: activeResizeSide === 'left' ? 'primary.main' : 'divider',
@@ -1277,6 +1279,7 @@ export function NotebookWorkspacePage() {
                 top: 0,
                 bottom: 0,
                 width: 2,
+                // Pill shape for resize handle hit affordance (not card radius).
                 borderRadius: 999,
                 transform: 'translateX(-50%)',
                 bgcolor: activeResizeSide === 'right' ? 'primary.main' : 'divider',
