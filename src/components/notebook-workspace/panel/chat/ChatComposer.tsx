@@ -12,7 +12,6 @@ interface ChatComposerProps {
   leftControlsExtra?: ReactNode
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
-  onThinkingToggle: (enabled: boolean) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
@@ -25,7 +24,6 @@ export function ChatComposer({
   leftControlsExtra,
   rightControlsExtra,
   onValueChange,
-  onThinkingToggle,
   onKeyDown,
   onSend,
   onAbort,
@@ -42,7 +40,6 @@ export function ChatComposer({
         rightControlsExtra={rightControlsExtra}
         onSend={onSend}
         onAbort={onAbort}
-        onThinkingToggle={onThinkingToggle}
       />
     </Box>
   )

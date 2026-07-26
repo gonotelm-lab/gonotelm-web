@@ -24,15 +24,10 @@ interface PanelSubpageLayoutProps {
   subpageBodyRef?: RefObject<HTMLDivElement | null>
 }
 
-const paneShellSx = {
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-} as const
-
+/**
+ * Keep primary pane mounted across open/close so list scroll position survives.
+ * Use two absolute panes (no 200% track) to avoid short-viewport layout glitches.
+ */
 export function PanelSubpageLayout({
   primaryContent,
   subpage,
@@ -40,11 +35,6 @@ export function PanelSubpageLayout({
   subpageBodyRef,
 }: PanelSubpageLayoutProps) {
   const subpageOpen = Boolean(subpage)
-
-  // 无子页时不要挂 200%/transform 轨道：矮视口（如 F12）下该轨道会把主列表行对齐搞坏
-  if (!subpageOpen) {
-    return <Box sx={paneShellSx}>{primaryContent}</Box>
-  }
 
   return (
     <Box
@@ -57,41 +47,37 @@ export function PanelSubpageLayout({
       }}
     >
       <Box
+        aria-hidden={subpageOpen}
         sx={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: '200%',
+          inset: 0,
+          minWidth: 0,
+          minHeight: 0,
+          overflow: 'hidden',
           display: 'flex',
-          transform: 'translateX(-50%)',
+          flexDirection: 'column',
+          transform: subpageOpen ? 'translateX(-100%)' : 'translateX(0)',
           transition: panelSubpageTransition,
+          pointerEvents: subpageOpen ? 'none' : 'auto',
         }}
       >
-        <Box
-          sx={{
-            width: '50%',
-            height: '100%',
-            minWidth: 0,
-            minHeight: 0,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            pointerEvents: 'none',
-          }}
-        >
-          {primaryContent}
-        </Box>
-        <Box
-          sx={{
-            width: '50%',
-            height: '100%',
-            minWidth: 0,
-            minHeight: 0,
-            overflow: 'hidden',
-            pointerEvents: 'auto',
-          }}
-        >
+        {primaryContent}
+      </Box>
+
+      <Box
+        aria-hidden={!subpageOpen}
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          minWidth: 0,
+          minHeight: 0,
+          overflow: 'hidden',
+          transform: subpageOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: panelSubpageTransition,
+          pointerEvents: subpageOpen ? 'auto' : 'none',
+        }}
+      >
+        {subpage ? (
           <Stack sx={{ height: '100%', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <Stack
               direction="row"
@@ -144,7 +130,7 @@ export function PanelSubpageLayout({
               {subpage.content}
             </Box>
           </Stack>
-        </Box>
+        ) : null}
       </Box>
     </Box>
   )

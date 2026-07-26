@@ -47,6 +47,7 @@ import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
 import { studioToolCatalog } from './studioToolCatalog'
+import { studioToolGridContainerSx, studioToolGridSx } from './studioToolGridLayout'
 import type { StudioToolActionId } from './types'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
@@ -368,29 +369,29 @@ export function StudioPanel({
       <Box
         sx={{
           mt: panelTitleToBodySpacing,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: workspaceLayout.listRowGap,
+          ...studioToolGridContainerSx,
         }}
       >
-        {studioToolCatalog.map((tool) => {
-          const actionId = tool.actionId
-          const disabled =
-            tool.availability !== 'available'
-            || (Boolean(tool.artifactKind) && !canSubmitArtifactTask)
-          const pending = Boolean(actionId && pendingActions[actionId])
-          return (
-            <StudioToolCard
-              key={tool.id}
-              tool={tool}
-              selected={Boolean(previewTarget && tool.artifactKind === previewTarget.kind)}
-              disabled={disabled}
-              pending={pending}
-              onClick={actionId ? actionHandlers[actionId] : undefined}
-              onAdvancedClick={actionId ? advancedActionHandlers[actionId] : undefined}
-            />
-          )
-        })}
+        <Box sx={studioToolGridSx}>
+          {studioToolCatalog.map((tool) => {
+            const actionId = tool.actionId
+            const disabled =
+              tool.availability !== 'available'
+              || (Boolean(tool.artifactKind) && !canSubmitArtifactTask)
+            const pending = Boolean(actionId && pendingActions[actionId])
+            return (
+              <StudioToolCard
+                key={tool.id}
+                tool={tool}
+                selected={Boolean(previewTarget && tool.artifactKind === previewTarget.kind)}
+                disabled={disabled}
+                pending={pending}
+                onClick={actionId ? actionHandlers[actionId] : undefined}
+                onAdvancedClick={actionId ? advancedActionHandlers[actionId] : undefined}
+              />
+            )
+          })}
+        </Box>
       </Box>
 
       <Divider sx={studioListDividerSpacing} />

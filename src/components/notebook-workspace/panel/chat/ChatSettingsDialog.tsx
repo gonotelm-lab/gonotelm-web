@@ -20,25 +20,35 @@ import {
   type ChatStyleOption,
 } from './chatSettings'
 
+type ThinkingToggleValue = 'on' | 'off'
+
 interface ChatSettingsDialogProps {
   open: boolean
   chatStyle: ChatStyleOption
   answerLength: ChatAnswerLengthOption
+  enableThinking: boolean
+  thinkingToggleDisabled: boolean
   onClose: () => void
   onSave: () => void
   onChatStyleChange: (value: ChatStyleOption) => void
   onAnswerLengthChange: (value: ChatAnswerLengthOption) => void
+  onEnableThinkingChange: (enabled: boolean) => void
 }
 
 export function ChatSettingsDialog({
   open,
   chatStyle,
   answerLength,
+  enableThinking,
+  thinkingToggleDisabled,
   onClose,
   onSave,
   onChatStyleChange,
   onAnswerLengthChange,
+  onEnableThinkingChange,
 }: ChatSettingsDialogProps) {
+  const thinkingValue: ThinkingToggleValue = enableThinking ? 'on' : 'off'
+
   return (
     <Dialog
       open={open}
@@ -115,6 +125,44 @@ export function ChatSettingsDialog({
                   {option.label}
                 </ToggleButton>
               ))}
+            </ToggleButtonGroup>
+          </Box>
+          <Divider />
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              深度思考
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: workspaceDialogLayout.helperTextMt }}
+            >
+              开启后回答会更慢，但推理更充分。
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              value={thinkingValue}
+              disabled={thinkingToggleDisabled}
+              onChange={(_, nextValue: ThinkingToggleValue | null) => {
+                if (nextValue === 'on') {
+                  onEnableThinkingChange(true)
+                } else if (nextValue === 'off') {
+                  onEnableThinkingChange(false)
+                }
+              }}
+              sx={{
+                mt: workspaceDialogLayout.controlMt,
+                flexWrap: 'wrap',
+                gap: workspaceDialogLayout.toggleGap,
+                border: 'none',
+              }}
+            >
+              <ToggleButton value="off" sx={settingsToggleButtonSx} aria-label="关闭深度思考">
+                关闭
+              </ToggleButton>
+              <ToggleButton value="on" sx={settingsToggleButtonSx} aria-label="开启深度思考">
+                开启
+              </ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </Stack>

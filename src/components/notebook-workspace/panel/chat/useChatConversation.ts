@@ -48,11 +48,11 @@ interface UseChatConversationParams {
   selectedSourceIds: string[]
   chatStyle: ChatStyleOption
   answerLength: ChatAnswerLengthOption
+  enableThinking: boolean
 }
 
 interface UseChatConversationResult {
   composerValue: string
-  enableThinking: boolean
   displayMessages: ChatUiMessage[]
   streamStatus: string
   streamPhaseType: StreamDisplayPhaseType
@@ -72,7 +72,6 @@ interface UseChatConversationResult {
   isThinkingToggleDisabled: boolean
   messageListRef: RefObject<HTMLDivElement | null>
   setComposerValue: (value: string) => void
-  setEnableThinking: (enabled: boolean) => void
   onMessageListScroll: () => void
   onCopyUserMessage: (messageId: string, text: string) => void
   onComposerKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
@@ -123,6 +122,7 @@ export function useChatConversation({
   selectedSourceIds,
   chatStyle,
   answerLength,
+  enableThinking,
 }: UseChatConversationParams): UseChatConversationResult {
   const [composerValue, setComposerValue] = useState('')
   const [liveMessages, setLiveMessages] = useState<ChatUiMessage[]>([])
@@ -131,7 +131,6 @@ export function useChatConversation({
   const [errorText, setErrorText] = useState('')
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<string | null>(null)
-  const [enableThinking, setEnableThinking] = useState(false)
   const [isClearingContext, setIsClearingContext] = useState(false)
 
   const messageListRef = useRef<HTMLDivElement | null>(null)
@@ -741,7 +740,6 @@ export function useChatConversation({
 
   return {
     composerValue,
-    enableThinking,
     displayMessages,
     streamStatus,
     streamPhaseType,
@@ -761,7 +759,6 @@ export function useChatConversation({
     isThinkingToggleDisabled: isStreaming || createMessageMutation.isPending,
     messageListRef,
     setComposerValue,
-    setEnableThinking,
     onMessageListScroll: handleMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,

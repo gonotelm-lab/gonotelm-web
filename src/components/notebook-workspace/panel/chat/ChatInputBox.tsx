@@ -1,10 +1,8 @@
 import type { KeyboardEvent, ReactNode, Ref } from 'react'
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import StopCircleIcon from '@mui/icons-material/StopCircle'
 import {
   Box,
-  Button,
   IconButton,
   Paper,
   TextField,
@@ -19,8 +17,6 @@ export interface ChatInputInteractionState {
   isInputDisabled: boolean
   isSubmitDisabled: boolean
   isAbortDisabled: boolean
-  enableThinking: boolean
-  isThinkingToggleDisabled: boolean
 }
 
 interface ChatInputBoxProps {
@@ -30,7 +26,6 @@ interface ChatInputBoxProps {
   leftControlsExtra?: ReactNode
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
-  onThinkingToggle: (enabled: boolean) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
@@ -53,34 +48,8 @@ const inputTextTokens = {
 const inputActionButtonTokens = {
   size: 30,
 }
-const thinkingButtonTokens = {
-  controlsGap: workspaceSpace.xxs,
-  iconSize: 15,
-  // Pill control (not card radius).
-  borderRadius: 999,
-  fontSize: workspaceType.xs,
-  minHeight: 29,
-  paddingX: workspaceSpace.md,
-}
+const leftControlRowGap = workspaceSpace.xxs
 const rightControlRowGap = workspaceSpace.xxs
-
-const buildCapsuleToggleButtonSx = (enabled: boolean) => ({
-  borderRadius: thinkingButtonTokens.borderRadius,
-  textTransform: 'none',
-  fontSize: thinkingButtonTokens.fontSize,
-  fontWeight: 600,
-  minHeight: thinkingButtonTokens.minHeight,
-  px: thinkingButtonTokens.paddingX,
-  color: enabled ? 'primary.contrastText' : 'text.secondary',
-  borderColor: enabled ? 'primary.main' : 'divider',
-  transition: workspaceTransitionPresets.colorBorderBg,
-  '& .MuiSvgIcon-root': {
-    fontSize: thinkingButtonTokens.iconSize,
-  },
-  '&:hover': {
-    borderColor: enabled ? 'primary.main' : 'text.secondary',
-  },
-})
 
 export function ChatInputBox({
   value,
@@ -89,7 +58,6 @@ export function ChatInputBox({
   leftControlsExtra,
   rightControlsExtra,
   onValueChange,
-  onThinkingToggle,
   onKeyDown,
   onSend,
   onAbort,
@@ -99,8 +67,6 @@ export function ChatInputBox({
     isInputDisabled,
     isSubmitDisabled,
     isAbortDisabled,
-    enableThinking,
-    isThinkingToggleDisabled,
   } = interactionState
 
   return (
@@ -153,20 +119,7 @@ export function ChatInputBox({
           justifyContent: 'space-between',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: thinkingButtonTokens.controlsGap }}>
-          <Button
-            size="small"
-            variant={enableThinking ? 'contained' : 'outlined'}
-            color={enableThinking ? 'primary' : 'inherit'}
-            onClick={() => {
-              onThinkingToggle(!enableThinking)
-            }}
-            disabled={isThinkingToggleDisabled}
-            startIcon={<AutoAwesomeIcon />}
-            sx={buildCapsuleToggleButtonSx(enableThinking)}
-          >
-            深度思考
-          </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: leftControlRowGap }}>
           {leftControlsExtra}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: rightControlRowGap }}>

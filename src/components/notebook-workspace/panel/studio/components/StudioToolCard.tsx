@@ -106,7 +106,11 @@ export function StudioToolCard({
                 >
                   <Icon sx={{ fontSize: workspaceIconSize.md }} />
                 </Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                <Typography
+                  variant="body2"
+                  noWrap
+                  sx={{ fontWeight: 600, lineHeight: 1.2, minWidth: 0 }}
+                >
                   {tool.title}
                 </Typography>
               </Stack>

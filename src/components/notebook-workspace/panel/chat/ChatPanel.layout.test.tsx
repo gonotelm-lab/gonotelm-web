@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('./useChatConversation', () => ({
   useChatConversation: () => ({
     composerValue: '',
-    enableThinking: false,
     displayMessages: [],
     streamStatus: '',
     streamPhaseType: null,
@@ -25,7 +24,6 @@ vi.mock('./useChatConversation', () => ({
     isThinkingToggleDisabled: false,
     messageListRef: { current: null },
     setComposerValue: () => undefined,
-    setEnableThinking: () => undefined,
     onMessageListScroll: () => undefined,
     onCopyUserMessage: () => undefined,
     onComposerKeyDown: () => undefined,

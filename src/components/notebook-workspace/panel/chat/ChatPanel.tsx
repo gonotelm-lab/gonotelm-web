@@ -38,7 +38,10 @@ const chatAnswerLengthOptionSet = new Set<ChatAnswerLengthOption>(
 interface PersistedChatPanelSettings {
   style?: string
   answerLength?: string
+  enableThinking?: boolean
 }
+
+const defaultEnableThinking = false
 
 const buildChatSettingsStorageKey = (chatId: string) =>
   `${chatSettingsStorageKeyPrefix}:${chatId}`
@@ -48,11 +51,13 @@ const resolveStoredChatSettings = (
 ): {
   chatStyle: ChatStyleOption
   answerLength: ChatAnswerLengthOption
+  enableThinking: boolean
 } => {
   if (typeof window === 'undefined' || !chatId) {
     return {
       chatStyle: defaultChatStyle,
       answerLength: defaultChatAnswerLength,
+      enableThinking: defaultEnableThinking,
     }
   }
   const persistedSettings = window.localStorage.getItem(buildChatSettingsStorageKey(chatId))
@@ -60,6 +65,7 @@ const resolveStoredChatSettings = (
     return {
       chatStyle: defaultChatStyle,
       answerLength: defaultChatAnswerLength,
+      enableThinking: defaultEnableThinking,
     }
   }
 
@@ -71,14 +77,18 @@ const resolveStoredChatSettings = (
     const answerLength = chatAnswerLengthOptionSet.has(parsed.answerLength as ChatAnswerLengthOption)
       ? (parsed.answerLength as ChatAnswerLengthOption)
       : defaultChatAnswerLength
+    const enableThinking =
+      typeof parsed.enableThinking === 'boolean' ? parsed.enableThinking : defaultEnableThinking
     return {
       chatStyle,
       answerLength,
+      enableThinking,
     }
   } catch {
     return {
       chatStyle: defaultChatStyle,
       answerLength: defaultChatAnswerLength,
+      enableThinking: defaultEnableThinking,
     }
   }
 }
@@ -87,6 +97,7 @@ const persistChatSettings = (
   chatId: string,
   chatStyle: ChatStyleOption,
   answerLength: ChatAnswerLengthOption,
+  enableThinking: boolean,
 ) => {
   if (typeof window === 'undefined' || !chatId) {
     return
@@ -96,6 +107,7 @@ const persistChatSettings = (
     JSON.stringify({
       style: chatStyle,
       answerLength,
+      enableThinking,
     }),
   )
 }
@@ -143,6 +155,9 @@ function ChatPanelContent({
   const [answerLength, setAnswerLength] = useState<ChatAnswerLengthOption>(
     () => resolveStoredChatSettings(chatId).answerLength,
   )
+  const [enableThinking, setEnableThinking] = useState(
+    () => resolveStoredChatSettings(chatId).enableThinking,
+  )
   const [errorToast, setErrorToast] = useState<{ key: number; message: string } | null>(null)
   const errorToastKeyRef = useRef(0)
   const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
@@ -150,7 +165,6 @@ function ChatPanelContent({
 
   const {
     composerValue,
-    enableThinking,
     displayMessages,
     isLoadingHistory,
     isFetchingMore,
@@ -166,7 +180,6 @@ function ChatPanelContent({
     isThinkingToggleDisabled,
     messageListRef,
     setComposerValue,
-    setEnableThinking,
     onMessageListScroll,
     onCopyUserMessage,
     onComposerKeyDown,
@@ -179,6 +192,7 @@ function ChatPanelContent({
     selectedSourceIds,
     chatStyle,
     answerLength,
+    enableThinking,
   })
 
   const handleOpenSettingsDialog = () => {
@@ -205,8 +219,8 @@ function ChatPanelContent({
   }, [isInputDisabled, isStreaming])
 
   useEffect(() => {
-    persistChatSettings(chatId, chatStyle, answerLength)
-  }, [answerLength, chatId, chatStyle])
+    persistChatSettings(chatId, chatStyle, answerLength, enableThinking)
+  }, [answerLength, chatId, chatStyle, enableThinking])
 
   useEffect(() => {
     if (!errorText) {
@@ -308,11 +322,8 @@ function ChatPanelContent({
             isInputDisabled,
             isSubmitDisabled: submitDisabled,
             isAbortDisabled,
-            enableThinking,
-            isThinkingToggleDisabled,
           }}
           onValueChange={setComposerValue}
-          onThinkingToggle={setEnableThinking}
           onKeyDown={onComposerKeyDown}
           onSend={onSendMessage}
           onAbort={onAbortStream}
@@ -323,10 +334,13 @@ function ChatPanelContent({
         open={settingsDialogOpen}
         chatStyle={chatStyle}
         answerLength={answerLength}
+        enableThinking={enableThinking}
+        thinkingToggleDisabled={isThinkingToggleDisabled}
         onClose={handleCloseSettingsDialog}
         onSave={handleSaveSettings}
         onChatStyleChange={setChatStyle}
         onAnswerLengthChange={setAnswerLength}
+        onEnableThinkingChange={setEnableThinking}
       />
 
       <Snackbar
