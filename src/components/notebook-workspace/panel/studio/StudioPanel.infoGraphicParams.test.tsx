@@ -198,7 +198,7 @@ describe('StudioPanel 任务触发参数', () => {
         kind: 'audio_overview',
         actionId: 'generate-audio_overview',
         audioOverview: expect.objectContaining({
-          language: 'zh-cn(简体中文)',
+          language: 'zh-CN',
           style: 'abstract',
         }),
       }),

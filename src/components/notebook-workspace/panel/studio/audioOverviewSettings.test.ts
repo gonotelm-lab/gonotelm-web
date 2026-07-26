@@ -7,7 +7,7 @@ import {
 describe('buildAudioOverviewRequestParams', () => {
   it('fills backend-required defaults when params are omitted', () => {
     expect(buildAudioOverviewRequestParams()).toEqual({
-      language: 'zh-cn(简体中文)',
+      language: 'zh-CN',
       style: 'abstract',
     })
   })
@@ -15,19 +15,19 @@ describe('buildAudioOverviewRequestParams', () => {
   it('merges custom params and omits empty tip', () => {
     expect(
       buildAudioOverviewRequestParams({
-        language: ' en(English) ',
+        language: ' en-US ',
         style: 'discussion',
         tip: '  keep concise  ',
       }),
     ).toEqual({
-      language: 'en(English)',
+      language: 'en-US',
       style: 'discussion',
       tip: 'keep concise',
     })
   })
 
   it('keeps dialog defaults aligned with request defaults', () => {
-    expect(defaultAudioOverviewParameters.language).toBe('zh-cn(简体中文)')
+    expect(defaultAudioOverviewParameters.language).toBe('zh-CN')
     expect(defaultAudioOverviewParameters.style).toBe('abstract')
   })
 })
