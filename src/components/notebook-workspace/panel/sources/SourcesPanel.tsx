@@ -25,6 +25,7 @@ import { SourceInlinePreview } from './components/SourceInlinePreview'
 import { SourceListRow } from './components/SourceListRow'
 import { SourcePreviewOverlay } from './components/SourcePreviewOverlay'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
+import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import type { SourceListItem } from './types/sourceTypes'
@@ -138,7 +139,8 @@ function SourcesPanelLayout({
         <Paper
           variant="outlined"
           sx={{
-            p: 2,
+            px: workspaceLayout.panelPaddingX,
+            py: workspaceLayout.panelPaddingY,
             width: '100%',
             height: '100%',
             minHeight: 0,
@@ -166,7 +168,7 @@ function SourcesPanelLayout({
                   </IconButton>
                 </Stack>
 
-                <Stack spacing={1.25} sx={{ mt: panelTitleToBodySpacing }}>
+                <Stack spacing={workspaceSpace.md} sx={{ mt: panelTitleToBodySpacing }}>
                   <Button
                     variant="outlined"
                     fullWidth
@@ -178,16 +180,16 @@ function SourcesPanelLayout({
                   </Button>
                 </Stack>
 
-                <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: workspaceLayout.panelPaddingY }} />
 
                 <Box
                   sx={{
                     minWidth: 0,
-                    pr: 0.5,
+                    pr: workspaceSpace.xxs,
                     display: 'grid',
                     gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
                     alignItems: 'center',
-                    columnGap: 0.75,
+                    columnGap: workspaceLayout.listInlineGap,
                   }}
                 >
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
@@ -219,11 +221,11 @@ function SourcesPanelLayout({
                 <Stack
                   spacing={0}
                   sx={(theme) => ({
-                    mt: 1.25,
+                    mt: workspaceSpace.md,
                     flex: 1,
                     minHeight: 0,
                     overflowY: 'auto',
-                    pr: 0.5,
+                    pr: workspaceSpace.xxs,
                     ...subtleScrollbarSx(theme),
                   })}
                 >
@@ -231,7 +233,7 @@ function SourcesPanelLayout({
                     ? Array.from({ length: skeletonItemCount }).map((_, index) => (
                         <Box
                           key={`source-skeleton-${index}`}
-                          sx={{ py: 1 }}
+                          sx={{ py: workspaceSpace.sm }}
                         >
                           <Box
                             sx={{
@@ -239,12 +241,12 @@ function SourcesPanelLayout({
                               display: 'grid',
                               gridTemplateColumns: `minmax(0, 1fr) ${sourceSelectionColumnWidthPx}px`,
                               alignItems: 'center',
-                              columnGap: 0.75,
+                              columnGap: workspaceLayout.listInlineGap,
                             }}
                           >
                             <Stack
                               direction="row"
-                              spacing={0.75}
+                              spacing={workspaceLayout.listInlineGap}
                               sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
                             >
                               <Box

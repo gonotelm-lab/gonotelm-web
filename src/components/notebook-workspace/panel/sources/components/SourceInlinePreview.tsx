@@ -13,6 +13,11 @@ import { renderSourcePreviewContent } from '../preview/sourcePreviewRenderRegist
 import type { SourceHighlightRange } from '../preview/sourcePreviewMarkdown'
 import type { SourcePreviewViewType } from '../preview/types'
 import {
+  workspaceLayout,
+  workspaceRadius,
+  workspaceSpace,
+} from '../../../shared/ui/layoutTokens'
+import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
@@ -60,11 +65,19 @@ export function SourceInlinePreview({
           <Typography variant="h5" sx={{ fontWeight: 600 }} noWrap>
             {sourceName}
           </Typography>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 0.55 }}>
+          <Typography
+            variant="subtitle2"
+            color="text.secondary"
+            sx={{ mt: workspaceSpace.xxs }}
+          >
             {viewTypeLabelMap[viewType]}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={0.35} sx={{ ml: 1, alignItems: 'center', flexShrink: 0 }}>
+        <Stack
+          direction="row"
+          spacing={workspaceSpace.xxs}
+          sx={{ ml: workspaceSpace.sm, alignItems: 'center', flexShrink: 0 }}
+        >
           {canOpenOverlay ? (
             <Tooltip title="放大预览">
               <span>
@@ -97,13 +110,13 @@ export function SourceInlinePreview({
 
       <Box
         data-source-preview-scroll-root="true"
-        sx={{ mt: 1.2, flex: 1, minHeight: 0, overflow: 'auto' }}
+        sx={{ mt: workspaceSpace.md, flex: 1, minHeight: 0, overflow: 'auto' }}
       >
         {degradedByResizing ? (
           <Box
             sx={{
               height: '100%',
-              borderRadius: 1,
+              borderRadius: workspaceRadius.lg,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -121,7 +134,7 @@ export function SourceInlinePreview({
             </Typography>
           </Stack>
         ) : error ? (
-          <Stack spacing={1.2} sx={{ maxWidth: 840 }}>
+          <Stack spacing={workspaceLayout.listRowGap} sx={{ maxWidth: 840 }}>
             <Alert severity="error">{error}</Alert>
             <Box>
               <Button size="small" variant="outlined" onClick={onRetryLoad}>

@@ -33,7 +33,16 @@ import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import { downloadSourceItemParsedContent } from './sourceItemDownload'
 import type { SourceListItem } from '../types/sourceTypes'
-import { workspaceMotion, workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
+import {
+  workspaceLayout,
+  workspaceRadius,
+  workspaceSpace,
+} from '../../../shared/ui/layoutTokens'
+import {
+  workspaceInteraction,
+  workspaceMotion,
+  workspaceTransitionPresets,
+} from '../../../shared/ui/motionTokens'
 
 const sourceTitleMaxChars = 64
 const sourceExitTransition = `opacity ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, transform ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, max-height ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, padding ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}, margin ${workspaceMotion.durationExitMs}ms ${workspaceMotion.easingStandard}`
@@ -94,12 +103,17 @@ export function SourceListRow({
   const actionMenuOpen = Boolean(actionAnchorEl)
   const actionMenuItemSx = {
     minHeight: 34,
-    px: 1.25,
+    px: workspaceSpace.md,
     display: 'flex',
     alignItems: 'center',
   }
   const actionMenuIconSx = { fontSize: 16, color: 'text.secondary' }
-  const actionMenuTextSx = { fontSize: 12.5, lineHeight: 1.2, ml: 'auto', pl: 1.5 }
+  const actionMenuTextSx = {
+    fontSize: 12.5,
+    lineHeight: 1.2,
+    ml: 'auto',
+    pl: workspaceSpace.md,
+  }
 
   const commitToggleSelection = (nextChecked: boolean) => {
     setOptimisticChecked(nextChecked)
@@ -220,18 +234,19 @@ export function SourceListRow({
     <Box
       onClick={handleToggleRow}
       sx={{
-        my: removing ? 0 : 0.3,
-        py: removing ? 0 : 1,
+        my: removing ? 0 : workspaceSpace.xxs,
+        py: removing ? 0 : workspaceSpace.sm,
         maxHeight: removing ? 0 : 58,
         opacity: removing ? 0 : 1,
         transform: removing ? 'translateX(-4px)' : 'translateX(0)',
         position: 'relative',
         overflow: 'hidden',
-        borderRadius: 0.9,
+        borderRadius: workspaceRadius.md,
         bgcolor: 'transparent',
+        cursor: rowSelectable ? workspaceInteraction.cursorPointer : 'default',
         transition: removing
           ? sourceExitTransition
-          : workspaceTransitionPresets.colorBorderBg,
+          : workspaceTransitionPresets.interactiveColorBorder,
         pointerEvents: removing ? 'none' : 'auto',
         '&:hover': {
           bgcolor: 'action.hover',
@@ -258,10 +273,14 @@ export function SourceListRow({
           zIndex: 1,
           display: 'grid',
           gridTemplateColumns: `minmax(0, 1fr) ${selectionColumnWidth}px`,
-          columnGap: 0.75,
+          columnGap: workspaceLayout.listInlineGap,
         }}
       >
-        <Stack direction="row" spacing={0.75} sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}>
+        <Stack
+          direction="row"
+          spacing={workspaceLayout.listInlineGap}
+          sx={{ minWidth: 0, alignItems: 'center', flex: 1 }}
+        >
           <Box sx={{ position: 'relative', width: 18, height: 18 }}>
             <Box
               className="source-type-icon"
