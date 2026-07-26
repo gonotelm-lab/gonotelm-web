@@ -16,6 +16,8 @@ import { normalizeMarkdownDelimiters } from './markdownNormalization'
 interface MarkdownRendererProps {
   content: string
   citations?: string[]
+  /** Body text size; defaults to reading scale (16). Chat messages pass 14. */
+  fontSize?: number
   renderCitationAsSuperscript?: boolean
   justifyParagraphs?: boolean
   onCitationClick?: (
@@ -129,6 +131,7 @@ const readCitationIndexFromChildren = (children: ReactNode) => {
 
 export function MarkdownRenderer({
   content,
+  fontSize = workspaceType.md,
   renderCitationAsSuperscript = false,
   justifyParagraphs = false,
   onCitationClick,
@@ -149,6 +152,7 @@ export function MarkdownRenderer({
     <Box
       sx={{
         ...markdownBaseTypography,
+        fontSize,
         color: 'text.primary',
         fontVariantLigatures: 'none',
         fontFeatureSettings: '"liga" 0, "calt" 0',

@@ -46,7 +46,7 @@ const inputBoxLayoutTokens = {
 }
 
 const inputTextTokens = {
-  fontSize: workspaceType.md,
+  fontSize: workspaceType.sm,
   lineHeight: 1.55,
 }
 
