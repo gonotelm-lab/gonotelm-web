@@ -5,6 +5,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
@@ -30,21 +31,21 @@ const codeFontFamily =
   "'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
 const inlineCodeTokens = {
-  paddingX: 0.48,
-  paddingY: 0.18,
-  borderRadius: 0.75,
+  paddingX: workspaceSpace.xxs,
+  paddingY: 0,
+  borderRadius: workspaceRadius.sm,
   fontSize: workspaceType.mono,
   lineHeight: 1.45,
 }
 
 const codeBlockLayoutTokens = {
-  marginTop: 1.05,
-  marginBottom: 3.2,
-  borderRadius: 1.2,
-  toolbarPaddingX: 1.1,
-  toolbarPaddingY: 0.45,
+  marginTop: workspaceSpace.sm,
+  marginBottom: workspaceSpace.xl,
+  borderRadius: workspaceRadius.lg,
+  toolbarPaddingX: workspaceSpace.md,
+  toolbarPaddingY: workspaceSpace.xxs,
   toolbarLanguageFontSize: workspaceType.xs,
-  contentPadding: 1.25,
+  contentPadding: workspaceSpace.md,
   contentFontSize: workspaceType.mono,
   contentLineHeight: 1.55,
 }

@@ -1,4 +1,4 @@
-import { workspaceLayout, workspaceRadius, workspaceSpace } from './layoutTokens'
+import { workspaceRadius, workspaceSpace } from './layoutTokens'
 
 /** Shared density for Workspace settings dialogs (Studio + Chat). */
 export const workspaceDialogLayout = {
@@ -8,6 +8,9 @@ export const workspaceDialogLayout = {
   captionMt: workspaceSpace.sm,
   toggleGap: workspaceSpace.sm,
   paperRadius: workspaceRadius.lg,
-  contentPaddingX: workspaceLayout.panelPaddingY,
+  /** Dialog content horizontal padding (denser than panel shell xl). */
+  contentPaddingX: workspaceSpace.lg,
+  titlePaddingBottom: workspaceSpace.sm,
+  contentPaddingTop: workspaceSpace.sm,
   actionsGap: workspaceSpace.sm,
 } as const

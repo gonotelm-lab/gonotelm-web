@@ -190,7 +190,7 @@ export function WorkspaceHeader({
             <Typography
               variant="caption"
               sx={(theme) => ({
-                mt: 1,
+                mt: workspaceSpace.sm,
                 display: 'block',
                 color: theme.workspacePalette.status.error,
               })}

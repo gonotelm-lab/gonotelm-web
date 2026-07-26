@@ -8,7 +8,7 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { MarkdownCode } from '@/components/notebook-workspace/panel/chat/MarkdownCode'
-import { workspaceSpace } from '../ui/layoutTokens'
+import { workspaceRadius, workspaceSpace } from '../ui/layoutTokens'
 import { workspaceTransitionPresets } from '../ui/motionTokens'
 import { subtleScrollbarSx } from '../ui/scrollbar'
 import { workspaceType } from '../ui/typeTokens'
@@ -229,7 +229,7 @@ export function MarkdownRenderer({
         '& a:hover': { textDecoration: 'underline' },
         '& a[href^="#cite-"]': {
           display: 'inline-block',
-          ml: 0.18,
+          ml: 0,
           px: 0,
           py: 0,
           border: 0,
@@ -249,18 +249,18 @@ export function MarkdownRenderer({
           textDecoration: 'underline',
         },
         '& mark': {
-          px: 0.1,
-          py: 0.02,
+          px: workspaceSpace.xxs,
+          py: 0,
           bgcolor: 'action.selected',
           color: 'inherit',
-          borderRadius: 0.25,
+          borderRadius: workspaceRadius.sm,
         },
         '& .katex': {
           fontSize: '0.96em',
         },
         '& .katex-display': {
           m: 0,
-          my: 0.7,
+          my: workspaceSpace.sm,
           overflow: 'hidden',
           textAlign: 'left',
         },
@@ -272,16 +272,16 @@ export function MarkdownRenderer({
           WebkitOverflowScrolling: 'touch',
         },
         '& .katex-display + .katex-display': {
-          mt: 0.28,
+          mt: workspaceSpace.xxs,
         },
         '& p + .katex-display, & .katex-display + p': {
-          mt: 0.72,
+          mt: workspaceSpace.sm,
         },
         '& .math.math-display': {
-          my: 0.7,
+          my: workspaceSpace.sm,
         },
         '& .math.math-display + .math.math-display': {
-          mt: 0.28,
+          mt: workspaceSpace.xxs,
         },
       })}
     >

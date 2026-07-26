@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
-import { workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceLayout, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import {
   inlinePreviewActionIconButtonSx,
   inlinePreviewActionIconSx,
@@ -120,7 +120,7 @@ export function StudioArtifactInlinePreview({
             </Typography>
           </Stack>
         ) : error ? (
-          <Stack spacing={1.2} sx={{ maxWidth: 840 }}>
+          <Stack spacing={workspaceLayout.listRowGap} sx={{ maxWidth: 840 }}>
             <Alert severity="error">{error}</Alert>
             <Box>
               <Button size="small" variant="outlined" onClick={onRetryLoad}>

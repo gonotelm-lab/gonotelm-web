@@ -330,7 +330,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 </Tooltip>
               ) : null}
             </Box>
-            <Typography variant="body2" sx={{ mt: 0.2, color: 'text.secondary' }}>
+            <Typography variant="body2" sx={{ mt: workspaceSpace.xxs, color: 'text.secondary' }}>
               {`位置: ${citationPositionText}`}
             </Typography>
             <Box

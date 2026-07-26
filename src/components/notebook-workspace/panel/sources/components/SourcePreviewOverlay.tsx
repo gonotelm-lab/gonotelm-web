@@ -96,7 +96,7 @@ export function SourcePreviewOverlay({
         <Stack
           direction="row"
           sx={{
-            px: workspaceLayout.panelPaddingY,
+            px: workspaceLayout.panelPaddingX,
             py: workspaceSpace.md,
             borderBottom: 1,
             borderColor: 'divider',

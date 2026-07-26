@@ -150,14 +150,14 @@ export function QuizViewer({ content }: QuizViewerProps) {
           <Typography variant="h6" sx={{ fontWeight: 650 }}>
             测验结果
           </Typography>
-          <Typography variant="body1" sx={{ mt: 1 }}>
+          <Typography variant="body1" sx={{ mt: workspaceSpace.sm }}>
             答对 {correctCount} / {total} 题
             （正确率 {total > 0 ? Math.round((correctCount / total) * 100) : 0}%）
           </Typography>
         </Box>
 
         <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: workspaceSpace.sm }}>
             本题组覆盖主题
           </Typography>
           <Stack direction="row" spacing={workspaceSpace.sm} useFlexGap sx={{ flexWrap: 'wrap' }}>
@@ -168,7 +168,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
         </Box>
 
         <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: workspaceSpace.sm }}>
             后续学习建议
           </Typography>
           <Stack spacing={workspaceSpace.sm}>
@@ -267,7 +267,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
           border: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
-          p: 2,
+          p: workspaceSpace.lg,
           gap: workspaceSpace.md,
           overflow: 'auto',
           ...subtleScrollbarSx(theme),
@@ -381,13 +381,13 @@ export function QuizViewer({ content }: QuizViewerProps) {
               py: workspaceSpace.md,
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 650, mb: 0.75 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 650, mb: workspaceSpace.sm }}>
               答案解析
             </Typography>
             <Typography variant="body2" color="text.secondary">
               你的答案：{formatOptionLabels(selected)}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceSpace.xxs }}>
               正确答案：{formatOptionLabels(correctIndexes)}
             </Typography>
             <Typography
@@ -403,12 +403,12 @@ export function QuizViewer({ content }: QuizViewerProps) {
             {question.explanation?.trim() ? (
               <Typography
                 variant="body2"
-                sx={{ mt: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}
+                sx={{ mt: workspaceSpace.sm, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}
               >
                 {question.explanation.trim()}
               </Typography>
             ) : (
-              <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: workspaceSpace.sm }}>
                 本题暂无文字解析（旧产物可能缺少 explanation 字段）。
               </Typography>
             )}
@@ -418,7 +418,7 @@ export function QuizViewer({ content }: QuizViewerProps) {
         <Stack
           direction="row"
           spacing={1}
-          sx={{ justifyContent: 'center', alignItems: 'center', pt: 0.5 }}
+          sx={{ justifyContent: 'center', alignItems: 'center', pt: workspaceSpace.xxs }}
         >
           <IconButton
             size="small"

@@ -1,3 +1,4 @@
+import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
 export type ChatStyleOption = 'default' | 'analyst' | 'guide'
@@ -21,8 +22,8 @@ export const settingsToggleButtonSx = {
   borderColor: 'divider',
   borderRadius: 999,
   margin: 0,
-  px: 1.25,
-  py: 0.35,
+  px: workspaceSpace.md,
+  py: workspaceSpace.xxs,
   textTransform: 'none',
   fontSize: workspaceType.sm,
   '&.MuiToggleButtonGroup-grouped': {

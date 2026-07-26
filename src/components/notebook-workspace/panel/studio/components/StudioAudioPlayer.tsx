@@ -250,13 +250,19 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
             {playing ? (
               <PauseRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
             ) : (
-              <PlayArrowRoundedIcon sx={{ fontSize: workspaceIconSize.md, ml: 0.15 }} />
+              <PlayArrowRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
             )}
           </IconButton>
 
           <Typography
             variant="caption"
-            sx={{ minWidth: 30, textAlign: 'right', color: 'text.secondary', fontVariantNumeric: 'tabular-nums', mr: 0.5 }}
+            sx={{
+              minWidth: 30,
+              textAlign: 'right',
+              color: 'text.secondary',
+              fontVariantNumeric: 'tabular-nums',
+              mr: workspaceSpace.xxs,
+            }}
           >
             {formatAudioTime(displayTime)}
           </Typography>
@@ -287,7 +293,7 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
               ref={volumeAnchorRef}
               size="small"
               onClick={handleVolumeButtonClick}
-              sx={{ color: 'text.secondary', ml: 0.3 }}
+              sx={{ color: 'text.secondary', ml: workspaceSpace.xxs }}
             >
               {volumeIcon(volume, muted)}
             </IconButton>

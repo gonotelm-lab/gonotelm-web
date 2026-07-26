@@ -8,6 +8,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { workspaceDialogLayout } from '../../../shared/ui/dialogLayoutTokens'
 import { workspaceRadius } from '../../../shared/ui/layoutTokens'
 import { AddSourceDialogEditorView } from './AddSourceDialogEditorView'
 import { AddSourceDialogHomeView } from './AddSourceDialogHomeView'
@@ -97,7 +98,7 @@ export function AddSourceDialog({
         },
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
+      <DialogTitle sx={{ pb: workspaceDialogLayout.titlePaddingBottom }}>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">添加来源</Typography>
           <IconButton size="small" onClick={handleDialogClose} disabled={disabled} aria-label="关闭">
@@ -105,7 +106,14 @@ export function AddSourceDialog({
           </IconButton>
         </Stack>
       </DialogTitle>
-      <DialogContent sx={{ pt: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <DialogContent
+        sx={{
+          pt: workspaceDialogLayout.contentPaddingTop,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         {view === 'home' ? (
           <AddSourceDialogHomeView
             disabled={disabled}

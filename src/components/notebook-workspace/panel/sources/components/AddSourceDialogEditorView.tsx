@@ -1,5 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material'
+import { workspaceSpace } from '../../../shared/ui/layoutTokens'
 
 type EditorViewMode = 'url' | 'text'
 
@@ -40,7 +41,7 @@ export function AddSourceDialogEditorView({
           {view === 'url' ? '链接' : '粘贴文字'}
         </Typography>
       </Stack>
-      <Box sx={{ mt: 1.5, flex: 1, minHeight: 0 }}>
+      <Box sx={{ mt: workspaceSpace.md, flex: 1, minHeight: 0 }}>
         {view === 'url' ? (
           <TextField
             fullWidth
@@ -73,8 +74,8 @@ export function AddSourceDialogEditorView({
         direction="row"
         sx={{
           justifyContent: 'flex-end',
-          mt: 2,
-          pt: 1.25,
+          mt: workspaceSpace.lg,
+          pt: workspaceSpace.md,
           borderTop: 1,
           borderColor: 'divider',
           flexShrink: 0,

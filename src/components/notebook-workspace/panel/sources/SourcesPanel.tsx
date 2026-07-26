@@ -382,7 +382,7 @@ function SourcesPanelLayout({
               : null}
             subpageBodyRef={previewBodyRef}
             subpageBodySx={{
-              pr: 0.5,
+              pr: workspaceSpace.xxs,
               // Scroll lives in SourceInlinePreview (shared subtle scrollbar).
               overflow: 'hidden',
             }}

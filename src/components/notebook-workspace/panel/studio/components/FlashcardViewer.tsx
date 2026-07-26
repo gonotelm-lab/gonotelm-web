@@ -70,7 +70,7 @@ const cardFaceSx = {
 
 const cardCornerIconSx = {
   position: 'absolute',
-  top: 12,
+  top: 12, // workspaceSpace.md px
   right: 12,
   fontSize: workspaceType.xl,
   color: 'text.disabled',

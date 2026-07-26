@@ -37,7 +37,7 @@ interface ChatInputBoxProps {
 }
 
 const inputBoxLayoutTokens = {
-  paddingLeft: workspaceSpace.lg,
+  paddingLeft: workspaceSpace.md,
   paddingRight: workspaceSpace.md,
   paddingTop: workspaceSpace.sm,
   paddingBottom: workspaceSpace.xxs,

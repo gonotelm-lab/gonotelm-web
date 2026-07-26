@@ -67,14 +67,14 @@ export function AddSourceDialogHomeView({
         添加来源后，NotebookLM 能够基于这些对您重要的信息提供回答。
       </Typography>
 
-      <Box sx={{ mt: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ mt: workspaceSpace.lg, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Box
           sx={{
             border: 1,
             borderStyle: 'dashed',
             borderColor: dragActive ? 'primary.main' : 'divider',
             borderRadius: workspaceRadius.lg,
-            px: 2,
+            px: workspaceSpace.lg,
             flex: 1,
             minHeight: 0,
             display: 'grid',
@@ -119,7 +119,7 @@ export function AddSourceDialogHomeView({
         >
           <Box>
             <CloudUploadIcon sx={{ fontSize: workspaceIconSize.xl, color: 'primary.main' }} />
-            <Typography variant="h6" sx={{ mt: 1 }}>
+            <Typography variant="h6" sx={{ mt: workspaceSpace.sm }}>
               上传来源
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceSpace.sm }}>
@@ -148,7 +148,7 @@ export function AddSourceDialogHomeView({
                 variant="caption"
                 sx={(theme) => ({
                   display: 'block',
-                  mt: 1,
+                  mt: workspaceSpace.sm,
                   color: theme.workspacePalette.status.error,
                 })}
               >
@@ -174,7 +174,7 @@ export function AddSourceDialogHomeView({
 
       <Box
         sx={{
-          mt: 2,
+          mt: workspaceSpace.lg,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
           gap: workspaceSpace.md,
@@ -199,9 +199,12 @@ export function AddSourceDialogHomeView({
                 链接
               </Typography>
             </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ pl: 3.25 }}>
-              网站
-            </Typography>
+            <Stack direction="row" spacing={workspaceSpace.sm}>
+              <Box sx={{ width: 20, flexShrink: 0 }} aria-hidden />
+              <Typography variant="caption" color="text.secondary">
+                网站
+              </Typography>
+            </Stack>
           </Stack>
         </Paper>
         <Paper
@@ -223,9 +226,12 @@ export function AddSourceDialogHomeView({
                 粘贴文字
               </Typography>
             </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ pl: 3.25 }}>
-              复制的文字
-            </Typography>
+            <Stack direction="row" spacing={workspaceSpace.sm}>
+              <Box sx={{ width: 20, flexShrink: 0 }} aria-hidden />
+              <Typography variant="caption" color="text.secondary">
+                复制的文字
+              </Typography>
+            </Stack>
           </Stack>
         </Paper>
       </Box>

@@ -159,7 +159,7 @@ export function ChatNotebookInfoHeader({
 
         <Box
           sx={{
-            mt: 0.2,
+            mt: workspaceSpace.xxs,
             minHeight: notebookInfoTokens.actionRowMinHeight,
             display: 'flex',
             alignItems: 'center',

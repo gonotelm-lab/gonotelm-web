@@ -65,9 +65,9 @@ const buildMindmapGraphOptions = (
         borderWidthSelected: 1.2,
         chosen: false,
         margin: {
-          top: 10,
+          top: 12,
           right: 12,
-          bottom: 10,
+          bottom: 12,
           left: 12,
         },
         color: {
@@ -411,7 +411,7 @@ function MindmapCanvasInner({
           aria-label="重置思维导图视图"
           sx={{
             position: 'absolute',
-            top: 8,
+            top: 8, // workspaceSpace.sm px
             right: 8,
             zIndex: 2,
             color: tonePalette.toolbarText,
