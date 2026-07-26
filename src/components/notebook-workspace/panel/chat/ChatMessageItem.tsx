@@ -29,56 +29,59 @@ import {
 import { extractResponseText } from './streamEventReducer'
 import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
+import {
+  workspaceRadius,
+  workspaceRadiusPx,
+  workspaceSpace,
+} from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
-const assistantMessagePaddingY = 0.15
-const userBubbleBorderRadius = '14px 14px 6px 14px'
+const assistantMessagePaddingY = 0
+// Asymmetric chat bubble corners (lg top / sm bottom-left).
+const userBubbleBorderRadius = `${workspaceRadiusPx.lg}px ${workspaceRadiusPx.lg}px ${workspaceRadiusPx.sm}px ${workspaceRadiusPx.lg}px`
 
 const citationCardTokens = {
-  paperBorderRadius: 1.25,
+  paperBorderRadius: workspaceRadius.lg,
   maxWidth: 380,
-  padding: 1.3,
-  titleMarginBottom: 0.5,
-  sourceTitleMarginTop: 0.4,
-  contentMarginTop: 0.7,
+  padding: workspaceSpace.md,
+  titleMarginBottom: workspaceSpace.xxs,
+  sourceTitleMarginTop: workspaceSpace.xxs,
+  contentMarginTop: workspaceSpace.sm,
   contentMaxHeight: 240,
-  contentBorderRadius: 0.8,
-  contentPaddingX: 0.8,
-  contentPaddingY: 0.7,
-  loadingGap: 0.8,
-  loadingPaddingY: 0.4,
+  contentBorderRadius: workspaceRadius.sm,
+  contentPaddingX: workspaceSpace.sm,
+  contentPaddingY: workspaceSpace.sm,
+  loadingGap: workspaceSpace.sm,
+  loadingPaddingY: workspaceSpace.xxs,
   loadingSpinnerSize: 14,
 }
 
 const messageLayoutTokens = {
   assistantMarginRight: chatMessageContentTokens.sideMarginX,
   assistantMarginLeft: chatMessageContentTokens.sideMarginX,
-  actionRowMarginTop: 0.8,
+  actionRowMarginTop: workspaceSpace.sm,
   actionRowMinHeight: 28,
   assistantPendingMinHeight: 34,
   assistantPendingDotsLetterSpacing: 2.2,
   assistantPendingDotsFontSize: 21,
   userBubbleMaxWidth: '65%',
   userBubbleMarginRight: chatMessageContentTokens.sideMarginX,
-  userBubblePaddingX: 1.25,
-  userBubblePaddingY: 0.9,
+  userBubblePaddingX: workspaceSpace.md,
+  userBubblePaddingY: workspaceSpace.sm,
 }
 
 const buildActionButtonSx = (copied: boolean) => (theme: Theme) => ({
   p: 0,
-  borderRadius: 0.75,
+  borderRadius: workspaceRadius.sm,
   color: copied ? theme.workspacePalette.status.success : 'text.disabled',
   bgcolor: 'transparent',
-  transition: workspaceTransitionPresets.colorBorderBgWithTransform,
+  transition: workspaceTransitionPresets.interactiveColorBorder,
   '&:hover': {
     bgcolor: 'action.hover',
     color: copied ? theme.workspacePalette.status.success : 'text.secondary',
-  },
-  '&:active': {
-    transform: 'scale(0.96)',
   },
 })
 
@@ -296,7 +299,14 @@ export const ChatMessageItem = memo(function ChatMessageItem({
             <Typography variant="body2" sx={{ mt: citationCardTokens.sourceTitleMarginTop, fontWeight: 600 }}>
               {`来源标题: ${activeCitationDoc?.source_title || '-'}`}
             </Typography>
-            <Box sx={{ mt: 0.45, display: 'flex', alignItems: 'center', gap: 0.4 }}>
+            <Box
+              sx={{
+                mt: workspaceSpace.xxs,
+                display: 'flex',
+                alignItems: 'center',
+                gap: workspaceSpace.xxs,
+              }}
+            >
               <Typography
                 variant="body2"
                 sx={(theme) => ({

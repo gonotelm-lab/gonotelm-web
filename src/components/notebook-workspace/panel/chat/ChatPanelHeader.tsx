@@ -3,10 +3,11 @@ import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArro
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { workspaceAnimation } from '../../shared/ui/motionTokens'
 
-const chatHeaderStackSpacing = 0.5
+const chatHeaderStackSpacing = workspaceSpace.xxs
 const sidePanelToggleButtonTokens = {
   horizontalOffset: -18,
   topOffset: 18,
@@ -94,7 +95,7 @@ export function ChatPanelHeader({
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           对话
         </Typography>
-        <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
           <Tooltip title="刷新会话上下文">
             <span>
               <Button
@@ -106,8 +107,9 @@ export function ChatPanelHeader({
                 sx={{
                   minWidth: 0,
                   height: 28,
-                  px: 1,
-                  py: 0.25,
+                  px: workspaceSpace.sm,
+                  py: workspaceSpace.xxs,
+                  // Pill control (not card radius).
                   borderRadius: 999,
                   textTransform: 'none',
                   fontSize: 12.5,

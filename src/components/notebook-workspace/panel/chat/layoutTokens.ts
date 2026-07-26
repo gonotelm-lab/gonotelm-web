@@ -1,9 +1,12 @@
+import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
+
 export const chatPanelLayoutTokens = {
-  horizontalPadding: 3,
-  verticalPadding: 2,
+  horizontalPadding: workspaceLayout.panelPaddingX,
+  verticalPadding: workspaceLayout.panelPaddingY,
 } as const
 
 export const chatMessageContentTokens = {
-  sideMarginX: 0.75,
+  sideMarginX: workspaceSpace.sm,
   scrollInnerPaddingX: chatPanelLayoutTokens.horizontalPadding,
+  messageGap: workspaceLayout.chatMessageGap,
 } as const

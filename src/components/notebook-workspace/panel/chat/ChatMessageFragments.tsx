@@ -5,6 +5,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import { AssistantMarkdown } from './AssistantMarkdown'
 import { chatMessageContentTokens } from './layoutTokens'
 import { extractLatestPhaseSummary } from './streamEventReducer'
+import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceAnimation } from '../../shared/ui/motionTokens'
 import type { ChatUiFragment, ChatUiFragmentType, ChatUiMessage } from './types'
 
@@ -16,8 +17,8 @@ interface ChatMessageFragmentsProps {
 }
 
 const phaseStatusTokens = {
-  marginBottom: 0.55,
-  gap: 0.75,
+  marginBottom: workspaceSpace.xxs,
+  gap: workspaceSpace.sm,
   spinnerSize: 14,
   textFontSize: 14.3,
   textLetterSpacing: 0.1,

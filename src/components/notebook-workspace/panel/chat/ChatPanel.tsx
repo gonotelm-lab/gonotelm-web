@@ -15,11 +15,12 @@ import {
 } from './chatSettings'
 import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './useChatConversation'
+import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { chatPanelLayoutTokens } from './layoutTokens'
 
 const scrollToBottomButtonTokens = {
   size: 32,
-  marginBottom: 1.15,
+  marginBottom: workspaceSpace.md,
   zIndex: 2,
 }
 
@@ -342,9 +343,9 @@ function ChatPanelContent({
         <Paper
           elevation={2}
           sx={{
-            px: 1.5,
-            py: 0.6,
-            borderRadius: 1.5,
+            px: workspaceSpace.md,
+            py: workspaceSpace.xxs,
+            borderRadius: workspaceRadius.md,
             border: '1px solid',
             borderColor: 'primary.main',
             bgcolor: 'primary.dark',

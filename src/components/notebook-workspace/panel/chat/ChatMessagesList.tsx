@@ -5,15 +5,16 @@ import { panelTitleToBodySpacing } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
+import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { chatMessageContentTokens } from './layoutTokens'
 
-const messageItemSpacing = 2.75
+const messageItemSpacing = chatMessageContentTokens.messageGap
 const loadingIndicatorRowMinHeight = 18
 const loadingIndicatorSize = 13
 const messageListLayoutTokens = {
   marginTop: panelTitleToBodySpacing,
   innerPaddingX: chatMessageContentTokens.scrollInnerPaddingX,
-  notebookDividerMarginY: 2.5,
+  notebookDividerMarginY: workspaceSpace.lg,
   notebookDividerColor: 'divider',
 }
 

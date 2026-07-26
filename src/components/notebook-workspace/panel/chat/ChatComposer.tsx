@@ -1,8 +1,9 @@
 import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import { Box } from '@mui/material'
+import { workspaceLayout } from '../../shared/ui/layoutTokens'
 import { ChatInputBox, type ChatInputInteractionState } from './ChatInputBox'
 
-const composerMarginTop = 2
+const composerMarginTop = workspaceLayout.panelPaddingY
 
 interface ChatComposerProps {
   value: string

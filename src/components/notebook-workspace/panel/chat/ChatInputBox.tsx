@@ -10,6 +10,7 @@ import {
   TextField,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
+import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 
 export interface ChatInputInteractionState {
@@ -35,12 +36,12 @@ interface ChatInputBoxProps {
 }
 
 const inputBoxLayoutTokens = {
-  paddingLeft: 2.1,
-  paddingRight: 1.1,
-  paddingTop: 0.65,
-  paddingBottom: 0.55,
-  gap: 1.28,
-  borderRadius: 2,
+  paddingLeft: workspaceSpace.lg,
+  paddingRight: workspaceSpace.md,
+  paddingTop: workspaceSpace.sm,
+  paddingBottom: workspaceSpace.xxs,
+  gap: workspaceSpace.md,
+  borderRadius: workspaceRadius.lg,
 }
 
 const inputTextTokens = {
@@ -57,14 +58,15 @@ const inputTextareaScrollbarTokens = {
   thumbRadius: 999,
 }
 const thinkingButtonTokens = {
-  controlsGap: 0.55,
+  controlsGap: workspaceSpace.xxs,
   iconSize: 15,
+  // Pill control (not card radius).
   borderRadius: 999,
   fontSize: 12.8,
   minHeight: 29,
-  paddingX: 1.25,
+  paddingX: workspaceSpace.md,
 }
-const rightControlRowGap = 0.5
+const rightControlRowGap = workspaceSpace.xxs
 
 const buildCapsuleToggleButtonSx = (enabled: boolean) => ({
   borderRadius: thinkingButtonTokens.borderRadius,
