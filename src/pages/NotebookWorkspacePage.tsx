@@ -1,7 +1,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box } from '@mui/material'
+import { Box, useMediaQuery, useTheme } from '@mui/material'
 import {
   createSource,
   deleteSource,
@@ -30,6 +30,11 @@ import {
   WorkspaceHeader,
   type SourceListItem,
 } from '../components/notebook-workspace'
+import { WorkspaceMobileTabBar } from '../components/notebook-workspace/layout/WorkspaceMobileTabBar'
+import {
+  workspaceMobilePanelDefault,
+  type WorkspaceMobilePanel,
+} from '../components/notebook-workspace/layout/workspaceMobilePanel'
 import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
 import {
   workspaceMotion,
@@ -120,6 +125,11 @@ export function NotebookWorkspacePage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const theme = useTheme()
+  const isMobileWorkspace = useMediaQuery(theme.breakpoints.down('md'))
+  const [mobileActivePanel, setMobileActivePanel] = useState<WorkspaceMobilePanel>(
+    workspaceMobilePanelDefault,
+  )
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
   const [sourcesPanelWidthPx, setSourcesPanelWidthPx] = useState(
@@ -1077,6 +1087,10 @@ export function NotebookWorkspacePage() {
   }, [schedulePanelLayoutReactCommit, syncWorkspacePanelGridFromRefs])
 
   const handleExpandSourcesPanel = useCallback(() => {
+    if (isMobileWorkspace) {
+      setMobileActivePanel('sources')
+      return
+    }
     const containerWidth =
       workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
     const preferredWidth =
@@ -1115,12 +1129,17 @@ export function NotebookWorkspacePage() {
     schedulePanelLayoutReactCommit()
   }, [
     getLeftPanelWidthBounds,
+    isMobileWorkspace,
     schedulePanelLayoutReactCommit,
     syncWorkspacePanelGridFromRefs,
     workspaceContainerWidthPx,
   ])
 
   const handleExpandInsightsPanel = useCallback(() => {
+    if (isMobileWorkspace) {
+      setMobileActivePanel('studio')
+      return
+    }
     const containerWidth =
       workspaceContainerWidthPx || workspacePanelsRef.current?.getBoundingClientRect().width || 0
     const preferredWidth =
@@ -1159,12 +1178,14 @@ export function NotebookWorkspacePage() {
     schedulePanelLayoutReactCommit()
   }, [
     getRightPanelWidthBounds,
+    isMobileWorkspace,
     schedulePanelLayoutReactCommit,
     syncWorkspacePanelGridFromRefs,
     workspaceContainerWidthPx,
   ])
 
   const handleOpenCitationJump = useCallback((request: ChatCitationJumpRequest) => {
+    setMobileActivePanel('sources')
     handleExpandSourcesPanel()
     citationPreviewRequestSeqRef.current += 1
     setCitationPreviewRequest({
@@ -1176,7 +1197,10 @@ export function NotebookWorkspacePage() {
   return (
     <Box
       sx={{
-        height: '100dvh',
+        height: '100vh',
+        '@supports (height: 100dvh)': {
+          height: '100dvh',
+        },
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -1210,8 +1234,10 @@ export function NotebookWorkspacePage() {
           width: '100%',
           flex: 1,
           minHeight: 0,
-          px: workspaceSpace.sm,
-          py: workspaceSpace.sm,
+          px: { xs: 0, md: workspaceSpace.sm },
+          py: { xs: 0, md: workspaceSpace.sm },
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
           bgcolor: 'background.default',
         }}
@@ -1220,8 +1246,8 @@ export function NotebookWorkspacePage() {
           ref={workspacePanelsRef}
           sx={{
             display: 'grid',
-            gap: { xs: workspaceSpace.sm, md: 0 },
-            height: '100%',
+            gap: 0,
+            flex: 1,
             minHeight: 0,
             overflow: 'hidden',
             gridTemplateColumns: {
@@ -1229,10 +1255,7 @@ export function NotebookWorkspacePage() {
               md: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
               xl: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
             },
-            gridTemplateRows: {
-              xs: 'repeat(3, minmax(0, 1fr))',
-              md: 'minmax(0, 1fr)',
-            },
+            gridTemplateRows: 'minmax(0, 1fr)',
             transition: workspacePanelGridTransition,
             '& > *': {
               minWidth: 0,
@@ -1240,28 +1263,40 @@ export function NotebookWorkspacePage() {
             },
           }}
         >
-          <SourcesPanel
-            collapsed={isSourcesPanelCollapsed}
-            isBusy={isBusy}
-            isHydrating={isHydratingSources}
-            isPanelResizing={isPanelLayoutAnimating}
-            loadingSkeletonCount={notebookQuery.data?.source_count ?? 0}
-            sourceListItems={sourceListItems}
-            removingMap={removingSourceIds}
-            allSourcesChecked={allSourcesChecked}
-            someSourcesChecked={someSourcesChecked}
-            onCollapse={handleCollapseSourcesPanel}
-            onCreateFile={handleCreateFileSources}
-            onCreateUrl={(url) => handleCreateSimpleSource('url', url)}
-            onCreateText={(text) => handleCreateSimpleSource('text', text)}
-            onToggleAll={toggleAllSourceChecked}
-            onToggleItem={toggleSourceItemChecked}
-            onDeleteItem={handleDeleteSource}
-            onRetryItem={handleRetrySource}
-            onRenameItem={handleRenameSourceTitle}
-            checkedMap={selectedSourceIds}
-            previewRequest={citationPreviewRequest}
-          />
+          <Box
+            sx={{
+              display: {
+                xs: mobileActivePanel === 'sources' ? 'flex' : 'none',
+                md: 'block',
+              },
+              height: '100%',
+              minHeight: 0,
+              flexDirection: 'column',
+            }}
+          >
+            <SourcesPanel
+              collapsed={isMobileWorkspace ? false : isSourcesPanelCollapsed}
+              isBusy={isBusy}
+              isHydrating={isHydratingSources}
+              isPanelResizing={isPanelLayoutAnimating}
+              loadingSkeletonCount={notebookQuery.data?.source_count ?? 0}
+              sourceListItems={sourceListItems}
+              removingMap={removingSourceIds}
+              allSourcesChecked={allSourcesChecked}
+              someSourcesChecked={someSourcesChecked}
+              onCollapse={handleCollapseSourcesPanel}
+              onCreateFile={handleCreateFileSources}
+              onCreateUrl={(url) => handleCreateSimpleSource('url', url)}
+              onCreateText={(text) => handleCreateSimpleSource('text', text)}
+              onToggleAll={toggleAllSourceChecked}
+              onToggleItem={toggleSourceItemChecked}
+              onDeleteItem={handleDeleteSource}
+              onRetryItem={handleRetrySource}
+              onRenameItem={handleRenameSourceTitle}
+              checkedMap={selectedSourceIds}
+              previewRequest={citationPreviewRequest}
+            />
+          </Box>
 
           <Box
             ref={leftResizeHandleRef}
@@ -1298,19 +1333,31 @@ export function NotebookWorkspacePage() {
             }}
           />
 
-          <ChatPanel
-            notebookId={id}
-            chatId={notebookChatQuery.data?.chat_id ?? ''}
-            notebookName={displayNotebookName}
-            notebookDescription={notebookMeta.desc}
-            notebookSourceCount={notebookMeta.sourceCount}
-            selectedSourceIds={selectedSourceIdList}
-            sourcesPanelCollapsed={isSourcesPanelCollapsed}
-            insightsPanelCollapsed={isInsightsPanelCollapsed}
-            onExpandSourcesPanel={handleExpandSourcesPanel}
-            onExpandInsightsPanel={handleExpandInsightsPanel}
-            onOpenCitationJump={handleOpenCitationJump}
-          />
+          <Box
+            sx={{
+              display: {
+                xs: mobileActivePanel === 'chat' ? 'flex' : 'none',
+                md: 'block',
+              },
+              height: '100%',
+              minHeight: 0,
+              flexDirection: 'column',
+            }}
+          >
+            <ChatPanel
+              notebookId={id}
+              chatId={notebookChatQuery.data?.chat_id ?? ''}
+              notebookName={displayNotebookName}
+              notebookDescription={notebookMeta.desc}
+              notebookSourceCount={notebookMeta.sourceCount}
+              selectedSourceIds={selectedSourceIdList}
+              sourcesPanelCollapsed={isSourcesPanelCollapsed}
+              insightsPanelCollapsed={isInsightsPanelCollapsed}
+              onExpandSourcesPanel={handleExpandSourcesPanel}
+              onExpandInsightsPanel={handleExpandInsightsPanel}
+              onOpenCitationJump={handleOpenCitationJump}
+            />
+          </Box>
 
           <Box
             ref={rightResizeHandleRef}
@@ -1350,6 +1397,10 @@ export function NotebookWorkspacePage() {
           <Box
             sx={{
               // 列宽由 grid CSS 变量驱动；勿再叠 width/transform，避免与 grid 过渡双重重排
+              display: {
+                xs: mobileActivePanel === 'studio' ? 'flex' : 'none',
+                md: 'block',
+              },
               width: '100%',
               height: '100%',
               minWidth: 0,
@@ -1369,6 +1420,11 @@ export function NotebookWorkspacePage() {
             />
           </Box>
         </Box>
+
+        <WorkspaceMobileTabBar
+          value={mobileActivePanel}
+          onChange={setMobileActivePanel}
+        />
       </Box>
     </Box>
   )

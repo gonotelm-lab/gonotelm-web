@@ -52,6 +52,7 @@ export function ChatPanelHeader({
             position: 'absolute',
             left: sidePanelToggleButtonTokens.horizontalOffset,
             top: sidePanelToggleButtonTokens.topOffset,
+            display: { xs: 'none', md: 'inline-flex' },
             bgcolor: 'background.paper',
             border: 1,
             borderColor: 'divider',

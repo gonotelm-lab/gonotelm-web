@@ -1,7 +1,10 @@
 import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
 
 export const chatPanelLayoutTokens = {
-  horizontalPadding: workspaceLayout.panelPaddingX,
+  horizontalPadding: {
+    xs: workspaceSpace.lg,
+    md: workspaceLayout.panelPaddingX,
+  },
   verticalPadding: workspaceLayout.panelPaddingY,
 } as const
 

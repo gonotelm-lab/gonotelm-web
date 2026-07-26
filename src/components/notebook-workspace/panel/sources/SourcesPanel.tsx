@@ -145,7 +145,7 @@ function SourcesPanelLayout({
         <Paper
           variant="outlined"
           sx={{
-            px: workspaceLayout.panelPaddingX,
+            px: { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
             py: workspaceLayout.panelPaddingY,
             width: '100%',
             height: '100%',
@@ -185,6 +185,7 @@ function SourcesPanelLayout({
                     color="default"
                     aria-label="收起来源面板"
                     onClick={onCollapse}
+                    sx={{ display: { xs: 'none', md: 'inline-flex' } }}
                   >
                     <KeyboardDoubleArrowLeftIcon fontSize="small" />
                   </IconButton>

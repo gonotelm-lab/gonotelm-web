@@ -503,7 +503,7 @@ export function StudioPanel({
     <Paper
       variant="outlined"
       sx={{
-        px: workspaceLayout.panelPaddingX,
+        px: { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
         py: workspaceLayout.panelPaddingY,
         height: '100%',
         minHeight: 0,
