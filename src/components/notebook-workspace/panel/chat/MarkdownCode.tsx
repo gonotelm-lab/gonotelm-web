@@ -175,13 +175,10 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
                 borderRadius: 0,
                 color: copied ? theme.workspacePalette.status.success : 'text.disabled',
                 bgcolor: 'transparent',
-                transition: workspaceTransitionPresets.colorBorderBgWithTransform,
+                transition: workspaceTransitionPresets.interactiveColorBorder,
                 '&:hover': {
                   bgcolor: 'transparent',
                   color: copied ? theme.workspacePalette.status.success : 'text.secondary',
-                },
-                '&:active': {
-                  transform: 'scale(0.96)',
                 },
               })}
             >

@@ -14,6 +14,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { workspaceSpace } from '../../../shared/ui/layoutTokens'
 
 interface StudioAudioPlayerProps {
   audioUrl: string
@@ -179,7 +180,7 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
               {title}
             </Typography>
             {loadError ? (
-              <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
+              <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
                 <Typography variant="caption" color="error">
                   播放中断
                 </Typography>

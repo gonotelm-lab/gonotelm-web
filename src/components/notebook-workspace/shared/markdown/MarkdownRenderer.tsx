@@ -32,6 +32,7 @@ const markdownBaseTypography = {
   lineHeight: 1.72,
 }
 
+// Markdown heading rhythm (content typography), not Workspace panel chrome spacing.
 const markdownHeadingStyles = {
   h1: { fontSize: 20, mt: 1.6, mb: 1 },
   h2: { fontSize: 18, mt: 1.35, mb: 0.85 },

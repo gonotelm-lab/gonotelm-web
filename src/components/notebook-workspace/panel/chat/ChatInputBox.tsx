@@ -84,9 +84,6 @@ const buildCapsuleToggleButtonSx = (enabled: boolean) => ({
   '&:hover': {
     borderColor: enabled ? 'primary.main' : 'text.secondary',
   },
-  '&:active': {
-    transform: 'scale(0.985)',
-  },
 })
 
 export function ChatInputBox({
@@ -214,16 +211,13 @@ export function ChatInputBox({
               border: 1,
               borderColor: 'primary.main',
               flexShrink: 0,
-              transition: workspaceTransitionPresets.colorBorderBgWithTransform,
+              transition: workspaceTransitionPresets.interactiveColorBorder,
               cursor:
                 isStreaming
                   ? (isAbortDisabled ? 'not-allowed' : 'pointer')
                   : (isSubmitDisabled ? 'not-allowed' : 'pointer'),
               '&:hover': {
                 bgcolor: 'action.hover',
-              },
-              '&:active': {
-                transform: 'scale(0.97)',
               },
             }}
           >

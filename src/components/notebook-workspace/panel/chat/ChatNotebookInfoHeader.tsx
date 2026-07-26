@@ -5,12 +5,13 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { chatMessageContentTokens } from './layoutTokens'
+import { workspaceRadiusPx, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 
 const notebookInfoTokens = {
   marginTop: 0,
   iconSlotSize: 34,
-  iconSlotRadius: 10,
+  iconSlotRadius: workspaceRadiusPx.md,
   iconSlotBorderColor: 'divider',
   iconColor: 'text.secondary',
   titleLineClamp: 2,
@@ -32,13 +33,10 @@ const buildCopyActionButtonSx = (copied: boolean) => (theme: Theme) => ({
   borderRadius: 0,
   color: copied ? theme.workspacePalette.status.success : 'text.disabled',
   bgcolor: 'transparent',
-  transition: workspaceTransitionPresets.colorBorderBgWithTransform,
+  transition: workspaceTransitionPresets.interactiveColorBorder,
   '&:hover': {
     bgcolor: 'transparent',
     color: copied ? theme.workspacePalette.status.success : 'text.secondary',
-  },
-  '&:active': {
-    transform: 'scale(0.96)',
   },
 })
 
@@ -96,7 +94,7 @@ export function ChatNotebookInfoHeader({
         mr: chatMessageContentTokens.sideMarginX,
       }}
     >
-      <Stack spacing={0.9} sx={{ minWidth: 0, flex: 1 }}>
+      <Stack spacing={workspaceSpace.sm} sx={{ minWidth: 0, flex: 1 }}>
         <Box
           data-testid="chat-notebook-icon-slot"
           aria-hidden

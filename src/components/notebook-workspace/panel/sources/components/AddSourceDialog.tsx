@@ -8,6 +8,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import { workspaceRadius } from '../../../shared/ui/layoutTokens'
 import { AddSourceDialogEditorView } from './AddSourceDialogEditorView'
 import { AddSourceDialogHomeView } from './AddSourceDialogHomeView'
 import {
@@ -87,7 +88,7 @@ export function AddSourceDialog({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: 2,
+            borderRadius: workspaceRadius.lg,
             width: '760px',
             maxWidth: 'calc(100vw - 32px)',
             height: '620px',

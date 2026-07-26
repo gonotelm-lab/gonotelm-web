@@ -3,7 +3,8 @@ import AddLinkIcon from '@mui/icons-material/AddLink'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import NotesIcon from '@mui/icons-material/Notes'
 import { Box, Paper, Stack, Typography } from '@mui/material'
-import { workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
+import { workspaceInteraction, workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
 
 interface AddSourceDialogHomeViewProps {
   disabled: boolean
@@ -71,14 +72,14 @@ export function AddSourceDialogHomeView({
             border: 1,
             borderStyle: 'dashed',
             borderColor: dragActive ? 'primary.main' : 'divider',
-            borderRadius: 2,
+            borderRadius: workspaceRadius.lg,
             px: 2,
             flex: 1,
             minHeight: 0,
             display: 'grid',
             placeItems: 'center',
             textAlign: 'center',
-            cursor: disabled ? 'default' : 'pointer',
+            cursor: disabled ? 'default' : workspaceInteraction.cursorPointer,
             bgcolor: dragActive ? 'action.hover' : 'transparent',
             transition: workspaceTransitionPresets.borderBg,
           }}
@@ -120,25 +121,25 @@ export function AddSourceDialogHomeView({
             <Typography variant="h6" sx={{ mt: 1 }}>
               上传来源
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceSpace.sm }}>
               拖放或点击选择文件，即可上传
             </Typography>
 
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: workspaceSpace.md }}>
               支持：pdf、txt、markdown、docx、epub
             </Typography>
             <Typography
               variant="caption"
               sx={(theme) => ({
                 display: 'block',
-                mt: 0.75,
+                mt: workspaceSpace.sm,
                 fontWeight: 600,
                 color: theme.workspacePalette.status.warning,
               })}
             >
               单个文件最大 100MB
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: workspaceSpace.sm }}>
               一次最多选择 20 个文件
             </Typography>
             {fileError && (
@@ -175,23 +176,23 @@ export function AddSourceDialogHomeView({
           mt: 2,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
-          gap: 1.25,
+          gap: workspaceSpace.md,
         }}
       >
         <Paper
           variant="outlined"
           onClick={onOpenUrl}
           sx={{
-            p: 1.5,
+            p: workspaceSpace.md,
             minHeight: 88,
-            borderRadius: 2,
-            cursor: 'pointer',
+            borderRadius: workspaceRadius.lg,
+            cursor: workspaceInteraction.cursorPointer,
             borderStyle: 'dashed',
             borderColor: 'divider',
           }}
         >
-          <Stack spacing={0.5} sx={{ justifyContent: 'center', height: '100%' }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack spacing={workspaceSpace.xxs} sx={{ justifyContent: 'center', height: '100%' }}>
+            <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
               <AddLinkIcon fontSize="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 链接
@@ -206,16 +207,16 @@ export function AddSourceDialogHomeView({
           variant="outlined"
           onClick={onOpenText}
           sx={{
-            p: 1.5,
+            p: workspaceSpace.md,
             minHeight: 88,
-            borderRadius: 2,
-            cursor: 'pointer',
+            borderRadius: workspaceRadius.lg,
+            cursor: workspaceInteraction.cursorPointer,
             borderStyle: 'dashed',
             borderColor: 'divider',
           }}
         >
-          <Stack spacing={0.5} sx={{ justifyContent: 'center', height: '100%' }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack spacing={workspaceSpace.xxs} sx={{ justifyContent: 'center', height: '100%' }}>
+            <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
               <NotesIcon fontSize="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 粘贴文字
