@@ -4,7 +4,12 @@ export type { PanelSubpageConfig } from './PanelSubpageLayout'
 export { subtleScrollbarSx } from './scrollbar'
 export { FlowLoadingOverlay } from './FlowLoadingOverlay'
 export { workspaceColorPalette } from './workspaceColorPalette'
-export { workspaceAnimation, workspaceMotion, workspaceTransitionPresets } from './motionTokens'
+export {
+  workspaceAnimation,
+  workspaceInteraction,
+  workspaceMotion,
+  workspaceTransitionPresets,
+} from './motionTokens'
 export {
   workspaceLayout,
   workspaceRadius,

@@ -17,11 +17,22 @@ export const workspaceAnimation = {
   mindmapViewportEasing: 'easeInOutQuad',
 } as const
 
+export const workspaceInteraction = {
+  cursorPointer: 'pointer',
+  hoverTransformNone: 'none',
+  reducedMotionQuery: '@media (prefers-reduced-motion: reduce)',
+} as const
+
 export const workspaceTransitionPresets = {
   colorOnly: `color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
   backgroundOnly: `background-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
   opacityOnly: `opacity ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
   colorBorderBg:
+    `background-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+    `border-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+    `color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
+  /** Transform-free interactive hover/focus (default for clickable rows/cards). */
+  interactiveColorBorder:
     `background-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
     `border-color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
     `color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
