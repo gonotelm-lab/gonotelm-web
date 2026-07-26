@@ -26,4 +26,15 @@ describe('resolveStudioArtifactFallbackTitle', () => {
   it('resolves data_table title', () => {
     expect(resolveStudioArtifactFallbackTitle('data_table')).toBe('数据表')
   })
+
+  it('resolves note title', () => {
+    expect(resolveStudioArtifactFallbackTitle('note')).toBe('笔记')
+  })
+})
+
+describe('resolveStudioArtifactKind note', () => {
+  it('maps note kind', () => {
+    expect(resolveStudioArtifactKind('note')).toBe('note')
+    expect(resolveStudioArtifactActionId('note')).toBe('save-as-note')
+  })
 })

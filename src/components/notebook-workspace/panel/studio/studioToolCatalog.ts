@@ -1,5 +1,5 @@
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded'
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
@@ -41,7 +41,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     id: 'report',
     title: '报告',
     description: '基于勾选来源生成报告',
-    icon: DescriptionRoundedIcon,
+    icon: MenuBookRoundedIcon,
     availability: 'available',
     actionId: 'generate-report',
     artifactKind: 'report',

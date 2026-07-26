@@ -42,6 +42,7 @@ vi.mock('./hooks/useStudioArtifactTasks', () => ({
     pendingActions: {},
     reloadHistoryArtifacts: reloadHistoryArtifactsMock,
     submitArtifactTask: submitArtifactTaskMock,
+    saveMessageAsNote: vi.fn(async () => undefined),
     retryArtifact: vi.fn(async () => undefined),
     cancelArtifact: vi.fn(async () => undefined),
     deleteArtifact: vi.fn(async () => undefined),

@@ -134,6 +134,7 @@ export type StudioArtifactKind =
   | 'flashcard'
   | 'quiz'
   | 'data_table'
+  | 'note'
 
 export type StudioArtifactFlashcardCount = 'few' | 'default' | 'many'
 export type StudioArtifactFlashcardDifficulty = 'easy' | 'medium' | 'hard'
@@ -255,6 +256,16 @@ export interface DataTableArtifactExtras {
   tip?: string
 }
 
+export interface NoteArtifactExtras {
+  chat_id?: string
+  msg_id?: string
+}
+
+export interface GenerateNoteParameters {
+  chat_id: string
+  msg_id: string
+}
+
 export interface StudioArtifactImageInfo {
   width: number
   height: number
@@ -263,7 +274,7 @@ export interface StudioArtifactImageInfo {
 export interface GenerateStudioArtifactRequest {
   notebook_id: string
   kind: StudioArtifactKind
-  source_ids: string[]
+  source_ids?: string[]
   mindmap?: GenerateMindmapParameters
   report?: GenerateReportParameters
   info_graphic?: GenerateInfoGraphicParameters
@@ -271,6 +282,7 @@ export interface GenerateStudioArtifactRequest {
   flashcard?: GenerateFlashcardParameters
   quiz?: GenerateQuizParameters
   data_table?: GenerateDataTableParameters
+  note?: GenerateNoteParameters
 }
 
 export interface GenerateStudioArtifactResponse {
@@ -303,6 +315,7 @@ export interface StudioArtifactResult {
     | FlashcardArtifactExtras
     | QuizArtifactExtras
     | DataTableArtifactExtras
+    | NoteArtifactExtras
 }
 
 export interface ListNotebookStudioArtifactsResponse {

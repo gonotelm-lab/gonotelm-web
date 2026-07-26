@@ -4,8 +4,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import {
   Box,
+  Button,
   CircularProgress,
   IconButton,
   Paper,
@@ -37,14 +39,13 @@ import {
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
-import { workspaceIconSize } from '../../shared/ui/typeTokens'
+import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 const actionIconSize = 16
 const citationCardOffsetPx = 14
 const assistantMessagePaddingY = 0
 // Asymmetric chat bubble corners (lg top / sm bottom-left).
 const userBubbleBorderRadius = `${workspaceRadiusPx.lg}px ${workspaceRadiusPx.lg}px ${workspaceRadiusPx.sm}px ${workspaceRadiusPx.lg}px`
-
 const citationCardTokens = {
   paperBorderRadius: workspaceRadius.lg,
   maxWidth: 380,
@@ -64,7 +65,7 @@ const citationCardTokens = {
 const messageLayoutTokens = {
   assistantMarginRight: chatMessageContentTokens.sideMarginX,
   assistantMarginLeft: chatMessageContentTokens.sideMarginX,
-  actionRowMarginTop: workspaceSpace.sm,
+  actionRowPaddingY: workspaceSpace.md,
   actionRowMinHeight: 28,
   assistantPendingMinHeight: 34,
   assistantPendingDotsLetterSpacing: 2.2,
@@ -75,15 +76,34 @@ const messageLayoutTokens = {
   userBubblePaddingY: workspaceSpace.sm,
 }
 
-const buildActionButtonSx = (copied: boolean) => (theme: Theme) => ({
+const actionControlHeight = messageLayoutTokens.actionRowMinHeight
+const saveAsNoteButtonSx = {
+  minWidth: 0,
+  height: actionControlHeight,
+  px: workspaceSpace.sm,
+  py: 0,
+  borderRadius: 999,
+  textTransform: 'none' as const,
+  fontSize: workspaceType.xs,
+  lineHeight: 1.2,
+  whiteSpace: 'nowrap' as const,
+  '& .MuiButton-startIcon': {
+    marginRight: workspaceSpace.xxs,
+    marginLeft: 0,
+  },
+}
+
+const buildActionButtonSx = (active: boolean) => (theme: Theme) => ({
   p: 0,
+  width: actionControlHeight,
+  height: actionControlHeight,
   borderRadius: workspaceRadius.sm,
-  color: copied ? theme.workspacePalette.status.success : 'text.disabled',
+  color: active ? theme.workspacePalette.status.success : 'text.disabled',
   bgcolor: 'transparent',
   transition: workspaceTransitionPresets.interactiveColorBorder,
   '&:hover': {
     bgcolor: 'action.hover',
-    color: copied ? theme.workspacePalette.status.success : 'text.secondary',
+    color: active ? theme.workspacePalette.status.success : 'text.secondary',
   },
 })
 
@@ -93,7 +113,9 @@ interface ChatMessageItemProps {
   isStreaming: boolean
   isActiveAssistantMessage: boolean
   copied: boolean
+  savingAsNote: boolean
   onCopyUserMessage: (id: string, text: string) => void
+  onSaveAsNote?: (messageId: string) => void
   onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
 }
 
@@ -103,7 +125,9 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   isStreaming,
   isActiveAssistantMessage,
   copied,
+  savingAsNote,
   onCopyUserMessage,
+  onSaveAsNote,
   onOpenCitationJump,
 }: ChatMessageItemProps) {
   const queryClient = useQueryClient()
@@ -121,6 +145,12 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   const responseText = useMemo(() => extractResponseText(message), [message])
   const canCopy = Boolean(responseText.trim() || message.fragments.some((f) => f.type === 'REQUEST' && f.request?.content))
   const showAssistantActions = !isStreaming || !isActiveAssistantMessage
+  const canSaveAsNote = Boolean(
+    onSaveAsNote
+      && responseText.trim()
+      && !message.id.startsWith('local-')
+      && !savingAsNote,
+  )
 
   const userText = message.fragments.find((f) => f.type === 'REQUEST')?.request?.content ?? ''
   const activeCitationSourceId = activeCitationDoc?.source_id
@@ -253,9 +283,43 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         />
 
         {showAssistantActions ? (
-          <Box sx={{ mt: messageLayoutTokens.actionRowMarginTop, minHeight: messageLayoutTokens.actionRowMinHeight, display: 'flex', alignItems: 'center' }}>
+          <Box
+            sx={{
+              py: messageLayoutTokens.actionRowPaddingY,
+              display: 'flex',
+              alignItems: 'center',
+              gap: workspaceSpace.sm,
+            }}
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              aria-label="保存到笔记"
+              disabled={!canSaveAsNote}
+              startIcon={
+                savingAsNote ? (
+                  <CircularProgress size={actionIconSize} color="inherit" />
+                ) : (
+                  <PushPinOutlinedIcon sx={{ fontSize: actionIconSize }} />
+                )
+              }
+              onClick={(event) => {
+                event.stopPropagation()
+                if (!canSaveAsNote || !onSaveAsNote) return
+                onSaveAsNote(message.id)
+              }}
+              sx={saveAsNoteButtonSx}
+            >
+              {savingAsNote ? '正在保存…' : '保存到笔记'}
+            </Button>
             <Tooltip title={copied ? '已复制' : '复制'}>
-              <span>
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
                 <IconButton
                   size="small"
                   disabled={!canCopy}
@@ -272,7 +336,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                     <ContentCopyIcon sx={{ fontSize: actionIconSize }} />
                   )}
                 </IconButton>
-              </span>
+              </Box>
             </Tooltip>
           </Box>
         ) : null}
@@ -375,7 +439,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         alignItems: 'flex-end',
         '& .user-message-actions': {
           opacity: 0,
-          mt: messageLayoutTokens.actionRowMarginTop,
+          mt: messageLayoutTokens.actionRowPaddingY,
           minHeight: messageLayoutTokens.actionRowMinHeight,
           pointerEvents: 'none',
           display: 'flex',

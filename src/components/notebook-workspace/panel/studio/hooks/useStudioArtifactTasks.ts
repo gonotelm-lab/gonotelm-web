@@ -31,7 +31,7 @@ import {
   shouldStudioTaskKeepPolling,
   toArtifactVisualStatus,
 } from '../artifactStatus'
-import type { StudioArtifactItem, StudioToolActionId } from '../types'
+import type { SaveMessageAsNoteParams, StudioArtifactItem, StudioToolActionId } from '../types'
 import { buildMindmapRequestParams } from '../mindmapSettings'
 import { buildReportRequestParams } from '../reportSettings'
 import { buildInfoGraphicRequestParams } from '../infoGraphicSettings'
@@ -139,6 +139,8 @@ const buildLocalExtras = (
       return {
         tip: dataTable?.tip,
       }
+    case 'note':
+      return undefined
   }
   return undefined
 }
@@ -313,7 +315,8 @@ export function useStudioArtifactTasks({
   const pollArtifactTick = useCallback(async () => {
     const notebookSnapshot = activeNotebookIdRef.current
     const pendingItems = artifactItemsRef.current.filter(
-      (item) => item.taskId && shouldStudioTaskKeepPolling(item.status),
+      (item) =>
+        Boolean(item.taskId) && shouldStudioTaskKeepPolling(item.status),
     )
     if (pendingItems.length === 0) {
       return false
@@ -529,6 +532,60 @@ export function useStudioArtifactTasks({
     [notebookId],
   )
 
+  const saveMessageAsNote = useCallback(
+    async ({ chatId, msgId }: SaveMessageAsNoteParams) => {
+      if (!notebookId || !chatId || !msgId) {
+        return
+      }
+
+      setPendingActions((prev) => ({ ...prev, 'save-as-note': true }))
+      try {
+        const response = await generateStudioArtifact({
+          notebook_id: notebookId,
+          kind: 'note',
+          source_ids: [],
+          note: {
+            chat_id: chatId,
+            msg_id: msgId,
+          },
+        })
+
+        const taskId = response.task_id
+        setArtifactItems((prev) => [
+          {
+            id: taskId,
+            taskId,
+            kind: 'note',
+            actionId: 'save-as-note',
+            title: resolveStudioArtifactFallbackTitle('note'),
+            status: 'running',
+            sourceCount: 0,
+            sourceIds: [],
+            content: '',
+            contentUrl: '',
+            contentKind: 'inline',
+            extras: {
+              chat_id: chatId,
+              msg_id: msgId,
+            },
+            error: '',
+            createdAt: Date.now(),
+          },
+          ...prev,
+        ])
+      } catch (error) {
+        actionErrorToastKeyRef.current += 1
+        setActionErrorToast({
+          key: actionErrorToastKeyRef.current,
+          message: buildStudioErrorMessage(error, '保存笔记失败，请重试。'),
+        })
+      } finally {
+        setPendingActions((prev) => ({ ...prev, 'save-as-note': false }))
+      }
+    },
+    [notebookId],
+  )
+
   const clearActionErrorToast = useCallback(() => {
     setActionErrorToast(null)
   }, [])
@@ -655,6 +712,7 @@ export function useStudioArtifactTasks({
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,
+    saveMessageAsNote,
     retryArtifact,
     cancelArtifact,
     deleteArtifact,

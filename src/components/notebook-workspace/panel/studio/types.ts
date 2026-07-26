@@ -5,6 +5,7 @@ import type {
   FlashcardArtifactExtras,
   InfoGraphicArtifactExtras,
   MindmapArtifactExtras,
+  NoteArtifactExtras,
   QuizArtifactExtras,
   ReportArtifactExtras,
   StudioArtifactContentKind,
@@ -20,6 +21,7 @@ export type StudioArtifactExtras =
   | FlashcardArtifactExtras
   | QuizArtifactExtras
   | DataTableArtifactExtras
+  | NoteArtifactExtras
 
 export type StudioToolActionId =
   | 'generate-mindmap'
@@ -29,6 +31,12 @@ export type StudioToolActionId =
   | 'generate-flashcard'
   | 'generate-quiz'
   | 'generate-data_table'
+  | 'save-as-note'
+
+export interface SaveMessageAsNoteParams {
+  chatId: string
+  msgId: string
+}
 
 export type StudioToolAvailability = 'available' | 'coming-soon'
 

@@ -140,6 +140,13 @@ function resolveExtrasEntries(artifact: StudioArtifactItem): ExtrasEntry[] {
         { label: '附加提示', value: e.tip?.trim() || '—' },
       ]
     }
+    case 'note': {
+      const e = extras as { chat_id?: string; msg_id?: string }
+      return [
+        { label: '对话', value: e.chat_id?.trim() || '—' },
+        { label: '消息', value: e.msg_id?.trim() || '—' },
+      ]
+    }
   }
   return []
 }

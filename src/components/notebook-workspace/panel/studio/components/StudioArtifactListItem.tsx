@@ -2,14 +2,17 @@ import { useState } from 'react'
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded'
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded'
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded'
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import StickyNote2RoundedIcon from '@mui/icons-material/StickyNote2Rounded'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded'
+import type { SvgIconComponent } from '@mui/icons-material'
+import type { StudioArtifactKind } from '@/types/api'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import {
@@ -85,6 +88,17 @@ const formatArtifactRelativeTime = (createdAt: number) => {
   return `${Math.floor(elapsed / weekMs)}w前`
 }
 
+const artifactKindIconMap: Record<StudioArtifactKind, SvgIconComponent> = {
+  mindmap: AccountTreeRoundedIcon,
+  report: MenuBookRoundedIcon,
+  info_graphic: ImageRoundedIcon,
+  audio_overview: GraphicEqRoundedIcon,
+  flashcard: StyleRoundedIcon,
+  quiz: QuizRoundedIcon,
+  data_table: TableChartRoundedIcon,
+  note: StickyNote2RoundedIcon,
+}
+
 export function StudioArtifactListItem({
   item,
   previewLoading,
@@ -102,24 +116,14 @@ export function StudioArtifactListItem({
   const previewCapability = getStudioArtifactPreviewCapability(item.kind)
   const canPreview =
     isStudioTaskCompleted(item.status) && (previewCapability.inline || previewCapability.overlay)
-  const canRetry = isStudioTaskRetryable(item.status)
-  const canCancel = isRunning
+  const canRetry = item.kind !== 'note' && isStudioTaskRetryable(item.status)
+  const canCancel = item.kind !== 'note' && isRunning
   const canDelete = !isRunning
   const sourceCount = item.sourceIds.length || item.sourceCount
-  const itemMetaLabel = `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
-  const KindIcon = item.kind === 'report'
-    ? DescriptionRoundedIcon
-    : item.kind === 'info_graphic'
-      ? ImageRoundedIcon
-      : item.kind === 'audio_overview'
-        ? GraphicEqRoundedIcon
-        : item.kind === 'flashcard'
-          ? StyleRoundedIcon
-          : item.kind === 'quiz'
-            ? QuizRoundedIcon
-            : item.kind === 'data_table'
-              ? TableChartRoundedIcon
-              : AccountTreeRoundedIcon
+  const itemMetaLabel = item.kind === 'note'
+    ? formatArtifactRelativeTime(item.createdAt)
+    : `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
+  const KindIcon = artifactKindIconMap[item.kind] ?? AccountTreeRoundedIcon
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState<null | HTMLElement>(null)
   const actionMenuOpen = Boolean(actionMenuAnchorEl)
   const actionMenuItemSx = {
@@ -277,20 +281,22 @@ export function StudioArtifactListItem({
                   {cancelPending ? '取消中...' : '取消'}
                 </Typography>
               </MenuItem>
-              <MenuItem
-                disabled={!canRetry || retryPending}
-                sx={actionMenuItemSx}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setActionMenuAnchorEl(null)
-                  onRetry(item)
-                }}
-              >
-                <ReplayRoundedIcon sx={actionMenuIconSx} />
-                <Typography sx={actionMenuTextSx}>
-                  {retryPending ? '重试中...' : '重试'}
-                </Typography>
-              </MenuItem>
+              {item.kind !== 'note' ? (
+                <MenuItem
+                  disabled={!canRetry || retryPending}
+                  sx={actionMenuItemSx}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setActionMenuAnchorEl(null)
+                    onRetry(item)
+                  }}
+                >
+                  <ReplayRoundedIcon sx={actionMenuIconSx} />
+                  <Typography sx={actionMenuTextSx}>
+                    {retryPending ? '重试中...' : '重试'}
+                  </Typography>
+                </MenuItem>
+              ) : null}
               <MenuItem
                 disabled={!canDelete || deletePending}
                 sx={actionMenuItemSx}

@@ -32,6 +32,7 @@ const buildArtifactTitle = (kind: string) => {
   if (kind === 'mindmap') return 'Mind Map'
   if (kind === 'report') return 'Report'
   if (kind === 'info_graphic') return '信息图'
+  if (kind === 'note') return '笔记'
   return 'Studio Artifact'
 }
 
@@ -59,6 +60,24 @@ const buildArtifactResultPayload = (
         prompt: 'mock prompt',
         text_language: 'zh-cn(简体中文)',
         orientation: 'portrait',
+      },
+    }
+  }
+
+  if (artifactKind === 'note') {
+    return {
+      notebook_id: notebookId,
+      task_id: taskId,
+      kind: artifactKind,
+      status: 'completed',
+      title,
+      source_ids: sourceIds,
+      timestamp,
+      content: '## Mock Note\n\nSaved from assistant message.',
+      content_kind: 'inline',
+      extras: {
+        chat_id: 'chat-1',
+        msg_id: 'msg-1',
       },
     }
   }

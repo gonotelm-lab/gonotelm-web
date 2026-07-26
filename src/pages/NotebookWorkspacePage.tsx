@@ -41,6 +41,7 @@ import {
   workspaceTransitionPresets,
 } from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
+import type { SaveMessageAsNoteParams } from '../components/notebook-workspace/panel/studio/types'
 import { resolveNotebookWorkspaceTitle } from './notebook-workspace/resolveNotebookWorkspaceTitle'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
@@ -168,6 +169,9 @@ export function NotebookWorkspacePage() {
   const insightsPanelCollapsedRef = useRef(isInsightsPanelCollapsed)
   const stopPanelResizeRef = useRef<(() => void) | null>(null)
   const citationPreviewRequestSeqRef = useRef(0)
+  const saveMessageAsNoteRef = useRef<
+    ((params: SaveMessageAsNoteParams) => Promise<void>) | null
+  >(null)
   const panelLayoutAnimTimerRef = useRef<number | null>(null)
   const panelLayoutCommitTimerRef = useRef<number | null>(null)
   const panelLayoutCommitPendingRef = useRef(false)
@@ -1194,6 +1198,21 @@ export function NotebookWorkspacePage() {
     })
   }, [handleExpandSourcesPanel])
 
+  const handleRegisterSaveMessageAsNote = useCallback(
+    (handler: ((params: SaveMessageAsNoteParams) => Promise<void>) | null) => {
+      saveMessageAsNoteRef.current = handler
+    },
+    [],
+  )
+
+  const handleSaveMessageAsNote = useCallback(async (params: SaveMessageAsNoteParams) => {
+    const handler = saveMessageAsNoteRef.current
+    if (!handler) {
+      throw new Error('工作区尚未就绪，请稍后重试。')
+    }
+    await handler(params)
+  }, [])
+
   return (
     <Box
       sx={{
@@ -1356,6 +1375,7 @@ export function NotebookWorkspacePage() {
               onExpandSourcesPanel={handleExpandSourcesPanel}
               onExpandInsightsPanel={handleExpandInsightsPanel}
               onOpenCitationJump={handleOpenCitationJump}
+              onSaveMessageAsNote={handleSaveMessageAsNote}
             />
           </Box>
 
@@ -1417,6 +1437,7 @@ export function NotebookWorkspacePage() {
               selectedSourceIds={selectedSourceIdList}
               readySourceIds={readySourceIdList}
               onCollapse={handleCollapseInsightsPanel}
+              onRegisterSaveMessageAsNote={handleRegisterSaveMessageAsNote}
             />
           </Box>
         </Box>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
@@ -124,6 +124,7 @@ interface ChatPanelProps {
   onExpandSourcesPanel: () => void
   onExpandInsightsPanel: () => void
   onOpenCitationJump: (request: ChatCitationJumpRequest) => void
+  onSaveMessageAsNote?: (params: { chatId: string; msgId: string }) => Promise<void>
 }
 
 export function ChatPanel({
@@ -147,8 +148,10 @@ function ChatPanelContent({
   onExpandSourcesPanel,
   onExpandInsightsPanel,
   onOpenCitationJump,
+  onSaveMessageAsNote,
 }: ChatPanelContentProps) {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [savingAsNoteMessageId, setSavingAsNoteMessageId] = useState<string | null>(null)
   const [chatStyle, setChatStyle] = useState<ChatStyleOption>(
     () => resolveStoredChatSettings(chatId).chatStyle,
   )
@@ -234,6 +237,29 @@ function ChatPanelContent({
     })
   }, [errorText])
 
+  const handleSaveAsNote = useCallback(
+    async (messageId: string) => {
+      if (!chatId || !onSaveMessageAsNote || !messageId || messageId.startsWith('local-')) {
+        return
+      }
+      setSavingAsNoteMessageId(messageId)
+      try {
+        await onSaveMessageAsNote({ chatId, msgId: messageId })
+      } catch (error) {
+        errorToastKeyRef.current += 1
+        setErrorToast({
+          key: errorToastKeyRef.current,
+          message: error instanceof Error && error.message.trim()
+            ? error.message
+            : '保存笔记失败，请重试。',
+        })
+      } finally {
+        setSavingAsNoteMessageId(null)
+      }
+    },
+    [chatId, onSaveMessageAsNote],
+  )
+
   return (
     <Paper
       variant="outlined"
@@ -282,8 +308,10 @@ function ChatPanelContent({
         isStreaming={isStreaming}
         activeAssistantMessageId={activeAssistantMessageId}
         copiedUserMessageId={copiedUserMessageId}
+        savingAsNoteMessageId={savingAsNoteMessageId}
         onScrollTopCheck={onMessageListScroll}
         onCopyUserMessage={onCopyUserMessage}
+        onSaveAsNote={onSaveMessageAsNote ? handleSaveAsNote : undefined}
         onOpenCitationJump={onOpenCitationJump}
       />
 

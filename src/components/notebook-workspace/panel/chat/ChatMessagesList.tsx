@@ -28,8 +28,10 @@ interface ChatMessagesListProps {
   isStreaming: boolean
   activeAssistantMessageId: string | null
   copiedUserMessageId: string | null
+  savingAsNoteMessageId: string | null
   onScrollTopCheck: () => void
   onCopyUserMessage: (id: string, text: string) => void
+  onSaveAsNote?: (messageId: string) => void
   onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
 }
 
@@ -48,8 +50,10 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   isStreaming,
   activeAssistantMessageId,
   copiedUserMessageId,
+  savingAsNoteMessageId,
   onScrollTopCheck,
   onCopyUserMessage,
+  onSaveAsNote,
   onOpenCitationJump,
 }: ChatMessagesListProps) {
   return (
@@ -106,7 +110,9 @@ export const ChatMessagesList = memo(function ChatMessagesList({
                 activeAssistantMessageId === (message.clientKey ?? message.id)
               }
               copied={copiedUserMessageId === message.id}
+              savingAsNote={savingAsNoteMessageId === message.id}
               onCopyUserMessage={onCopyUserMessage}
+              onSaveAsNote={onSaveAsNote}
               onOpenCitationJump={onOpenCitationJump}
             />
           </Box>

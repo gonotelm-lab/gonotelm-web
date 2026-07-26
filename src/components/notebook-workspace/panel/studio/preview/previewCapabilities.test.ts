@@ -45,6 +45,13 @@ describe('getStudioArtifactPreviewCapability', () => {
     })
   })
 
+  it('returns inline+overlay for note', () => {
+    expect(getStudioArtifactPreviewCapability('note')).toEqual({
+      inline: true,
+      overlay: true,
+    })
+  })
+
   it('falls back to overlay-only for unknown kinds', () => {
     expect(getStudioArtifactPreviewCapability('unknown-kind' as StudioArtifactKind)).toEqual({
       inline: false,

@@ -113,15 +113,18 @@ export function ChatPanelHeader({
                 disabled={!hasChatId || isClearingContext || isStreaming}
                 sx={{
                   minWidth: 0,
-                  height: 32,
-                  px: workspaceSpace.md,
-                  py: workspaceSpace.xxs,
-                  // Pill control (not card radius).
+                  height: 28,
+                  px: workspaceSpace.sm,
+                  py: 0,
                   borderRadius: 999,
                   textTransform: 'none',
-                  fontSize: workspaceType.sm,
+                  fontSize: workspaceType.xs,
                   lineHeight: 1.2,
                   whiteSpace: 'nowrap',
+                  '& .MuiButton-startIcon': {
+                    marginRight: workspaceSpace.xxs,
+                    marginLeft: 0,
+                  },
                   '& .chat-refresh-icon': {
                     transformOrigin: 'center',
                     animation: isClearingContext

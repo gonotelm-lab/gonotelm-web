@@ -9,6 +9,7 @@ export const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => 
   if (kind === 'flashcard') return 'flashcard'
   if (kind === 'quiz') return 'quiz'
   if (kind === 'data_table') return 'data_table'
+  if (kind === 'note') return 'note'
   // Unknown kinds must not fall back to mindmap: MindmapCanvas treats every line as a node.
   return 'report'
 }
@@ -20,6 +21,7 @@ export const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioT
   if (kind === 'flashcard') return 'generate-flashcard'
   if (kind === 'quiz') return 'generate-quiz'
   if (kind === 'data_table') return 'generate-data_table'
+  if (kind === 'note') return 'save-as-note'
   return 'generate-mindmap'
 }
 
@@ -30,5 +32,6 @@ export const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => 
   if (kind === 'flashcard') return '闪卡'
   if (kind === 'quiz') return '测验'
   if (kind === 'data_table') return '数据表'
+  if (kind === 'note') return '笔记'
   return '思维导图'
 }

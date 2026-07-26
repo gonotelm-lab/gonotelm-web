@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
@@ -48,7 +48,7 @@ import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
 import { studioToolCatalog } from './studioToolCatalog'
 import { studioToolGridContainerSx, studioToolGridSx } from './studioToolGridLayout'
-import type { StudioToolActionId } from './types'
+import type { SaveMessageAsNoteParams, StudioToolActionId } from './types'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
 interface StudioPanelProps {
@@ -56,6 +56,9 @@ interface StudioPanelProps {
   selectedSourceIds: string[]
   readySourceIds: string[]
   onCollapse: () => void
+  onRegisterSaveMessageAsNote?: (
+    handler: ((params: SaveMessageAsNoteParams) => Promise<void>) | null,
+  ) => void
 }
 
 const studioPanelTitle = '工作区'
@@ -69,6 +72,7 @@ export function StudioPanel({
   selectedSourceIds,
   readySourceIds,
   onCollapse,
+  onRegisterSaveMessageAsNote,
 }: StudioPanelProps) {
   const readySourceIdSet = useMemo(() => new Set(readySourceIds), [readySourceIds])
   const selectedReadySourceIds = useMemo(
@@ -87,11 +91,22 @@ export function StudioPanel({
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,
+    saveMessageAsNote,
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
     isArtifactActionPending,
   } = useStudioArtifactTasks({ notebookId })
+
+  useEffect(() => {
+    if (!onRegisterSaveMessageAsNote) {
+      return
+    }
+    onRegisterSaveMessageAsNote(saveMessageAsNote)
+    return () => {
+      onRegisterSaveMessageAsNote(null)
+    }
+  }, [onRegisterSaveMessageAsNote, saveMessageAsNote])
   const {
     previewState,
     previewTarget,
@@ -337,6 +352,8 @@ export function StudioPanel({
     'generate-flashcard': () => handleCreateFlashcard(),
     'generate-quiz': () => handleCreateQuiz(),
     'generate-data_table': () => handleCreateDataTable(),
+    // note 从 chat 侧触发，不经 Studio 工具入口
+    'save-as-note': () => undefined,
   }
 
   const advancedActionHandlers: Partial<Record<StudioToolActionId, () => void>> = {
@@ -482,6 +499,7 @@ export function StudioPanel({
           flashcard: '闪卡',
           quiz: '测验',
           data_table: '数据表',
+          note: '笔记',
         }[previewTarget.kind] || previewTarget.kind,
         content: (
           <StudioArtifactInlinePreview
