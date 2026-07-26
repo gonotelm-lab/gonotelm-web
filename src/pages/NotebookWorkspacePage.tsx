@@ -36,6 +36,7 @@ import {
   workspaceTransitionPresets,
 } from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
+import { resolveNotebookWorkspaceTitle } from './notebook-workspace/resolveNotebookWorkspaceTitle'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
 const notebookSourcesPageLimit = 50
@@ -251,7 +252,17 @@ export function NotebookWorkspacePage() {
     resetWorkspace()
     // eslint-disable-next-line react-hooks/set-state-in-effect
     resetWorkspaceUiState()
-  }, [id, resetWorkspace, resetWorkspaceUiState])
+    // HMR/remount 会清空 Zustand；若 React Query 缓存还在，立刻回填，避免标题闪成 Untitled
+    if (!id) return
+    const cached = queryClient.getQueryData<Notebook>(['notebook', id])
+    if (!cached) return
+    patchNotebookMeta({
+      id: cached.id,
+      name: cached.name ?? '',
+      desc: cached.desc ?? '',
+      sourceCount: cached.source_count,
+    })
+  }, [id, patchNotebookMeta, queryClient, resetWorkspace, resetWorkspaceUiState])
 
   useEffect(() => {
     return () => {
@@ -359,11 +370,16 @@ export function NotebookWorkspacePage() {
     const notebook = notebookQuery.data
     if (!notebook) return
 
+    // 编辑中且 store 仍有名称时保留本地输入；store 已被 reset 清空时仍用 query 回填
+    const currentStoreName = useWorkspaceStore.getState().notebookMeta.name
+    const shouldKeepEditingName =
+      isNotebookNameEditing && currentStoreName.trim().length > 0
+
     patchNotebookMeta({
       id: notebook.id,
       desc: notebook.desc ?? '',
       sourceCount: notebook.source_count,
-      ...(isNotebookNameEditing ? {} : { name: notebook.name ?? '' }),
+      ...(shouldKeepEditingName ? {} : { name: notebook.name ?? '' }),
     })
   }, [isNotebookNameEditing, notebookQuery.data, patchNotebookMeta])
 
@@ -679,6 +695,22 @@ export function NotebookWorkspacePage() {
       throw error
     }
   }
+
+  const displayNotebookName = useMemo(
+    () =>
+      resolveNotebookWorkspaceTitle({
+        isEditing: isNotebookNameEditing,
+        draftName: notebookNameDraft,
+        storeName: notebookMeta.name,
+        queryName: notebookQuery.data?.name,
+      }),
+    [
+      isNotebookNameEditing,
+      notebookMeta.name,
+      notebookNameDraft,
+      notebookQuery.data?.name,
+    ],
+  )
 
   const handleNotebookNameChange = (value: string) => {
     setNotebookNameDraft(value)
@@ -1145,7 +1177,7 @@ export function NotebookWorkspacePage() {
         onSelectedSourceIdsChange={setSelectedSourceIds}
       />
       <WorkspaceHeader
-        notebookName={notebookMeta.name}
+        notebookName={displayNotebookName}
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
         isDeletingNotebook={deleteNotebookMutation.isPending}
@@ -1249,7 +1281,7 @@ export function NotebookWorkspacePage() {
           <ChatPanel
             notebookId={id}
             chatId={notebookChatQuery.data?.chat_id ?? ''}
-            notebookName={notebookMeta.name}
+            notebookName={displayNotebookName}
             notebookDescription={notebookMeta.desc}
             notebookSourceCount={notebookMeta.sourceCount}
             selectedSourceIds={selectedSourceIdList}
