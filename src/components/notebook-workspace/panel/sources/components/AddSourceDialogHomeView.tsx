@@ -16,15 +16,18 @@ interface AddSourceDialogHomeViewProps {
 
 const maxSourceFileSizeBytes = 100 * 1024 * 1024
 const maxSourceFilesPerBatch = 20
-const allowedFileExtensions = new Set(['.pdf', '.txt', '.md', '.markdown', '.docx', '.epub'])
-const acceptedFileTypes = '.pdf,.txt,.md,.markdown,.docx,.epub'
+const allowedFileExtensions = new Set(['.pdf', '.txt', '.md', '.markdown', '.csv', '.docx', '.epub'])
+const acceptedFileTypes = '.pdf,.txt,.md,.markdown,.csv,.docx,.epub'
 
 const validateSourceFile = (file: File) => {
   const lowerName = file.name.toLowerCase()
   const dotIndex = lowerName.lastIndexOf('.')
   const ext = dotIndex >= 0 ? lowerName.slice(dotIndex) : ''
   if (!allowedFileExtensions.has(ext)) {
-    return '仅支持 PDF、txt、Markdown、docx、epub 文件'
+    return '仅支持 PDF、txt、Markdown、csv、docx、epub 文件'
+  }
+  if (file.size < 1) {
+    return '文件不能为空'
   }
   if (file.size > maxSourceFileSizeBytes) {
     return '文件大小不能超过 100MB'
@@ -127,7 +130,7 @@ export function AddSourceDialogHomeView({
             </Typography>
 
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: workspaceSpace.md }}>
-              支持：pdf、txt、markdown、docx、epub
+              支持：pdf、txt、markdown、csv、docx、epub
             </Typography>
             <Typography
               variant="caption"

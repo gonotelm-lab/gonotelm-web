@@ -8,6 +8,7 @@ export type SourceIconType =
   | 'docx'
   | 'txt'
   | 'markdown'
+  | 'csv'
 
 export interface SourceListItem {
   id: string

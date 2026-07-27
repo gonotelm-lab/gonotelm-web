@@ -19,6 +19,11 @@ describe('resolveUploadMimeType', () => {
     expect(mime).toBe('text/plain; charset=utf-8')
   })
 
+  it('csv 使用带 charset 的 canonical mime', () => {
+    const mime = resolveUploadMimeType(makeFileLike('a.csv', 'text/csv'))
+    expect(mime).toBe('text/csv; charset=utf-8')
+  })
+
   it('pdf 保持原样', () => {
     const mime = resolveUploadMimeType(makeFileLike('a.pdf', 'application/pdf'))
     expect(mime).toBe('application/pdf')

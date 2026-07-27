@@ -236,6 +236,8 @@ export function SourceListRow({
       <DescriptionIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'markdown' ? (
       <DescriptionIcon sx={sourceTypeIconSx} />
+    ) : item.iconType === 'csv' ? (
+      <DescriptionIcon sx={sourceTypeIconSx} />
     ) : (
       <DescriptionIcon sx={sourceTypeIconSx} />
     )

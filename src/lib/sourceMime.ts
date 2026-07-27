@@ -3,6 +3,7 @@ const sourceUploadMimeByExt: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.markdown': 'text/markdown; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.epub': 'application/epub+zip',
 }

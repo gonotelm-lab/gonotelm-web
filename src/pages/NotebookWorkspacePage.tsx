@@ -17,7 +17,7 @@ import {
   listNotebookSources,
   updateNotebookName,
 } from '../api/notebook'
-import { fileMd5 } from '../lib/md5'
+import { hashFile } from '../lib/md5'
 import { resolveUploadMimeType } from '../lib/sourceMime'
 import { useSourcePolling } from '../components/notebook-workspace/hooks/useSourcePolling'
 import { type SourceCard, useWorkspaceStore } from '../store/workspace'
@@ -76,6 +76,7 @@ const detectSourceIconType = (
   if (normalizedFormat === 'application/epub+zip') return 'epub'
   if (normalizedFormat.startsWith('text/plain')) return 'txt'
   if (normalizedFormat.startsWith('text/markdown')) return 'markdown'
+  if (normalizedFormat.startsWith('text/csv')) return 'csv'
   return 'docx'
 }
 
@@ -592,6 +593,14 @@ export function NotebookWorkspacePage() {
     if (!id) return
     let createdSourceId = ''
     try {
+      // Prefer byteLength from content read: File.size can be 0 for some OS/picker paths
+      // even when the file has content; backend requires size >= 1.
+      const { md5, size } = await hashFile(file)
+      if (size < 1) {
+        console.warn('skip empty file source', file.name)
+        return
+      }
+
       const created = await createSourceMutation.mutateAsync({
         notebook_id: id,
         kind: 'file',
@@ -606,13 +615,12 @@ export function NotebookWorkspacePage() {
         fileFormat: uploadMimeType,
       })
 
-      const md5 = await fileMd5(file)
       const uploadConfig = await uploadSourceMutation.mutateAsync({
         sourceId: created.id,
         payload: {
           mime_type: uploadMimeType,
           filename: file.name,
-          size: file.size,
+          size,
           md5,
         },
       })
