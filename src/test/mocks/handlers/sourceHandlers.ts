@@ -30,7 +30,7 @@ export const sourceHandlers = [
       },
     }),
   ),
-  http.post(`${apiBaseUrl}/api/v1/source`, async () => {
+  http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sources`, async () => {
     const scenario = getMockScenario('source')
     return resolveScenarioResponse({
       scenario,
@@ -41,7 +41,7 @@ export const sourceHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/source/:sourceId/status`, async () => {
+  http.post(`${apiBaseUrl}/api/v1/sources/:sourceId/poll`, async () => {
     const scenario = getMockScenario('source')
     return resolveScenarioResponse({
       scenario,
@@ -54,7 +54,7 @@ export const sourceHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/source/:sourceId/file/upload`, async () => {
+  http.post(`${apiBaseUrl}/api/v1/sources/:sourceId/uploads`, async () => {
     const scenario = getMockScenario('source')
     if (scenario === 'server-error') {
       return createErrorResponse(500, 'mock upload config error', 500_041)
@@ -69,16 +69,16 @@ export const sourceHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/source/:sourceId/reload`, async () =>
+  http.post(`${apiBaseUrl}/api/v1/sources/:sourceId/retry`, async () =>
     createSuccessResponse(null),
   ),
-  http.delete(`${apiBaseUrl}/api/v1/source/:sourceId`, async () =>
+  http.delete(`${apiBaseUrl}/api/v1/sources/:sourceId`, async () =>
     createSuccessResponse(null),
   ),
-  http.put(`${apiBaseUrl}/api/v1/source/:sourceId/title`, async () =>
+  http.patch(`${apiBaseUrl}/api/v1/sources/:sourceId`, async () =>
     createSuccessResponse(null),
   ),
-  http.get(`${apiBaseUrl}/api/v1/source/:sourceId`, async ({ params, request }) => {
+  http.get(`${apiBaseUrl}/api/v1/sources/:sourceId`, async ({ params, request }) => {
     const scenario = getMockScenario('source')
     const sourceId = String(params.sourceId ?? 'source-1')
     const download = new URL(request.url).searchParams.get('download') === 'true'
@@ -100,7 +100,7 @@ export const sourceHandlers = [
       }),
     })
   }),
-  http.get(`${apiBaseUrl}/api/v1/source/:sourceId/doc/:docId`, async ({ params }) => {
+  http.get(`${apiBaseUrl}/api/v1/sources/:sourceId/docs/:docId`, async ({ params }) => {
     const sourceId = String(params.sourceId ?? 'source-1')
     const docId = String(params.docId ?? 'doc-1')
     return createSuccessResponse({
@@ -116,7 +116,7 @@ export const sourceHandlers = [
       },
     })
   }),
-  http.get(`${apiBaseUrl}/api/v1/source/:sourceId/batch/docs`, async ({ params, request }) => {
+  http.get(`${apiBaseUrl}/api/v1/sources/:sourceId/docs`, async ({ params, request }) => {
     const sourceId = String(params.sourceId ?? 'source-1')
     const ids = new URL(request.url).searchParams.get('ids')?.split(',').map((id) => id.trim()).filter(Boolean) ?? []
     return createSuccessResponse({

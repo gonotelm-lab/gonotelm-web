@@ -7,25 +7,31 @@ import type {
   StudioArtifactResult,
 } from '../types/api'
 
-export function generateStudioArtifact(payload: GenerateStudioArtifactRequest) {
-  return request<GenerateStudioArtifactResponse>('/api/v1/studio/artifact/generate', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
+export function generateStudioArtifact(
+  notebookId: string,
+  payload: GenerateStudioArtifactRequest,
+) {
+  return request<GenerateStudioArtifactResponse>(
+    `/api/v1/notebooks/${encodeURIComponent(notebookId)}/artifacts`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
 }
 
 export function getStudioArtifactStatus(taskId: string) {
   return request<GetStudioArtifactStatusResponse>(
-    `/api/v1/studio/artifact/${encodeURIComponent(taskId)}/status`,
+    `/api/v1/artifacts/${encodeURIComponent(taskId)}/status`,
     {
       method: 'GET',
     },
   )
 }
 
-export function getStudioArtifactResult(taskId: string) {
+export function getStudioArtifact(taskId: string) {
   return request<StudioArtifactResult>(
-    `/api/v1/studio/artifact/${encodeURIComponent(taskId)}/result`,
+    `/api/v1/artifacts/${encodeURIComponent(taskId)}`,
     {
       method: 'GET',
     },
@@ -33,19 +39,19 @@ export function getStudioArtifactResult(taskId: string) {
 }
 
 export function deleteStudioArtifact(taskId: string) {
-  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/delete`, {
-    method: 'POST',
+  return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}`, {
+    method: 'DELETE',
   })
 }
 
 export function retryStudioArtifactTask(taskId: string) {
-  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/retry`, {
+  return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}/retry`, {
     method: 'POST',
   })
 }
 
 export function cancelStudioArtifactTask(taskId: string) {
-  return request<null>(`/api/v1/studio/artifact/${encodeURIComponent(taskId)}/cancel`, {
+  return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}/cancel`, {
     method: 'POST',
   })
 }
@@ -69,8 +75,8 @@ export function listNotebookStudioArtifacts(
 
   const suffix = query.toString()
   const path = suffix
-    ? `/api/v1/notebook/${encodeURIComponent(notebookId)}/studio/artifact/list?${suffix}`
-    : `/api/v1/notebook/${encodeURIComponent(notebookId)}/studio/artifact/list`
+    ? `/api/v1/notebooks/${encodeURIComponent(notebookId)}/artifacts?${suffix}`
+    : `/api/v1/notebooks/${encodeURIComponent(notebookId)}/artifacts`
   return request<ListNotebookStudioArtifactsResponse>(path)
 }
 

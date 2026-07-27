@@ -10,38 +10,38 @@ import type {
 } from '../types/api'
 
 export function createNotebook(payload: CreateNotebookRequest) {
-  return request<CreateNotebookResponse>('/api/v1/notebook', {
+  return request<CreateNotebookResponse>('/api/v1/notebooks', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export function getNotebook(id: string) {
-  return request<Notebook>(`/api/v1/notebook/${id}`)
+  return request<Notebook>(`/api/v1/notebooks/${id}`)
 }
 
 export function deleteNotebook(id: string) {
-  return request<null>(`/api/v1/notebook/${id}`, {
+  return request<null>(`/api/v1/notebooks/${id}`, {
     method: 'DELETE',
   })
 }
 
 export function getOrCreateNotebookChat(id: string) {
-  return request<GetNotebookChatResponse>(`/api/v1/notebook/${id}/chat`, {
+  return request<GetNotebookChatResponse>(`/api/v1/notebooks/${id}/chats`, {
     method: 'POST',
   })
 }
 
-interface UpdateNotebookNameRequest {
+interface UpdateNotebookRequest {
   name: string
 }
 
 export function updateNotebookName(
   id: string,
-  payload: UpdateNotebookNameRequest,
+  payload: UpdateNotebookRequest,
 ) {
-  return request<null>(`/api/v1/notebook/${id}/name`, {
-    method: 'PUT',
+  return request<null>(`/api/v1/notebooks/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(payload),
   })
 }
@@ -65,7 +65,7 @@ export function listNotebooks(params: ListNotebooksParams = {}) {
   }
 
   const suffix = query.toString()
-  const path = suffix ? `/api/v1/notebook/list?${suffix}` : '/api/v1/notebook/list'
+  const path = suffix ? `/api/v1/notebooks?${suffix}` : '/api/v1/notebooks'
   return request<ListNotebooksResponse>(path)
 }
 
@@ -88,7 +88,7 @@ export function listNotebookSources(
 
   const suffix = query.toString()
   const path = suffix
-    ? `/api/v1/notebook/${notebookId}/source/list?${suffix}`
-    : `/api/v1/notebook/${notebookId}/source/list`
+    ? `/api/v1/notebooks/${notebookId}/sources?${suffix}`
+    : `/api/v1/notebooks/${notebookId}/sources`
   return request<ListNotebookSourcesResponse>(path)
 }

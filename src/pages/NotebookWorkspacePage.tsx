@@ -464,7 +464,13 @@ export function NotebookWorkspacePage() {
   }, [beginHydratingSources, id, notebookQuery.data, setSources])
 
   const createSourceMutation = useMutation({
-    mutationFn: createSource,
+    mutationFn: ({
+      notebookId,
+      payload,
+    }: {
+      notebookId: string
+      payload: Parameters<typeof createSource>[1]
+    }) => createSource(notebookId, payload),
   })
   const uploadSourceMutation = useMutation({
     mutationFn: ({ sourceId, payload }: { sourceId: string; payload: Parameters<typeof uploadFileSource>[1] }) =>
@@ -570,10 +576,12 @@ export function NotebookWorkspacePage() {
 
     try {
       const created = await createSourceMutation.mutateAsync({
-        notebook_id: id,
-        kind,
-        text: kind === 'text' ? normalized : undefined,
-        url: kind === 'url' ? normalized : undefined,
+        notebookId: id,
+        payload: {
+          kind,
+          text: kind === 'text' ? normalized : undefined,
+          url: kind === 'url' ? normalized : undefined,
+        },
       })
       addSource({
         id: created.id,
@@ -602,8 +610,10 @@ export function NotebookWorkspacePage() {
       }
 
       const created = await createSourceMutation.mutateAsync({
-        notebook_id: id,
-        kind: 'file',
+        notebookId: id,
+        payload: {
+          kind: 'file',
+        },
       })
       createdSourceId = created.id
       const uploadMimeType = resolveUploadMimeType(file)

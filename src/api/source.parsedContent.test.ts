@@ -25,8 +25,8 @@ describe('getSourceParsedContentForDownload', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     const [requestUrl] = fetchSpy.mock.calls[0] as [string]
-    expect(requestUrl).toContain('/api/v1/source/source%20id')
-    expect(requestUrl).not.toContain('/api/v1/source/source%20id/?')
+    expect(requestUrl).toContain('/api/v1/sources/source%20id')
+    expect(requestUrl).not.toContain('/api/v1/sources/source%20id/?')
     expect(requestUrl).not.toContain('/parsed/content')
     expect(requestUrl).toContain('download=true')
     expect(data).toEqual({

@@ -53,7 +53,7 @@ const notebookSources = [
 ]
 
 export const notebookHandlers = [
-  http.get(`${apiBaseUrl}/api/v1/notebook/list`, async ({ request }) => {
+  http.get(`${apiBaseUrl}/api/v1/notebooks`, async ({ request }) => {
     const scenario = getMockScenario('notebook')
     const sortBy = new URL(request.url).searchParams.get('sort_by')
     const sortedNotebooks = [...notebookSummaries].sort((a, b) => {
@@ -70,7 +70,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/notebook`, async ({ request }) => {
+  http.post(`${apiBaseUrl}/api/v1/notebooks`, async ({ request }) => {
     const scenario = getMockScenario('notebook')
     const body = (await request.json()) as { name?: string }
     const normalizedName = body.name?.trim() ?? ''
@@ -82,7 +82,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.delete(`${apiBaseUrl}/api/v1/notebook/:notebookId`, async () => {
+  http.delete(`${apiBaseUrl}/api/v1/notebooks/:notebookId`, async () => {
     const scenario = getMockScenario('notebook')
     return resolveScenarioResponse({
       scenario,
@@ -91,7 +91,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.get(`${apiBaseUrl}/api/v1/notebook/:notebookId`, async ({ params }) => {
+  http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId`, async ({ params }) => {
     const scenario = getMockScenario('notebook')
     const notebookId = String(params.notebookId ?? 'notebook-1')
     return resolveScenarioResponse({
@@ -109,7 +109,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/notebook/:notebookId/chat`, async ({ params }) => {
+  http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/chats`, async ({ params }) => {
     const scenario = getMockScenario('notebook')
     const notebookId = String(params.notebookId ?? 'notebook-1')
     return resolveScenarioResponse({
@@ -123,7 +123,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.get(`${apiBaseUrl}/api/v1/notebook/:notebookId/source/list`, async () => {
+  http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sources`, async () => {
     const scenario = getMockScenario('notebook')
     return resolveScenarioResponse({
       scenario,
@@ -132,7 +132,7 @@ export const notebookHandlers = [
     })
   }),
 
-  http.put(`${apiBaseUrl}/api/v1/notebook/:notebookId/name`, async () =>
+  http.patch(`${apiBaseUrl}/api/v1/notebooks/:notebookId`, async () =>
     createSuccessResponse(null),
   ),
 ]

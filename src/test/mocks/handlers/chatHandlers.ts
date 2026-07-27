@@ -45,7 +45,7 @@ const chatHistoryMessages = [
 ]
 
 export const chatHandlers = [
-  http.post(`${apiBaseUrl}/api/v1/chat/:chatId/message/create`, async ({ request }) => {
+  http.post(`${apiBaseUrl}/api/v1/chats/:chatId/messages`, async ({ request }) => {
     const scenario = getMockScenario('chat')
     if (scenario === 'success' || scenario === 'empty') {
       const requestBody = (await request.json().catch(() => ({}))) as Record<string, unknown>
@@ -77,7 +77,7 @@ export const chatHandlers = [
     })
   }),
 
-  http.get(`${apiBaseUrl}/api/v1/chat/:chatId/message/list`, async () => {
+  http.get(`${apiBaseUrl}/api/v1/chats/:chatId/messages`, async () => {
     const scenario = getMockScenario('chat')
     return resolveScenarioResponse({
       scenario,
@@ -86,10 +86,10 @@ export const chatHandlers = [
     })
   }),
 
-  http.post(`${apiBaseUrl}/api/v1/chat/:chatId/stream/abort`, async () =>
+  http.post(`${apiBaseUrl}/api/v1/chats/:chatId/stream/abort`, async () =>
     createSuccessResponse(null),
   ),
-  http.delete(`${apiBaseUrl}/api/v1/chat/:chatId/context`, async () =>
+  http.delete(`${apiBaseUrl}/api/v1/chats/:chatId/context`, async () =>
     createSuccessResponse(null),
   ),
 ]

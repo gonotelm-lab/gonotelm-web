@@ -5,7 +5,7 @@ import {
   cancelStudioArtifactTask,
   deleteStudioArtifact,
   generateStudioArtifact,
-  getStudioArtifactResult,
+  getStudioArtifact,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
   retryStudioArtifactTask,
@@ -13,8 +13,7 @@ import {
 
 describe('studio api with msw mock', () => {
   it('submits task and retrieves final artifact content', async () => {
-    const submitResp = await generateStudioArtifact({
-      notebook_id: 'notebook-1',
+    const submitResp = await generateStudioArtifact('notebook-1', {
       kind: 'mindmap',
       source_ids: ['source-1', 'source-2'],
     })
@@ -23,7 +22,7 @@ describe('studio api with msw mock', () => {
     const statusResp = await getStudioArtifactStatus(submitResp.task_id)
     expect(statusResp.status).toBe('completed')
 
-    const resultResp = await getStudioArtifactResult(submitResp.task_id)
+    const resultResp = await getStudioArtifact(submitResp.task_id)
     expect(resultResp.status).toBe('completed')
     expect(resultResp.kind).toBe('mindmap')
     expect(resultResp.content_kind).toBe('inline')
@@ -39,8 +38,7 @@ describe('studio api with msw mock', () => {
   })
 
   it('supports retry, cancel and delete actions', async () => {
-    const submitResp = await generateStudioArtifact({
-      notebook_id: 'notebook-1',
+    const submitResp = await generateStudioArtifact('notebook-1', {
       kind: 'mindmap',
       source_ids: ['source-1'],
     })
@@ -57,8 +55,7 @@ describe('studio api with msw mock', () => {
   })
 
   it('supports submitting audio_overview task payload', async () => {
-    const submitResp = await generateStudioArtifact({
-      notebook_id: 'notebook-1',
+    const submitResp = await generateStudioArtifact('notebook-1', {
       kind: 'audio_overview',
       source_ids: ['source-1'],
       audio_overview: {
@@ -73,8 +70,7 @@ describe('studio api with msw mock', () => {
   it('throws ApiError for server-error and timeout scenarios', async () => {
     setMockScenario('studio', 'server-error')
     await expect(
-      generateStudioArtifact({
-        notebook_id: 'notebook-1',
+      generateStudioArtifact('notebook-1', {
         kind: 'mindmap',
         source_ids: ['source-1'],
       }),

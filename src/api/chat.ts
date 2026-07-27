@@ -103,7 +103,7 @@ export function createChatMessage(payload: ChatCreateMessageRequest) {
     answer_length: payload.answer_length,
   }
   const chatId = encodeURIComponent(payload.id)
-  return request<ChatCreateMessageResponse>(`/api/v1/chat/${chatId}/message/create`, {
+  return request<ChatCreateMessageResponse>(`/api/v1/chats/${chatId}/messages`, {
     method: 'POST',
     body: JSON.stringify(normalizedPayload),
   })
@@ -120,21 +120,21 @@ export function listChatMessages(params: ListChatMessagesParams) {
   const chatId = encodeURIComponent(params.id)
   const queryString = query.toString()
   const url = queryString
-    ? `/api/v1/chat/${chatId}/message/list?${queryString}`
-    : `/api/v1/chat/${chatId}/message/list`
+    ? `/api/v1/chats/${chatId}/messages?${queryString}`
+    : `/api/v1/chats/${chatId}/messages`
   return request<ChatListMessagesResponse>(url)
 }
 
 export function abortChatStream(payload: ChatAbortStreamRequest) {
   const chatId = encodeURIComponent(payload.id)
-  return request<null>(`/api/v1/chat/${chatId}/stream/abort`, {
+  return request<null>(`/api/v1/chats/${chatId}/stream/abort`, {
     method: 'POST',
     body: JSON.stringify({ task_id: payload.task_id }),
   })
 }
 
 export function deleteChatContext(chatId: string) {
-  return request<null>(`/api/v1/chat/${encodeURIComponent(chatId)}/context`, {
+  return request<null>(`/api/v1/chats/${encodeURIComponent(chatId)}/context`, {
     method: 'DELETE',
   })
 }
@@ -147,7 +147,7 @@ function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
   }
 
   const chatId = encodeURIComponent(params.id)
-  return `${API_BASE_URL}/api/v1/chat/${chatId}/stream?${query.toString()}`
+  return `${API_BASE_URL}/api/v1/chats/${chatId}/stream?${query.toString()}`
 }
 
 export async function streamChatEvents(options: StreamChatEventsOptions) {

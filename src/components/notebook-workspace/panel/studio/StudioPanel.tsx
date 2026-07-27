@@ -549,7 +549,7 @@ export function StudioPanel({
       />
 
       <InfoGraphicSettingsDialog
-        key={infoGraphicDialogKey}
+        key={`info-graphic-${infoGraphicDialogKey}`}
         open={infoGraphicDialogOpen}
         initialParams={infoGraphicParams}
         onClose={handleCloseInfoGraphicDialog}
@@ -557,7 +557,7 @@ export function StudioPanel({
       />
 
       <AudioOverviewSettingsDialog
-        key={audioOverviewDialogKey}
+        key={`audio-overview-${audioOverviewDialogKey}`}
         open={audioOverviewDialogOpen}
         initialParams={audioOverviewParams}
         onClose={handleCloseAudioOverviewDialog}
@@ -565,7 +565,7 @@ export function StudioPanel({
       />
 
       <MindmapSettingsDialog
-        key={mindmapDialogKey}
+        key={`mindmap-${mindmapDialogKey}`}
         open={mindmapDialogOpen}
         initialParams={mindmapParams}
         onClose={handleCloseMindmapDialog}
@@ -573,7 +573,7 @@ export function StudioPanel({
       />
 
       <ReportSettingsDialog
-        key={reportDialogKey}
+        key={`report-${reportDialogKey}`}
         open={reportDialogOpen}
         initialParams={reportParams}
         onClose={handleCloseReportDialog}
@@ -581,7 +581,7 @@ export function StudioPanel({
       />
 
       <FlashcardSettingsDialog
-        key={flashcardDialogKey}
+        key={`flashcard-${flashcardDialogKey}`}
         open={flashcardDialogOpen}
         initialParams={flashcardParams}
         onClose={handleCloseFlashcardDialog}
@@ -589,7 +589,7 @@ export function StudioPanel({
       />
 
       <QuizSettingsDialog
-        key={quizDialogKey}
+        key={`quiz-${quizDialogKey}`}
         open={quizDialogOpen}
         initialParams={quizParams}
         onClose={handleCloseQuizDialog}
@@ -597,7 +597,7 @@ export function StudioPanel({
       />
 
       <DataTableSettingsDialog
-        key={dataTableDialogKey}
+        key={`data-table-${dataTableDialogKey}`}
         open={dataTableDialogOpen}
         initialParams={dataTableParams}
         onClose={handleCloseDataTableDialog}

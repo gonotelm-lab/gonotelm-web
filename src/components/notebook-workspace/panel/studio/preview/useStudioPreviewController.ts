@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  getStudioArtifactResult,
+  getStudioArtifact,
   loadStudioArtifactContentFromUrl,
 } from '@/api/studio'
 import { ApiError } from '@/lib/http'
@@ -108,7 +108,7 @@ export function useStudioPreviewController({
       let itemStatus = toArtifactVisualStatus(latestItem.status)
 
       if (!content && !contentUrl && latestItem.taskId) {
-        const result = await getStudioArtifactResult(latestItem.taskId)
+        const result = await getStudioArtifact(latestItem.taskId)
         if (previewLoadSeqRef.current !== requestSeq) {
           return
         }

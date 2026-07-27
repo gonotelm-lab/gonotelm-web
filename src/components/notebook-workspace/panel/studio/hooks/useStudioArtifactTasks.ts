@@ -3,7 +3,7 @@ import {
   cancelStudioArtifactTask,
   deleteStudioArtifact,
   generateStudioArtifact,
-  getStudioArtifactResult,
+  getStudioArtifact,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
   retryStudioArtifactTask,
@@ -249,7 +249,7 @@ export function useStudioArtifactTasks({
         if (activeNotebookIdRef.current !== notebookSnapshot) {
           return
         }
-        const result = await getStudioArtifactResult(taskId)
+        const result = await getStudioArtifact(taskId)
         const sourceIdsFromResult = Array.isArray(result.source_ids)
           ? result.source_ids.map((sourceId) => String(sourceId))
           : null
@@ -472,8 +472,7 @@ export function useStudioArtifactTasks({
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
 
       try {
-        const response = await generateStudioArtifact({
-          notebook_id: notebookId,
+        const response = await generateStudioArtifact(notebookId, {
           kind,
           source_ids: sourceIds,
           ...(kind === 'mindmap'
@@ -540,8 +539,7 @@ export function useStudioArtifactTasks({
 
       setPendingActions((prev) => ({ ...prev, 'save-as-note': true }))
       try {
-        const response = await generateStudioArtifact({
-          notebook_id: notebookId,
+        const response = await generateStudioArtifact(notebookId, {
           kind: 'note',
           source_ids: [],
           note: {

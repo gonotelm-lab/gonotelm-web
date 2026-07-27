@@ -77,7 +77,6 @@ export interface ListNotebookSourcesResponse {
 }
 
 export interface CreateSourceRequest {
-  notebook_id: string
   kind: SourceKind
   text?: string
   url?: string
@@ -272,7 +271,6 @@ export interface StudioArtifactImageInfo {
 }
 
 export interface GenerateStudioArtifactRequest {
-  notebook_id: string
   kind: StudioArtifactKind
   source_ids?: string[]
   mindmap?: GenerateMindmapParameters

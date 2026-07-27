@@ -96,10 +96,10 @@ const buildArtifactResultPayload = (
 }
 
 export const studioHandlers = [
-  http.post(`${apiBaseUrl}/api/v1/studio/artifact/generate`, async ({ request }) => {
+  http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/artifacts`, async ({ params, request }) => {
     const scenario = getMockScenario('studio')
+    const notebookId = String(params.notebookId ?? 'unknown')
     const requestBody = (await request.json().catch(() => ({}))) as {
-      notebook_id?: string
       kind?: string
       source_ids?: string[]
       info_graphic?: {
@@ -116,7 +116,7 @@ export const studioHandlers = [
     const taskId = `task-${taskSeq}`
     taskSeq += 1
     studioTaskStore.set(taskId, {
-      notebookId: requestBody.notebook_id ?? 'unknown',
+      notebookId,
       kind: requestBody.kind ?? 'mindmap',
       sourceCount,
       sourceIds,
@@ -135,7 +135,7 @@ export const studioHandlers = [
       },
     })
   }),
-  http.get(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/status`, async ({ params }) => {
+  http.get(`${apiBaseUrl}/api/v1/artifacts/:taskId/status`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     const snapshot = studioTaskStore.get(taskId)
@@ -152,7 +152,7 @@ export const studioHandlers = [
       },
     })
   }),
-  http.get(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/result`, async ({ params }) => {
+  http.get(`${apiBaseUrl}/api/v1/artifacts/:taskId`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     const snapshot = studioTaskStore.get(taskId)
@@ -187,7 +187,7 @@ export const studioHandlers = [
       },
     })
   }),
-  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/retry`, async ({ params }) => {
+  http.post(`${apiBaseUrl}/api/v1/artifacts/:taskId/retry`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     const snapshot = studioTaskStore.get(taskId)
@@ -204,7 +204,7 @@ export const studioHandlers = [
       emptyData: null,
     })
   }),
-  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/cancel`, async ({ params }) => {
+  http.post(`${apiBaseUrl}/api/v1/artifacts/:taskId/cancel`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     const snapshot = studioTaskStore.get(taskId)
@@ -221,7 +221,7 @@ export const studioHandlers = [
       emptyData: null,
     })
   }),
-  http.post(`${apiBaseUrl}/api/v1/studio/artifact/:taskId/delete`, async ({ params }) => {
+  http.delete(`${apiBaseUrl}/api/v1/artifacts/:taskId`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     studioTaskStore.delete(taskId)
@@ -232,7 +232,7 @@ export const studioHandlers = [
       emptyData: null,
     })
   }),
-  http.get(`${apiBaseUrl}/api/v1/notebook/:notebookId/studio/artifact/list`, async ({ params }) => {
+  http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/artifacts`, async ({ params }) => {
     const scenario = getMockScenario('studio')
     const notebookId = String(params.notebookId ?? 'notebook-1')
     const fallbackTaskId = `history-${notebookId}`

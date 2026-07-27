@@ -5,8 +5,7 @@ import { setMockScenario } from '@/test/mocks'
 
 describe('source api with msw mock', () => {
   it('creates source and polls status without backend dependency', async () => {
-    const created = await createSource({
-      notebook_id: 'notebook-1',
+    const created = await createSource('notebook-1', {
       kind: 'text',
       text: 'Ownership note',
     })
@@ -26,7 +25,7 @@ describe('source api with msw mock', () => {
   })
   it('throws ApiError for server error and timeout scenarios', async () => {
     setMockScenario('source', 'server-error')
-    await expect(createSource({ notebook_id: 'notebook-1', kind: 'text' })).rejects.toBeInstanceOf(
+    await expect(createSource('notebook-1', { kind: 'text' })).rejects.toBeInstanceOf(
       ApiError,
     )
 
