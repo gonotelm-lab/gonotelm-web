@@ -3,6 +3,7 @@ import AddLinkIcon from '@mui/icons-material/AddLink'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import NotesIcon from '@mui/icons-material/Notes'
 import { Box, Paper, Stack, Typography } from '@mui/material'
+import { detectEncryptedSourceFile } from '../../../../../lib/detectEncryptedSourceFile'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction, workspaceTransitionPresets } from '../../../shared/ui/motionTokens'
 import { workspaceIconSize } from '../../../shared/ui/typeTokens'
@@ -44,6 +45,13 @@ const validateSourceFile = (file: File) => {
   return ''
 }
 
+function encryptedUserMessage(fileName: string, reason: string): string {
+  if (reason === 'read-failed') {
+    return `${fileName}: 无法读取文件内容`
+  }
+  return `${fileName}: 文件已加密，无法处理`
+}
+
 export function AddSourceDialogHomeView({
   disabled,
   onCreateFile,
@@ -53,9 +61,11 @@ export function AddSourceDialogHomeView({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [fileError, setFileError] = useState<string>('')
   const [dragActive, setDragActive] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const interactionDisabled = disabled || checking
 
   const handleFilesSelected = (files: File[]) => {
-    if (files.length === 0 || disabled) return
+    if (files.length === 0 || interactionDisabled) return
     if (files.length > maxSourceFilesPerBatch) {
       setFileError(`一次最多选择 ${maxSourceFilesPerBatch} 个文件`)
       return
@@ -69,8 +79,25 @@ export function AddSourceDialogHomeView({
       }
     }
 
-    setFileError('')
-    void onCreateFile(files)
+    void (async () => {
+      setChecking(true)
+      setFileError('')
+      try {
+        for (const file of files) {
+          const result = await detectEncryptedSourceFile(file)
+          if (result.encrypted) {
+            setFileError(encryptedUserMessage(file.name, result.reason))
+            return
+          }
+        }
+        await onCreateFile(files)
+      } catch {
+        const first = files[0]
+        setFileError(first ? `${first.name}: 无法读取文件内容` : '无法读取文件内容')
+      } finally {
+        setChecking(false)
+      }
+    })()
   }
 
   return (
@@ -92,23 +119,23 @@ export function AddSourceDialogHomeView({
             display: 'grid',
             placeItems: 'center',
             textAlign: 'center',
-            cursor: disabled ? 'default' : workspaceInteraction.cursorPointer,
+            cursor: interactionDisabled ? 'default' : workspaceInteraction.cursorPointer,
             bgcolor: dragActive ? 'action.hover' : 'transparent',
             transition: workspaceTransitionPresets.borderBg,
           }}
           onClick={() => {
-            if (!disabled) {
+            if (!interactionDisabled) {
               fileInputRef.current?.click()
             }
           }}
           onDragEnter={(event) => {
-            if (disabled) return
+            if (interactionDisabled) return
             event.preventDefault()
             event.stopPropagation()
             setDragActive(true)
           }}
           onDragOver={(event) => {
-            if (disabled) return
+            if (interactionDisabled) return
             event.preventDefault()
             event.stopPropagation()
             if (!dragActive) {
@@ -116,13 +143,13 @@ export function AddSourceDialogHomeView({
             }
           }}
           onDragLeave={(event) => {
-            if (disabled) return
+            if (interactionDisabled) return
             event.preventDefault()
             event.stopPropagation()
             setDragActive(false)
           }}
           onDrop={(event) => {
-            if (disabled) return
+            if (interactionDisabled) return
             event.preventDefault()
             event.stopPropagation()
             setDragActive(false)
@@ -155,6 +182,11 @@ export function AddSourceDialogHomeView({
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: workspaceSpace.sm }}>
               一次最多选择 20 个文件
             </Typography>
+            {checking && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: workspaceSpace.sm }}>
+                正在检查文件…
+              </Typography>
+            )}
             {fileError && (
               <Typography
                 variant="caption"

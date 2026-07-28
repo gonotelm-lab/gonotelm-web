@@ -43,7 +43,7 @@
   - `export type EncryptedCheckResult = { encrypted: false } | { encrypted: true; reason: string }`
   - `export async function detectEncryptedSourceFile(file: File): Promise<EncryptedCheckResult>`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -53,7 +53,8 @@ const oleHeader = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1
 const pkHeader = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00])
 
 function fileFromBytes(name: string, bytes: Uint8Array, type = ''): File {
-  return new File([bytes], name, { type })
+  const copy = new Uint8Array(bytes)
+  return new File([copy.buffer], name, { type })
 }
 
 function fileFromText(name: string, text: string, type = ''): File {
