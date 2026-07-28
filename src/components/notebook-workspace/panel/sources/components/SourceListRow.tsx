@@ -13,6 +13,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PreviewIcon from '@mui/icons-material/Preview'
 import ReplayIcon from '@mui/icons-material/Replay'
+import TableChartIcon from '@mui/icons-material/TableChart'
 import {
   Button,
   Box,
@@ -238,6 +239,8 @@ export function SourceListRow({
       <DescriptionIcon sx={sourceTypeIconSx} />
     ) : item.iconType === 'csv' ? (
       <DescriptionIcon sx={sourceTypeIconSx} />
+    ) : item.iconType === 'xlsx' ? (
+      <TableChartIcon sx={sourceTypeIconSx} />
     ) : (
       <DescriptionIcon sx={sourceTypeIconSx} />
     )

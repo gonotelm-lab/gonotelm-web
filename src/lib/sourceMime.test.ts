@@ -29,6 +29,24 @@ describe('resolveUploadMimeType', () => {
     expect(mime).toBe('application/pdf')
   })
 
+  it('xlsx 使用 spreadsheetml mime', () => {
+    const mime = resolveUploadMimeType(
+      makeFileLike(
+        'a.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ),
+    )
+    expect(mime).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+  })
+
+  it('xlsx 即使浏览器 mime 为空也按扩展名解析', () => {
+    expect(resolveUploadMimeType(makeFileLike('a.xlsx', ''))).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+  })
+
   it('未知文件类型兜底为原始 mime 或 octet-stream', () => {
     expect(resolveUploadMimeType(makeFileLike('a.unknown', 'application/x-custom'))).toBe(
       'application/x-custom',

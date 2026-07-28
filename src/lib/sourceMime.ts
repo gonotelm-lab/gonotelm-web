@@ -6,6 +6,7 @@ const sourceUploadMimeByExt: Record<string, string> = {
   '.csv': 'text/csv; charset=utf-8',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.epub': 'application/epub+zip',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
 const normalizeMimeType = (mimeType: string) =>

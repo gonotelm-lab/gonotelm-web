@@ -74,6 +74,12 @@ const detectSourceIconType = (
   const normalizedFormat = fileFormat?.trim().toLowerCase() ?? ''
   if (normalizedFormat === 'application/pdf') return 'pdf'
   if (normalizedFormat === 'application/epub+zip') return 'epub'
+  if (
+    normalizedFormat ===
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ) {
+    return 'xlsx'
+  }
   if (normalizedFormat.startsWith('text/plain')) return 'txt'
   if (normalizedFormat.startsWith('text/markdown')) return 'markdown'
   if (normalizedFormat.startsWith('text/csv')) return 'csv'
