@@ -17,7 +17,9 @@ import {
   inlinePreviewActionIconSx,
 } from '../../../shared/ui/previewActionStyles'
 import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
+import { resolveStudioArtifactDisplayTitle } from '../resolveStudioArtifactKind'
 import { StudioArtifactExtrasPopover } from './StudioArtifactExtrasPopover'
+import { StudioArtifactTitleBar } from './StudioArtifactTitleBar'
 import { StudioAudioPlayer } from './StudioAudioPlayer'
 
 interface StudioArtifactInlinePreviewProps {
@@ -29,6 +31,7 @@ interface StudioArtifactInlinePreviewProps {
   onOpenOverlay: () => void
   onDownload: () => void
   onRetryLoad: () => void
+  onRenameTitle?: (title: string) => Promise<void>
 }
 
 export function StudioArtifactInlinePreview({
@@ -40,6 +43,7 @@ export function StudioArtifactInlinePreview({
   onOpenOverlay,
   onDownload,
   onRetryLoad,
+  onRenameTitle,
 }: StudioArtifactInlinePreviewProps) {
   const sourceCount = artifact.sourceIds.length || artifact.sourceCount
   const isAudioOverviewArtifact = artifact.kind === 'audio_overview'
@@ -49,14 +53,31 @@ export function StudioArtifactInlinePreview({
   const canDownload = !loading && !error && hasDownloadableContent
   const isMindmapArtifact = artifact.kind === 'mindmap'
   const isFlashcardArtifact = artifact.kind === 'flashcard'
+  const displayTitle = resolveStudioArtifactDisplayTitle(artifact.title, artifact.kind)
+  const canRename = artifact.status === 'completed' && Boolean(onRenameTitle)
 
   return (
     <Stack sx={{ height: '100%', minHeight: 0 }}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }} noWrap>
-            {artifact.title}
-          </Typography>
+      <Stack
+        direction="row"
+        sx={{
+          flexShrink: 0,
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          bgcolor: 'background.paper',
+          pb: workspaceSpace.sm,
+        }}
+      >
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <StudioArtifactTitleBar
+            title={artifact.title}
+            kind={artifact.kind}
+            editable={canRename}
+            typographyVariant="h5"
+            onCommit={async (next) => {
+              await onRenameTitle?.(next)
+            }}
+          />
           <Typography
             variant="subtitle2"
             color="text.secondary"
@@ -106,7 +127,6 @@ export function StudioArtifactInlinePreview({
 
       <Box
         sx={(theme) => ({
-          mt: workspaceSpace.md,
           flex: 1,
           minHeight: 0,
           overflow: isMindmapArtifact || isFlashcardArtifact ? 'hidden' : 'auto',
@@ -132,7 +152,7 @@ export function StudioArtifactInlinePreview({
           isAudioOverviewArtifact ? (
             <StudioAudioPlayer
               audioUrl={artifact.contentUrl}
-              title={artifact.title}
+              title={displayTitle}
               onRetry={onRetryLoad}
               onDownload={onDownload}
             />

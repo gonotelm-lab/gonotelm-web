@@ -21,7 +21,9 @@ import type { StudioArtifactItem } from '../types'
 import { renderStudioArtifactPreviewContent } from '../preview/previewRenderRegistry'
 import { hasStudioArtifactPreviewContent } from '../preview/previewContent'
 import { downloadFileFromUrl } from '../preview/downloadFile'
+import { resolveStudioArtifactDisplayTitle } from '../resolveStudioArtifactKind'
 import { StudioArtifactExtrasPopover } from './StudioArtifactExtrasPopover'
+import { StudioArtifactTitleBar } from './StudioArtifactTitleBar'
 
 interface StudioArtifactPreviewOverlayProps {
   open: boolean
@@ -31,6 +33,7 @@ interface StudioArtifactPreviewOverlayProps {
   content: string
   onClose: () => void
   onRetryLoad: () => void
+  onRenameTitle?: (title: string) => Promise<void>
 }
 
 export function StudioArtifactPreviewOverlay({
@@ -41,6 +44,7 @@ export function StudioArtifactPreviewOverlay({
   content,
   onClose,
   onRetryLoad,
+  onRenameTitle,
 }: StudioArtifactPreviewOverlayProps) {
   const handleCloseOverlay = useCallback(() => {
     onClose()
@@ -53,8 +57,13 @@ export function StudioArtifactPreviewOverlay({
     return artifact.sourceIds.length || artifact.sourceCount
   }, [artifact])
 
-  const title = artifact?.title || '产物预览'
+  const title = artifact
+    ? resolveStudioArtifactDisplayTitle(artifact.title, artifact.kind)
+    : '产物预览'
   const subtitle = artifact ? `基于 ${sourceCount} 个来源` : '暂无来源信息'
+  const canRename = Boolean(
+    artifact && artifact.status === 'completed' && onRenameTitle,
+  )
   const isMindmapArtifact = artifact?.kind === 'mindmap'
   const isReportArtifact = artifact?.kind === 'report'
   const isInfographicArtifact = artifact?.kind === 'info_graphic'
@@ -73,8 +82,7 @@ export function StudioArtifactPreviewOverlay({
     if (!artifact || !hasDownloadableContent) {
       return
     }
-    const safeName = artifact.title
-      .trim()
+    const safeName = resolveStudioArtifactDisplayTitle(artifact.title, artifact.kind)
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'
@@ -160,18 +168,32 @@ export function StudioArtifactPreviewOverlay({
         <Stack
           direction="row"
           sx={{
+            flexShrink: 0,
             px: workspaceLayout.panelPaddingX,
             py: workspaceSpace.md,
             borderBottom: 1,
             borderColor: 'divider',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
+            bgcolor: 'background.paper',
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
-              {title}
-            </Typography>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            {artifact ? (
+              <StudioArtifactTitleBar
+                title={artifact.title}
+                kind={artifact.kind}
+                editable={canRename}
+                typographyVariant="h6"
+                onCommit={async (next) => {
+                  await onRenameTitle?.(next)
+                }}
+              />
+            ) : (
+              <Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
+                {title}
+              </Typography>
+            )}
             <Typography
               variant="caption"
               color="text.secondary"

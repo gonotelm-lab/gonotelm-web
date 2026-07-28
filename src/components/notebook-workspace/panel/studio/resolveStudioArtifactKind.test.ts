@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolveStudioArtifactActionId,
+  resolveStudioArtifactDisplayTitle,
   resolveStudioArtifactFallbackTitle,
   resolveStudioArtifactKind,
 } from './resolveStudioArtifactKind'
@@ -29,6 +30,16 @@ describe('resolveStudioArtifactFallbackTitle', () => {
 
   it('resolves note title', () => {
     expect(resolveStudioArtifactFallbackTitle('note')).toBe('笔记')
+  })
+})
+
+describe('resolveStudioArtifactDisplayTitle', () => {
+  it('returns trimmed title when present', () => {
+    expect(resolveStudioArtifactDisplayTitle('  hello  ', 'mindmap')).toBe('hello')
+  })
+
+  it('falls back when title is empty', () => {
+    expect(resolveStudioArtifactDisplayTitle('   ', 'note')).toBe('笔记')
   })
 })
 

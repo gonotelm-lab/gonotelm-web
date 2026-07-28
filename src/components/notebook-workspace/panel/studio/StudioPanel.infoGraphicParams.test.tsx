@@ -46,6 +46,7 @@ vi.mock('./hooks/useStudioArtifactTasks', () => ({
     retryArtifact: vi.fn(async () => undefined),
     cancelArtifact: vi.fn(async () => undefined),
     deleteArtifact: vi.fn(async () => undefined),
+    renameArtifactTitle: vi.fn(async () => undefined),
     isArtifactActionPending: () => false,
   }),
 }))

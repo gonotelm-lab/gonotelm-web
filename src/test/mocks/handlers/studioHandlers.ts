@@ -1,6 +1,6 @@
 import { http } from 'msw'
 import { getMockScenario } from '../scenarios'
-import { resolveScenarioResponse } from './httpResponse'
+import { createErrorResponse, resolveScenarioResponse } from './httpResponse'
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
 let taskSeq = 1
@@ -225,6 +225,31 @@ export const studioHandlers = [
     const scenario = getMockScenario('studio')
     const taskId = String(params.taskId ?? '')
     studioTaskStore.delete(taskId)
+
+    return resolveScenarioResponse({
+      scenario,
+      successData: null,
+      emptyData: null,
+    })
+  }),
+  http.patch(`${apiBaseUrl}/api/v1/artifacts/:taskId`, async ({ params, request }) => {
+    const scenario = getMockScenario('studio')
+    const taskId = String(params.taskId ?? '')
+    const body = (await request.json().catch(() => ({}))) as {
+      target?: string
+      title?: string
+    }
+    if (body.target !== 'title') {
+      return createErrorResponse(400, 'unsupported update target', 400_001)
+    }
+    const snapshot = studioTaskStore.get(taskId)
+    if (!snapshot) {
+      return createErrorResponse(404, 'artifact not found', 404_001)
+    }
+    studioTaskStore.set(taskId, {
+      ...snapshot,
+      title: String(body.title ?? '').trim(),
+    })
 
     return resolveScenarioResponse({
       scenario,

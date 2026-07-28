@@ -7,6 +7,7 @@ import {
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
   retryStudioArtifactTask,
+  updateStudioArtifact,
 } from '@/api/studio'
 import { useAdaptivePollingLoop } from '@/components/notebook-workspace/hooks/useAdaptivePollingLoop'
 import { ApiError } from '@/lib/http'
@@ -67,11 +68,6 @@ const buildStudioErrorMessage = (
     return error.message
   }
   return fallback
-}
-
-const resolveArtifactTitle = (title: string | undefined, fallbackTitle: string) => {
-  const normalized = String(title ?? '').trim()
-  return normalized || fallbackTitle
 }
 
 const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
@@ -160,7 +156,7 @@ const toHistoryArtifactItem = (
     taskId: artifact.task_id,
     kind: artifactKind,
     actionId: resolveStudioArtifactActionId(artifactKind),
-    title: resolveArtifactTitle(artifact.title, resolveStudioArtifactFallbackTitle(artifactKind)),
+    title: String(artifact.title ?? '').trim(),
     status: artifact.status,
     sourceCount: sourceIds.length,
     sourceIds,
@@ -266,13 +262,12 @@ export function useStudioArtifactTasks({
               }
               const nextSourceIds = sourceIdsFromResult ?? item.sourceIds
               const nextKind = resultKind ?? item.kind
-              const fallbackTitle = item.title || resolveStudioArtifactFallbackTitle(nextKind)
               return {
                 ...item,
                 kind: nextKind,
                 actionId: resolveStudioArtifactActionId(nextKind),
                 status: result.status,
-                title: resultTitle || fallbackTitle,
+                title: resultTitle,
                 sourceIds: nextSourceIds,
                 sourceCount: nextSourceIds.length,
                 createdAt: resultTimestampMs ?? item.createdAt,
@@ -695,6 +690,38 @@ export function useStudioArtifactTasks({
     [setArtifactActionPending],
   )
 
+  const renameArtifactTitle = useCallback(async (taskId: string, title: string) => {
+    const normalized = title.trim()
+    const current = artifactItemsRef.current.find((item) => item.id === taskId)
+    if (!current) {
+      return
+    }
+    if (current.status !== 'completed') {
+      return
+    }
+    const prevTitle = current.title
+    if (prevTitle === normalized) {
+      return
+    }
+
+    setArtifactItems((prev) =>
+      prev.map((item) => (item.id === taskId ? { ...item, title: normalized } : item)),
+    )
+    try {
+      await updateStudioArtifact(taskId, { target: 'title', title: normalized })
+    } catch (error) {
+      setArtifactItems((prev) =>
+        prev.map((item) => (item.id === taskId ? { ...item, title: prevTitle } : item)),
+      )
+      actionErrorToastKeyRef.current += 1
+      setActionErrorToast({
+        key: actionErrorToastKeyRef.current,
+        message: '更新标题失败，请重试',
+      })
+      throw error
+    }
+  }, [])
+
   const isArtifactActionPending = useCallback(
     (itemId: string, action: StudioArtifactItemAction) =>
       Boolean(pendingArtifactActions[buildArtifactActionKey(itemId, action)]),
@@ -714,6 +741,7 @@ export function useStudioArtifactTasks({
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
+    renameArtifactTitle,
     isArtifactActionPending,
   }
 }

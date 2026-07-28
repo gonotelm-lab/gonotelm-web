@@ -287,6 +287,13 @@ export interface GenerateStudioArtifactResponse {
   task_id: string
 }
 
+export type UpdateStudioArtifactTarget = 'title'
+
+export interface UpdateStudioArtifactRequest {
+  target: UpdateStudioArtifactTarget
+  title: string
+}
+
 export interface GetStudioArtifactStatusResponse {
   task_id: string
   status: StudioArtifactTaskStatus

@@ -95,6 +95,7 @@ export function StudioPanel({
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
+    renameArtifactTitle,
     isArtifactActionPending,
   } = useStudioArtifactTasks({ notebookId })
 
@@ -511,6 +512,7 @@ export function StudioPanel({
             onOpenOverlay={openOverlayFromInline}
             onDownload={downloadPreviewContent}
             onRetryLoad={retryPreviewLoad}
+            onRenameTitle={(title) => renameArtifactTitle(previewTarget.id, title)}
           />
         ),
         onClose: closeInlinePreview,
@@ -546,6 +548,11 @@ export function StudioPanel({
         content={previewState.content}
         onClose={closeOverlayPreview}
         onRetryLoad={retryPreviewLoad}
+        onRenameTitle={
+          previewTarget
+            ? (title) => renameArtifactTitle(previewTarget.id, title)
+            : undefined
+        }
       />
 
       <InfoGraphicSettingsDialog

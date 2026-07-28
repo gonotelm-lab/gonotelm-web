@@ -30,6 +30,7 @@ import {
   type StudioArtifactVisualStatus,
 } from '../artifactStatus'
 import { getStudioArtifactPreviewCapability } from '../preview/previewCapabilities'
+import { resolveStudioArtifactDisplayTitle } from '../resolveStudioArtifactKind'
 import type { StudioArtifactItem } from '../types'
 import { workspaceIconSize, workspaceType } from '@/components/notebook-workspace/shared/ui/typeTokens'
 
@@ -120,6 +121,7 @@ export function StudioArtifactListItem({
   const canCancel = item.kind !== 'note' && isRunning
   const canDelete = !isRunning
   const sourceCount = item.sourceIds.length || item.sourceCount
+  const displayTitle = resolveStudioArtifactDisplayTitle(item.title, item.kind)
   const itemMetaLabel = item.kind === 'note'
     ? formatArtifactRelativeTime(item.createdAt)
     : `${sourceCount}个来源，${formatArtifactRelativeTime(item.createdAt)}`
@@ -170,7 +172,7 @@ export function StudioArtifactListItem({
       })}
       role={canPreview ? 'button' : undefined}
       tabIndex={canPreview ? 0 : -1}
-      aria-label={`${item.title}，${statusLabelMap[visualStatus]}`}
+      aria-label={`${displayTitle}，${statusLabelMap[visualStatus]}`}
       onClick={() => {
         if (actionMenuOpen) {
           return
@@ -218,7 +220,7 @@ export function StudioArtifactListItem({
                 sx={{ fontWeight: 600, color: isCancelled ? 'text.disabled' : 'text.primary' }}
                 noWrap
               >
-                {item.title}
+                {displayTitle}
               </Typography>
             </Stack>
             <Typography
@@ -247,7 +249,7 @@ export function StudioArtifactListItem({
                 <IconButton
                   size="small"
                   color="default"
-                  aria-label={`更多操作 ${item.title}`}
+                  aria-label={`更多操作 ${displayTitle}`}
                   onClick={(event) => {
                     event.stopPropagation()
                     setActionMenuAnchorEl(event.currentTarget)

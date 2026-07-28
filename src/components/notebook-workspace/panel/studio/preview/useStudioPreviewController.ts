@@ -11,6 +11,7 @@ import {
   toArtifactVisualStatus,
 } from '../artifactStatus'
 import type { StudioArtifactItem } from '../types'
+import { resolveStudioArtifactDisplayTitle } from '../resolveStudioArtifactKind'
 import { getStudioArtifactPreviewCapability } from './previewCapabilities'
 import { hasStudioArtifactPreviewContent } from './previewContent'
 import { downloadFileFromUrl } from './downloadFile'
@@ -247,8 +248,10 @@ export function useStudioPreviewController({
     if (!previewTarget) {
       return
     }
-    const safeName = previewTarget.title
-      .trim()
+    const safeName = resolveStudioArtifactDisplayTitle(
+      previewTarget.title,
+      previewTarget.kind,
+    )
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_')
       .slice(0, 60) || 'studio-artifact'

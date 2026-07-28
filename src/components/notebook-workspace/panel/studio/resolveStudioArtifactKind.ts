@@ -35,3 +35,11 @@ export const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => 
   if (kind === 'note') return '笔记'
   return '思维导图'
 }
+
+export const resolveStudioArtifactDisplayTitle = (
+  title: string | undefined,
+  kind: StudioArtifactKind,
+) => {
+  const normalized = String(title ?? '').trim()
+  return normalized || resolveStudioArtifactFallbackTitle(kind)
+}

@@ -5,6 +5,7 @@ import type {
   GetStudioArtifactStatusResponse,
   ListNotebookStudioArtifactsResponse,
   StudioArtifactResult,
+  UpdateStudioArtifactRequest,
 } from '../types/api'
 
 export function generateStudioArtifact(
@@ -41,6 +42,16 @@ export function getStudioArtifact(taskId: string) {
 export function deleteStudioArtifact(taskId: string) {
   return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}`, {
     method: 'DELETE',
+  })
+}
+
+export function updateStudioArtifact(
+  taskId: string,
+  payload: UpdateStudioArtifactRequest,
+) {
+  return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   })
 }
 
