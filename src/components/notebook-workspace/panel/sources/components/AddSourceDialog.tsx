@@ -1,15 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
+  Paper,
+  Snackbar,
   Stack,
   Typography,
 } from '@mui/material'
+import { workspaceType } from '../../../shared/ui/typeTokens'
 import { workspaceDialogLayout } from '../../../shared/ui/dialogLayoutTokens'
-import { workspaceRadius } from '../../../shared/ui/layoutTokens'
+import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { AddSourceDialogEditorView } from './AddSourceDialogEditorView'
 import { AddSourceDialogHomeView } from './AddSourceDialogHomeView'
 import {
@@ -41,6 +44,8 @@ export function AddSourceDialog({
   const [urlInput, setUrlInput] = useState('')
   const [textInput, setTextInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [errorToast, setErrorToast] = useState<{ key: number; message: string } | null>(null)
+  const errorToastKeyRef = useRef(0)
 
   const disabled = isBusy || submitting
   const textCharCount = useMemo(() => countTextSourceChars(textInput), [textInput])
@@ -70,6 +75,12 @@ export function AddSourceDialog({
       setView('home')
       setUrlInput('')
       setTextInput('')
+    } catch (err) {
+      errorToastKeyRef.current += 1
+      setErrorToast({
+        key: errorToastKeyRef.current,
+        message: err instanceof Error ? err.message : '添加失败，请稍后重试',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -139,6 +150,43 @@ export function AddSourceDialog({
           />
         )}
       </DialogContent>
+      <Snackbar
+        key={errorToast?.key}
+        open={Boolean(errorToast)}
+        autoHideDuration={2400}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') {
+            return
+          }
+          setErrorToast(null)
+        }}
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            px: workspaceSpace.md,
+            py: workspaceSpace.xxs,
+            borderRadius: workspaceRadius.md,
+            border: '1px solid',
+            borderColor: 'primary.main',
+            bgcolor: 'primary.dark',
+            maxWidth: 420,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              fontSize: workspaceType.xs,
+              lineHeight: 1.35,
+              color: 'background.default',
+            }}
+          >
+            {errorToast?.message ?? ''}
+          </Typography>
+        </Paper>
+      </Snackbar>
     </Dialog>
   )
 }

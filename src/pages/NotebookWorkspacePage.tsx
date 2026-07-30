@@ -1,7 +1,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box, useMediaQuery, useTheme } from '@mui/material'
+import { Box, Paper, Snackbar, Typography, useMediaQuery, useTheme } from '@mui/material'
 import {
   createSource,
   deleteSource,
@@ -35,7 +35,8 @@ import {
   workspaceMobilePanelDefault,
   type WorkspaceMobilePanel,
 } from '../components/notebook-workspace/layout/workspaceMobilePanel'
-import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
+import { workspaceSpace, workspaceRadius } from '../components/notebook-workspace/shared/ui/layoutTokens'
+import { workspaceType } from '../components/notebook-workspace/shared/ui/typeTokens'
 import {
   workspaceMotion,
   workspaceTransitionPresets,
@@ -156,6 +157,8 @@ export function NotebookWorkspacePage() {
   const [citationPreviewRequest, setCitationPreviewRequest] = useState<
     (ChatCitationJumpRequest & { requestId: number }) | null
   >(null)
+  const [sourceErrorToast, setSourceErrorToast] = useState<{ key: number; message: string } | null>(null)
+  const sourceErrorToastKeyRef = useRef(0)
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
@@ -646,6 +649,12 @@ export function NotebookWorkspacePage() {
     } catch (err) {
       if (createdSourceId) {
         setSourceStatus(createdSourceId, 'failed')
+      } else {
+        sourceErrorToastKeyRef.current += 1
+        setSourceErrorToast({
+          key: sourceErrorToastKeyRef.current,
+          message: err instanceof Error ? err.message : '添加文件失败，请稍后重试',
+        })
       }
       console.warn('create file source failed', err)
     }
@@ -1470,6 +1479,43 @@ export function NotebookWorkspacePage() {
           value={mobileActivePanel}
           onChange={setMobileActivePanel}
         />
+        <Snackbar
+          key={sourceErrorToast?.key}
+          open={Boolean(sourceErrorToast)}
+          autoHideDuration={2400}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          onClose={(_, reason) => {
+            if (reason === 'clickaway') {
+              return
+            }
+            setSourceErrorToast(null)
+          }}
+        >
+          <Paper
+            elevation={2}
+            sx={{
+              px: workspaceSpace.md,
+              py: workspaceSpace.xxs,
+              borderRadius: workspaceRadius.md,
+              border: '1px solid',
+              borderColor: 'primary.main',
+              bgcolor: 'primary.dark',
+              maxWidth: 420,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                fontSize: workspaceType.xs,
+                lineHeight: 1.35,
+                color: 'background.default',
+              }}
+            >
+              {sourceErrorToast?.message ?? ''}
+            </Typography>
+          </Paper>
+        </Snackbar>
       </Box>
     </Box>
   )

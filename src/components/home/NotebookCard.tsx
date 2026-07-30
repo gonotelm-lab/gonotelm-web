@@ -98,6 +98,7 @@ export function NotebookCard({
     <Card
       variant="outlined"
       sx={{
+        position: 'relative',
         minHeight: 168,
         borderRadius: workspaceRadius.lg,
         borderColor: 'divider',
@@ -138,15 +139,7 @@ export function NotebookCard({
             >
               📘
             </Box>
-            <IconButton
-              size="small"
-              aria-label="笔记本操作"
-              onClick={handleOpenActionMenu}
-              disabled={!canDelete || deleting}
-              sx={{ mt: -workspaceSpace.xxs, mr: -workspaceSpace.sm }}
-            >
-              <MoreVertIcon sx={{ fontSize: workspaceIconSize.md }} />
-            </IconButton>
+            <Box sx={{ width: 28, height: 28, flexShrink: 0, visibility: canDelete ? 'hidden' : 'visible' }} />
           </Stack>
           <Typography
             variant="subtitle1"
@@ -188,6 +181,21 @@ export function NotebookCard({
           </Stack>
         </Stack>
       </CardActionArea>
+      {canDelete ? (
+        <IconButton
+          size="small"
+          aria-label="笔记本操作"
+          onClick={handleOpenActionMenu}
+          disabled={deleting}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 4,
+          }}
+        >
+          <MoreVertIcon sx={{ fontSize: workspaceIconSize.md }} />
+        </IconButton>
+      ) : null}
       <Menu
         anchorEl={actionAnchorEl}
         open={actionMenuOpen}

@@ -398,7 +398,7 @@ export function SourceListRow({
             sx={actionMenuItemSx}
           >
             <OpenInNewIcon sx={actionMenuIconSx} />
-            <Typography sx={actionMenuTextSx}>打开链接</Typography>
+            <Typography sx={actionMenuTextSx}>打开</Typography>
           </MenuItem>
         ) : null}
         <MenuItem
