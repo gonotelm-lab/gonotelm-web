@@ -1,20 +1,30 @@
-import { memo, useMemo, useRef } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { Box, CircularProgress, Typography } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import { AssistantMarkdown } from './AssistantMarkdown'
+import {
+  normalizeFragmentType,
+  resolveStickyPhaseStatusLabel,
+  shouldShowPhaseStatus,
+  THINKING_PHASE_LABEL,
+  extractCombinedResponseContent,
+} from './chatMessageFragmentsHelpers'
 import { chatMessageContentTokens } from './layoutTokens'
-import { extractLatestPhaseSummary } from './streamEventReducer'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceAnimation } from '../../shared/ui/motionTokens'
-import type { ChatUiFragment, ChatUiFragmentType, ChatUiMessage } from './types'
+import type { ChatUiMessage } from './types'
 import { workspaceType } from '../../shared/ui/typeTokens'
+import type { CitationClickTarget } from '../../shared/markdown/MarkdownRenderer'
 
 interface ChatMessageFragmentsProps {
   message: ChatUiMessage
   isStreaming?: boolean
   isActiveAssistant?: boolean
-  onCitationClick?: (event: MouseEvent<HTMLAnchorElement | HTMLElement>, citationIndex: string) => void
+  onCitationClick?: (
+    event: MouseEvent<HTMLAnchorElement | HTMLElement>,
+    target: CitationClickTarget,
+  ) => void
 }
 
 const phaseStatusTokens = {
@@ -33,67 +43,29 @@ const phaseStatusFlowTokens = {
   backgroundEndPosition: '-160% 0',
 }
 
-export const THINKING_PHASE_LABEL = '思考中...'
-
-const normalizeFragmentType = (type: string): ChatUiFragmentType | null => {
-  const normalized = type.toUpperCase()
-  if (
-    normalized === 'REQUEST' ||
-    normalized === 'THINK' ||
-    normalized === 'PHASE' ||
-    normalized === 'RESPONSE'
-  ) {
-    return normalized
-  }
-  return null
-}
-
-export const extractCombinedResponseContent = (fragments: ChatUiFragment[]) =>
-  fragments
-    .filter((fragment) => normalizeFragmentType(fragment.type) === 'RESPONSE')
-    .map((fragment) => fragment.response?.content ?? '')
-    .join('\n')
-
-export const hasResponseContent = (fragments: ChatUiFragment[]) =>
-  Boolean(extractCombinedResponseContent(fragments).trim())
-
-export const resolvePhaseStatusLabel = (message: ChatUiMessage) =>
-  extractLatestPhaseSummary(message) || THINKING_PHASE_LABEL
-
-export const shouldShowPhaseStatus = ({
-  isActiveAssistant,
-}: {
-  isActiveAssistant?: boolean
-  fragments: ChatUiFragment[]
-}) => Boolean(isActiveAssistant)
-
-export const resolveStickyPhaseStatusLabel = (
-  message: ChatUiMessage,
-  previousLabel: string,
-  enabled: boolean,
-) => {
-  if (!enabled) {
-    return THINKING_PHASE_LABEL
-  }
-
-  const latestPhase = extractLatestPhaseSummary(message)
-  if (latestPhase) {
-    return latestPhase
-  }
-
-  if (previousLabel !== THINKING_PHASE_LABEL) {
-    return previousLabel
-  }
-
-  return THINKING_PHASE_LABEL
-}
-
 export const ChatMessageFragments = memo(function ChatMessageFragments({
   message,
-  isStreaming: _isStreaming,
   isActiveAssistant,
   onCitationClick,
 }: ChatMessageFragmentsProps) {
+  const responseContent = useMemo(
+    () => extractCombinedResponseContent(message.fragments),
+    [message.fragments],
+  )
+  const showPhaseStatus = shouldShowPhaseStatus({
+    isActiveAssistant,
+    fragments: message.fragments,
+  })
+  const [stickyPhaseLabel, setStickyPhaseLabel] = useState(THINKING_PHASE_LABEL)
+  const phaseStatusLabel = resolveStickyPhaseStatusLabel(
+    message,
+    stickyPhaseLabel,
+    showPhaseStatus,
+  )
+  if (phaseStatusLabel !== stickyPhaseLabel) {
+    setStickyPhaseLabel(phaseStatusLabel)
+  }
+
   if (message.role === 'user') {
     const text =
       message.fragments.find((fragment) => normalizeFragmentType(fragment.type) === 'REQUEST')
@@ -112,22 +84,6 @@ export const ChatMessageFragments = memo(function ChatMessageFragments({
       </Typography>
     )
   }
-
-  const responseContent = useMemo(
-    () => extractCombinedResponseContent(message.fragments),
-    [message.fragments],
-  )
-  const showPhaseStatus = shouldShowPhaseStatus({
-    isActiveAssistant,
-    fragments: message.fragments,
-  })
-  const stickyPhaseLabelRef = useRef(THINKING_PHASE_LABEL)
-  const phaseStatusLabel = resolveStickyPhaseStatusLabel(
-    message,
-    stickyPhaseLabelRef.current,
-    showPhaseStatus,
-  )
-  stickyPhaseLabelRef.current = phaseStatusLabel
 
   return (
     <Box>

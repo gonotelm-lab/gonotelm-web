@@ -61,21 +61,18 @@ export function SourceInlinePreview({
   const scrollRootRef = useRef<HTMLDivElement | null>(null)
   const [frozenWidthPx, setFrozenWidthPx] = useState<number | null>(null)
 
+  // 不处于退化调整状态时，派生重置冻结宽度，避免 effect 中同步 setState
+  if (!degradedByResizing && frozenWidthPx !== null) {
+    setFrozenWidthPx(null)
+  }
+
   useLayoutEffect(() => {
-    if (!degradedByResizing) {
-      if (frozenWidthPx !== null) {
-        setFrozenWidthPx(null)
+    if (degradedByResizing && frozenWidthPx === null) {
+      const root = scrollRootRef.current
+      if (root) {
+        setFrozenWidthPx(root.clientWidth)
       }
-      return
     }
-    if (frozenWidthPx !== null) {
-      return
-    }
-    const root = scrollRootRef.current
-    if (!root) {
-      return
-    }
-    setFrozenWidthPx(root.clientWidth)
   }, [degradedByResizing, frozenWidthPx])
 
   return (

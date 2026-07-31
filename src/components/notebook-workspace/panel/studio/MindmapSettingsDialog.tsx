@@ -12,7 +12,6 @@ import {
 } from '@mui/material'
 import type { GenerateMindmapParameters } from '@/types/api'
 import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
-import { defaultMindmapParameters } from './mindmapSettings'
 
 interface MindmapSettingsDialogProps {
   open: boolean
@@ -47,7 +46,7 @@ export const MindmapSettingsDialog = memo(function MindmapSettingsDialog({
               multiline
               minRows={3}
               maxRows={3}
-              inputProps={{ maxLength: 300 }}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
               placeholder="例如：请侧重'实施路径'和'风险'两个分支。"
               value={draftParams.tip || ''}
               onChange={(event) =>

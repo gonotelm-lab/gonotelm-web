@@ -46,7 +46,7 @@ export const DataTableSettingsDialog = memo(function DataTableSettingsDialog({
               multiline
               minRows={3}
               maxRows={3}
-              inputProps={{ maxLength: 300 }}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
               placeholder="例如：按概念对比定义、适用场景与注意事项。"
               value={draftParams.tip || ''}
               onChange={(event) =>

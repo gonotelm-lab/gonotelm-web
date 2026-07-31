@@ -88,7 +88,7 @@ const toCitationMarkdownLink = (citationIndex: string, citations?: string[]) => 
   return `[\\[${citationIndex}\\]](${citationHref})`
 }
 
-function transformCitationMarkers(content: string, citations?: string[]): string {
+function transformCitationMarkers(content: string): string {
   if (!content) {
     return content
   }
@@ -302,7 +302,7 @@ export function MarkdownRenderer({
                   aria-label={`打开引用 ${citationIndex}`}
                   onClick={(event) => {
                     event.preventDefault()
-                    onCitationClick(event, citationIndex)
+                    onCitationClick(event, { citationIndex })
                   }}
                 >
                   {citationIndex}
@@ -321,7 +321,7 @@ export function MarkdownRenderer({
                   aria-label={props['aria-label'] ?? fallbackLabel}
                   onClick={(event) => {
                     event.preventDefault()
-                    onCitationClick(event, citationHref.citationIndex)
+                    onCitationClick(event, { citationIndex: citationHref.citationIndex })
                   }}
                 >
                   {children ?? href ?? '引用'}

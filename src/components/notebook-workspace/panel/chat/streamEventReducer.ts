@@ -43,17 +43,7 @@ const cloneFragment = (fragment: ChatUiFragment): ChatUiFragment => ({
   request: fragment.request ? { ...fragment.request } : undefined,
   think: fragment.think ? { ...fragment.think } : undefined,
   phase: fragment.phase ? { ...fragment.phase } : undefined,
-  response: fragment.response
-    ? {
-        status: fragment.response.status,
-        content: fragment.response.content?.text
-          ? {
-              type: 'text' as const,
-              text: { content: fragment.response.content.text.content ?? '' },
-            }
-          : fragment.response.content,
-      }
-    : undefined,
+  response: fragment.response ? { ...fragment.response } : undefined,
 })
 
 export function cloneChatUiMessage(msg: ChatUiMessage): ChatUiMessage {

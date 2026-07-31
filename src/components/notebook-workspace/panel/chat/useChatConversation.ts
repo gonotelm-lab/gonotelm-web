@@ -343,7 +343,7 @@ export function useChatConversation({
       let reconnectCount = 0
       let finished = false
 
-      let assistantMsg = createEmptyAssistantMessage(assistantMessageId)
+      const assistantMsg = createEmptyAssistantMessage(assistantMessageId)
       const assistantClientKey = assistantMessageId
       let currentAssistantMessageId = assistantMessageId
       let liveMessageFlushRafId: number | null = null
@@ -468,7 +468,6 @@ export function useChatConversation({
 
           flushLiveMessageImmediately()
 
-          finished = true
           shouldStopAfterStream = abortRequestedRef.current || finished
           if (!shouldStopAfterStream) {
             if (reconnectCount >= streamReconnectMaxRetries) {

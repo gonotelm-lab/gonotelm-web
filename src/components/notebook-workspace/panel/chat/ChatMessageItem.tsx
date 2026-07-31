@@ -31,6 +31,7 @@ import {
 import { extractResponseText } from './streamEventReducer'
 import { chatMessageContentTokens } from './layoutTokens'
 import { MarkdownRenderer } from '../../shared/markdown/MarkdownRenderer'
+import type { CitationClickTarget } from '../../shared/markdown/MarkdownRenderer'
 import {
   workspaceRadius,
   workspaceRadiusPx,
@@ -207,7 +208,8 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   }, [queryClient, selectedSourceIds])
 
   const handleCitationClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement | HTMLElement>, citationIndex: string) => {
+    (event: MouseEvent<HTMLAnchorElement | HTMLElement>, target: CitationClickTarget) => {
+      const citationIndex = target.citationIndex ?? ''
       const index = Number.parseInt(citationIndex, 10)
       const citation = message.citations[index - 1]
       setCitationAnchorPosition({ left: event.clientX + citationCardOffsetPx, top: event.clientY })

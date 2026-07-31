@@ -1,4 +1,4 @@
-import type { Theme } from '@mui/material/styles'
+import type { CSSObject, Theme } from '@mui/material/styles'
 import { describe, expect, it } from 'vitest'
 import { subtleScrollbarSx } from './scrollbar'
 import { workspaceColorPalette } from './workspaceColorPalette'
@@ -9,13 +9,13 @@ describe('subtleScrollbarSx', () => {
   } as Theme
 
   it('styles the host element by default', () => {
-    const sx = subtleScrollbarSx(theme)
+    const sx = subtleScrollbarSx(theme) as CSSObject
     expect(sx.scrollbarWidth).toBe('thin')
     expect(sx['&::-webkit-scrollbar']).toEqual({ width: 5, height: 5 })
   })
 
   it('can target a nested scrollable like textarea', () => {
-    const sx = subtleScrollbarSx(theme, { within: '& textarea' })
+    const sx = subtleScrollbarSx(theme, { within: '& textarea' }) as CSSObject
     expect(sx['& textarea']).toMatchObject({
       scrollbarWidth: 'thin',
       scrollbarColor: 'transparent transparent',

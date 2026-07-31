@@ -137,7 +137,6 @@ export function ChatPanel({
 type ChatPanelContentProps = Omit<ChatPanelProps, never>
 
 function ChatPanelContent({
-  notebookId,
   chatId,
   notebookName,
   notebookDescription,

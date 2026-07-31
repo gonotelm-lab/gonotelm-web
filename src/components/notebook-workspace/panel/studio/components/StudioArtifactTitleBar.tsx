@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { InputBase, Typography } from '@mui/material'
 import type { StudioArtifactKind } from '@/types/api'
 import {
@@ -27,10 +27,12 @@ export function StudioArtifactTitleBar({
   const fallbackTitle = resolveStudioArtifactFallbackTitle(kind)
   const [draft, setDraft] = useState(title)
   const [committing, setCommitting] = useState(false)
+  const [prevTitle, setPrevTitle] = useState(title)
 
-  useEffect(() => {
+  if (title !== prevTitle) {
+    setPrevTitle(title)
     setDraft(title)
-  }, [title])
+  }
 
   if (!editable) {
     return (

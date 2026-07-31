@@ -14,16 +14,14 @@ vi.mock('../components/SourceParsedTreeView', () => ({
 }))
 
 const renderContent = (overrides?: Partial<{
-  viewType: 'content' | 'tree'
   markdown: string
   focusRange: SourceHighlightRange | null
 }>) => renderToStaticMarkup(
   <div>
     {renderSourcePreviewContent({
-      viewType: overrides?.viewType ?? 'content',
+      viewType: 'content',
       markdown: overrides?.markdown ?? 'alpha\nbeta\ngamma',
       focusRange: overrides?.focusRange ?? null,
-      tree: null,
     })}
   </div>,
 )

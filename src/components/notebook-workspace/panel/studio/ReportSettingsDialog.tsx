@@ -116,7 +116,7 @@ export const ReportSettingsDialog = memo(function ReportSettingsDialog({
               multiline
               minRows={2}
               maxRows={2}
-              inputProps={{ maxLength: 300 }}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
               placeholder="可补充强调重点、受众或表达要求。"
               value={draftParams.tip || ''}
               onChange={(event) =>

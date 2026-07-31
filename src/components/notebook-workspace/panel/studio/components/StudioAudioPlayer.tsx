@@ -41,7 +41,7 @@ function volumeIcon(value: number, muted: boolean) {
 
 export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: StudioAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const volumeAnchorRef = useRef<HTMLButtonElement | null>(null)
+  const [volumeAnchorEl, setVolumeAnchorEl] = useState<HTMLButtonElement | null>(null)
   const [playing, setPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
@@ -51,15 +51,16 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
   const [volume, setVolume] = useState(1)
   const [loaded, setLoaded] = useState(false)
   const [loadError, setLoadError] = useState(false)
-  const [volumeOpen, setVolumeOpen] = useState(false)
+  const [prevAudioUrl, setPrevAudioUrl] = useState(audioUrl)
 
-  useEffect(() => {
+  if (audioUrl !== prevAudioUrl) {
+    setPrevAudioUrl(audioUrl)
     setLoadError(false)
     setLoaded(false)
     setDuration(0)
     setCurrentTime(0)
     setPlaying(false)
-  }, [audioUrl])
+  }
 
   useEffect(() => {
     const audio = audioRef.current
@@ -142,13 +143,13 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
   const handleVolumeButtonClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation()
-      setVolumeOpen((prev) => !prev)
+      setVolumeAnchorEl((prev) => (prev ? null : event.currentTarget))
     },
     [],
   )
 
   const handleVolumeClose = useCallback(() => {
-    setVolumeOpen(false)
+    setVolumeAnchorEl(null)
   }, [])
 
   const handleVolumeChange = useCallback((_event: Event, value: number | number[]) => {
@@ -290,7 +291,6 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
 
           <Tooltip title={muted || volume === 0 ? '取消静音' : '音量'}>
             <IconButton
-              ref={volumeAnchorRef}
               size="small"
               onClick={handleVolumeButtonClick}
               sx={{ color: 'text.secondary', ml: workspaceSpace.xxs }}
@@ -302,8 +302,8 @@ export function StudioAudioPlayer({ audioUrl, title, onDownload, onRetry }: Stud
       </Stack>
 
       <Popover
-        open={volumeOpen}
-        anchorEl={volumeAnchorRef.current}
+        open={Boolean(volumeAnchorEl)}
+        anchorEl={volumeAnchorEl}
         onClose={handleVolumeClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}

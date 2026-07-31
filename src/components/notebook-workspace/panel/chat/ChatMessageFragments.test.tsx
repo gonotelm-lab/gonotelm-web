@@ -2,12 +2,12 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  ChatMessageFragments,
   resolvePhaseStatusLabel,
   resolveStickyPhaseStatusLabel,
   shouldShowPhaseStatus,
   THINKING_PHASE_LABEL,
-} from './ChatMessageFragments'
+} from './chatMessageFragmentsHelpers'
+import { ChatMessageFragments } from './ChatMessageFragments'
 import type { ChatUiMessage } from './types'
 
 vi.mock('./AssistantMarkdown', () => ({

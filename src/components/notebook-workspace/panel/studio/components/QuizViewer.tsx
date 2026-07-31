@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import NavigateBeforeRoundedIcon from '@mui/icons-material/NavigateBeforeRounded'
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded'
 import {
@@ -72,12 +72,14 @@ export function QuizViewer({ content }: QuizViewerProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<number, number[]>>({})
   const [phase, setPhase] = useState<QuizPhase>('answering')
+  const [prevContent, setPrevContent] = useState(content)
 
-  useEffect(() => {
+  if (content !== prevContent) {
+    setPrevContent(content)
     setActiveIndex(0)
     setAnswers({})
     setPhase('answering')
-  }, [content])
+  }
 
   if (!parsed) {
     return (

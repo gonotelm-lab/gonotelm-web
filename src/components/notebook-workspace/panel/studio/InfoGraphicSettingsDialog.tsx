@@ -179,7 +179,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
               multiline
               minRows={2}
               maxRows={2}
-              inputProps={{ maxLength: 300 }}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
               placeholder="引导风格、配色或重点：「使用蓝色主题并突出 3 个关键数据。」"
               value={draftParams.extra_prompt || ''}
               onChange={(event) =>

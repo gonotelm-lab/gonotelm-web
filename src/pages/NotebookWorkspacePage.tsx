@@ -890,8 +890,8 @@ export function NotebookWorkspacePage() {
 
     let nextSourcesCollapsed = isSourcesPanelCollapsed
     let nextInsightsCollapsed = isInsightsPanelCollapsed
-    let nextSourcesWidth = Math.round(sourcesPanelWidthPx)
-    let nextInsightsWidth = Math.round(insightsPanelWidthPx)
+    const nextSourcesWidth = Math.round(sourcesPanelWidthPx)
+    const nextInsightsWidth = Math.round(insightsPanelWidthPx)
 
     for (let i = 0; i < 2; i += 1) {
       if (!nextSourcesCollapsed) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
 import NavigateBeforeRoundedIcon from '@mui/icons-material/NavigateBeforeRounded'
@@ -83,20 +83,19 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
   const [index, setIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [hintAnchor, setHintAnchor] = useState<HTMLElement | null>(null)
+  const [prevContent, setPrevContent] = useState(content)
   const isOverlay = mode === 'overlay'
 
-  useEffect(() => {
+  if (content !== prevContent) {
+    setPrevContent(content)
     setIndex(0)
     setFlipped(false)
     setHintAnchor(null)
-  }, [content])
-
-  useEffect(() => {
-    setHintAnchor(null)
-  }, [index, flipped])
+  }
 
   const toggleFlip = () => {
     setFlipped((prev) => !prev)
+    setHintAnchor(null)
   }
 
   if (!parsed) {
