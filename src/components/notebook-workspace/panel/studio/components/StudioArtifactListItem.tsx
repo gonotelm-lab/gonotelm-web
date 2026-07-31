@@ -8,6 +8,7 @@ import ImageRoundedIcon from '@mui/icons-material/ImageRounded'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import StickyNote2RoundedIcon from '@mui/icons-material/StickyNote2Rounded'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
+import SourceRoundedIcon from '@mui/icons-material/SourceRounded'
 import QuizRoundedIcon from '@mui/icons-material/QuizRounded'
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded'
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded'
@@ -40,10 +41,12 @@ interface StudioArtifactListItemProps {
   retryPending: boolean
   cancelPending: boolean
   deletePending: boolean
+  convertPending: boolean
   onPreview: (item: StudioArtifactItem) => void
   onRetry: (item: StudioArtifactItem) => void
   onCancel: (item: StudioArtifactItem) => void
   onDelete: (item: StudioArtifactItem) => void
+  onConvertToSource: (item: StudioArtifactItem) => void
 }
 
 const statusLabelMap: Record<StudioArtifactVisualStatus, string> = {
@@ -106,10 +109,12 @@ export function StudioArtifactListItem({
   retryPending,
   cancelPending,
   deletePending,
+  convertPending,
   onPreview,
   onRetry,
   onCancel,
   onDelete,
+  onConvertToSource,
 }: StudioArtifactListItemProps) {
   const visualStatus = toArtifactVisualStatus(item.status)
   const isCancelled = visualStatus === 'cancelled'
@@ -119,6 +124,7 @@ export function StudioArtifactListItem({
     isStudioTaskCompleted(item.status) && (previewCapability.inline || previewCapability.overlay)
   const canRetry = item.kind !== 'note' && isStudioTaskRetryable(item.status)
   const canCancel = item.kind !== 'note' && isRunning
+  const canConvert = item.kind === 'note' && isStudioTaskCompleted(item.status)
   const canDelete = !isRunning
   const sourceCount = item.sourceIds.length || item.sourceCount
   const displayTitle = resolveStudioArtifactDisplayTitle(item.title, item.kind)
@@ -296,6 +302,22 @@ export function StudioArtifactListItem({
                   <ReplayRoundedIcon sx={actionMenuIconSx} />
                   <Typography sx={actionMenuTextSx}>
                     {retryPending ? '重试中...' : '重试'}
+                  </Typography>
+                </MenuItem>
+              ) : null}
+              {item.kind === 'note' && canConvert ? (
+                <MenuItem
+                  disabled={convertPending}
+                  sx={actionMenuItemSx}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setActionMenuAnchorEl(null)
+                    onConvertToSource(item)
+                  }}
+                >
+                  <SourceRoundedIcon sx={actionMenuIconSx} />
+                  <Typography sx={actionMenuTextSx}>
+                    {convertPending ? '转换中...' : '转换成来源'}
                   </Typography>
                 </MenuItem>
               ) : null}

@@ -1,5 +1,6 @@
 import { ApiError, request } from '../lib/http'
 import type {
+  ConvertNoteToSourceResponse,
   GenerateStudioArtifactRequest,
   GenerateStudioArtifactResponse,
   GetStudioArtifactStatusResponse,
@@ -65,6 +66,15 @@ export function cancelStudioArtifactTask(taskId: string) {
   return request<null>(`/api/v1/artifacts/${encodeURIComponent(taskId)}/cancel`, {
     method: 'POST',
   })
+}
+
+export function convertNoteToSource(taskId: string) {
+  return request<ConvertNoteToSourceResponse>(
+    `/api/v1/artifacts/${encodeURIComponent(taskId)}/convert`,
+    {
+      method: 'POST',
+    },
+  )
 }
 
 interface ListNotebookStudioArtifactsParams {

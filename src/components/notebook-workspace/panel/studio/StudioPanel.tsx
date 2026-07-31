@@ -56,6 +56,7 @@ interface StudioPanelProps {
   selectedSourceIds: string[]
   readySourceIds: string[]
   onCollapse: () => void
+  onSourceCreated?: () => void
   onRegisterSaveMessageAsNote?: (
     handler: ((params: SaveMessageAsNoteParams) => Promise<void>) | null,
   ) => void
@@ -72,6 +73,7 @@ export function StudioPanel({
   selectedSourceIds,
   readySourceIds,
   onCollapse,
+  onSourceCreated,
   onRegisterSaveMessageAsNote,
 }: StudioPanelProps) {
   const readySourceIdSet = useMemo(() => new Set(readySourceIds), [readySourceIds])
@@ -95,9 +97,10 @@ export function StudioPanel({
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
+    convertNoteToSource,
     renameArtifactTitle,
     isArtifactActionPending,
-  } = useStudioArtifactTasks({ notebookId })
+  } = useStudioArtifactTasks({ notebookId, onSourceCreated })
 
   useEffect(() => {
     if (!onRegisterSaveMessageAsNote) {
@@ -472,6 +475,7 @@ export function StudioPanel({
                 retryPending={isArtifactActionPending(item.id, 'retry')}
                 cancelPending={isArtifactActionPending(item.id, 'cancel')}
                 deletePending={isArtifactActionPending(item.id, 'delete')}
+                convertPending={isArtifactActionPending(item.id, 'convert')}
                 onRetry={(target) => {
                   void retryArtifact(target)
                 }}
@@ -480,6 +484,9 @@ export function StudioPanel({
                 }}
                 onDelete={(target) => {
                   void deleteArtifact(target)
+                }}
+                onConvertToSource={(target) => {
+                  void convertNoteToSource(target)
                 }}
               />
             ))}

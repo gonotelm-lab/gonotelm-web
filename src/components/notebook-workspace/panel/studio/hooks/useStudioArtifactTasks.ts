@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   cancelStudioArtifactTask,
+  convertNoteToSource as convertNoteToSourceApi,
   deleteStudioArtifact,
   generateStudioArtifact,
   getStudioArtifact,
@@ -50,7 +51,7 @@ const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
 const studioArtifactListPageSize = 50
 const studioTimestampSecondUpperBound = 10_000_000_000
-type StudioArtifactItemAction = 'retry' | 'cancel' | 'delete'
+type StudioArtifactItemAction = 'retry' | 'cancel' | 'delete' | 'convert'
 
 const buildArtifactActionKey = (
   itemId: string,
@@ -175,6 +176,7 @@ const toHistoryArtifactItem = (
 
 interface UseStudioArtifactTasksParams {
   notebookId: string
+  onSourceCreated?: () => void
 }
 
 interface SubmitStudioArtifactTaskParams {
@@ -193,6 +195,7 @@ interface SubmitStudioArtifactTaskParams {
 
 export function useStudioArtifactTasks({
   notebookId,
+  onSourceCreated,
 }: UseStudioArtifactTasksParams) {
   const [artifactItems, setArtifactItems] = useState<StudioArtifactItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -212,10 +215,15 @@ export function useStudioArtifactTasks({
   const artifactItemsRef = useRef(artifactItems)
   const historyLoadSeqRef = useRef(0)
   const actionErrorToastKeyRef = useRef(0)
+  const onSourceCreatedRef = useRef(onSourceCreated)
 
   useEffect(() => {
     activeNotebookIdRef.current = notebookId
   }, [notebookId])
+
+  useEffect(() => {
+    onSourceCreatedRef.current = onSourceCreated
+  }, [onSourceCreated])
 
   useEffect(() => {
     artifactItemsRef.current = artifactItems
@@ -690,6 +698,28 @@ export function useStudioArtifactTasks({
     [setArtifactActionPending],
   )
 
+  const convertNoteToSource = useCallback(
+    async (item: StudioArtifactItem) => {
+      if (!item.taskId || !isStudioTaskCompleted(item.status)) {
+        return
+      }
+      setArtifactActionPending(item.id, 'convert', true)
+      try {
+        await convertNoteToSourceApi(item.taskId)
+        onSourceCreatedRef.current?.()
+      } catch (error) {
+        actionErrorToastKeyRef.current += 1
+        setActionErrorToast({
+          key: actionErrorToastKeyRef.current,
+          message: buildStudioErrorMessage(error, '转换为来源失败，请稍后重试。'),
+        })
+      } finally {
+        setArtifactActionPending(item.id, 'convert', false)
+      }
+    },
+    [setArtifactActionPending],
+  )
+
   const renameArtifactTitle = useCallback(async (taskId: string, title: string) => {
     const normalized = title.trim()
     const current = artifactItemsRef.current.find((item) => item.id === taskId)
@@ -741,6 +771,7 @@ export function useStudioArtifactTasks({
     retryArtifact,
     cancelArtifact,
     deleteArtifact,
+    convertNoteToSource,
     renameArtifactTitle,
     isArtifactActionPending,
   }

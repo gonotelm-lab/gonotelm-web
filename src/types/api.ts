@@ -330,6 +330,10 @@ export interface ListNotebookStudioArtifactsResponse {
   has_more: boolean
 }
 
+export interface ConvertNoteToSourceResponse {
+  source_id: string
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export type FragmentType = 'REQUEST' | 'THINK' | 'PHASE' | 'RESPONSE'

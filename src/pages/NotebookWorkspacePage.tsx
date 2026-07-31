@@ -359,6 +359,15 @@ export function NotebookWorkspacePage() {
     })
   }, [id, queryClient])
 
+  const handleSourceCreated = useCallback(() => {
+    if (!id) return
+    // note 转 source 后重新拉取 sources 列表
+    void queryClient.invalidateQueries({
+      queryKey: ['notebook', id],
+      exact: true,
+    })
+  }, [id, queryClient])
+
   useEffect(() => {
     const container = workspacePanelsRef.current
     if (!container) return
@@ -1470,6 +1479,7 @@ export function NotebookWorkspacePage() {
               selectedSourceIds={selectedSourceIdList}
               readySourceIds={readySourceIdList}
               onCollapse={handleCollapseInsightsPanel}
+              onSourceCreated={handleSourceCreated}
               onRegisterSaveMessageAsNote={handleRegisterSaveMessageAsNote}
             />
           </Box>
