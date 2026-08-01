@@ -124,19 +124,20 @@ export function ChatInputBox({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: workspaceSpace.md,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: leftControlRowGap }}>
-          {leftControlsExtra}
-        </Box>
+        {leftControlsExtra ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: leftControlRowGap }}>
+            {leftControlsExtra}
+          </Box>
+        ) : null}
         <ChatSuggestions
           suggestions={suggestions}
           disabled={suggestionsDisabled}
           onSelect={onSuggestionSelect}
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: rightControlRowGap }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: rightControlRowGap, ml: 'auto' }}>
           {rightControlsExtra}
           <IconButton
             color="primary"
