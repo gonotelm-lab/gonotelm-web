@@ -26,6 +26,9 @@ export const shouldFlushStreamEventImmediately = (event: StreamTaskEvent) =>
 /** 回答正文增量需要按帧刷新，才能呈现流式输出效果。 */
 export const shouldFlushStreamEventOnNextFrame = (event: StreamTaskEvent) =>
   event.op === 'APPEND' && event.p === 'm.f.rsp.v'
+/** 流式会话正常完成（收到终止事件且未被用户中止）时才应触发后续动作 */
+export const shouldFireStreamCompleted = (finished: boolean, aborted: boolean): boolean =>
+  finished && !aborted
 export const copyFeedbackVisibleMs = 1500
 
 export type StreamDisplayPhaseType = 'phase' | null

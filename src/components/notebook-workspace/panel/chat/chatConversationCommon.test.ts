@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isStreamTerminalEvent,
+  shouldFireStreamCompleted,
   shouldFlushStreamEventImmediately,
   shouldFlushStreamEventOnNextFrame,
 } from './chatConversationCommon'
@@ -62,5 +63,14 @@ describe('stream flush scheduling', () => {
     }
     expect(shouldFlushStreamEventImmediately(event)).toBe(false)
     expect(shouldFlushStreamEventOnNextFrame(event)).toBe(true)
+  })
+})
+
+describe('shouldFireStreamCompleted', () => {
+  it('fires only when the stream finished without user abort', () => {
+    expect(shouldFireStreamCompleted(true, false)).toBe(true)
+    expect(shouldFireStreamCompleted(true, true)).toBe(false)
+    expect(shouldFireStreamCompleted(false, false)).toBe(false)
+    expect(shouldFireStreamCompleted(false, true)).toBe(false)
   })
 })

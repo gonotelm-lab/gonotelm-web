@@ -20,6 +20,7 @@ import {
   chatMessagesPageLimit,
   getErrorMessage,
   isStreamTerminalEvent,
+  shouldFireStreamCompleted,
   shouldFlushStreamEventImmediately,
   shouldFlushStreamEventOnNextFrame,
   sleep,
@@ -49,6 +50,7 @@ interface UseChatConversationParams {
   chatStyle: ChatStyleOption
   answerLength: ChatAnswerLengthOption
   enableThinking: boolean
+  onStreamCompleted?: () => void
 }
 
 interface UseChatConversationResult {
@@ -79,6 +81,7 @@ interface UseChatConversationResult {
   onAbortStream: () => void
   onClearCurrentContext: () => void
   smoothScrollToBottom: () => void
+  sendPrompt: (prompt: string) => void
 }
 
 interface RefreshHistoryAfterStreamOptions {
@@ -123,6 +126,7 @@ export function useChatConversation({
   chatStyle,
   answerLength,
   enableThinking,
+  onStreamCompleted,
 }: UseChatConversationParams): UseChatConversationResult {
   const [composerValue, setComposerValue] = useState('')
   const [liveMessages, setLiveMessages] = useState<ChatUiMessage[]>([])
@@ -147,6 +151,10 @@ export function useChatConversation({
   const shouldAutoScrollToBottomRef = useRef(true)
   // Bump this token whenever a stream lifecycle resets, so stale async handlers can self-cancel.
   const streamRunTokenRef = useRef(0)
+  const onStreamCompletedRef = useRef(onStreamCompleted)
+  useEffect(() => {
+    onStreamCompletedRef.current = onStreamCompleted
+  }, [onStreamCompleted])
   const { copiedUserMessageId, onCopyUserMessage, clearCopyFeedback } = useCopyFeedback({
     setErrorText,
   })
@@ -506,6 +514,7 @@ export function useChatConversation({
         return
       }
 
+      const streamWasAborted = abortRequestedRef.current
       setActiveTaskId(null)
       setActiveAssistantMessageId(null)
       clearStreamStatusSchedule()
@@ -516,6 +525,9 @@ export function useChatConversation({
       setAbortRequestedFlag(false)
       const preserveAssistantDraftOnAbort = abortRequestedRef.current
       await refreshHistoryAfterStream({ preserveAssistantDraftOnAbort })
+      if (shouldFireStreamCompleted(finished, streamWasAborted)) {
+        onStreamCompletedRef.current?.()
+      }
     },
     [
       applyStreamStatusImmediately,
@@ -534,11 +546,11 @@ export function useChatConversation({
    * Sends a user prompt optimistically, creates temporary local bubbles,
    * then hands over to stream runner for incremental assistant updates.
    */
-  const handleSendMessage = useCallback(async () => {
+  const handleSendMessage = useCallback(async (promptOverride?: string) => {
     if (!chatId) return
     if (isStreaming || createMessageMutation.isPending) return
 
-    const prompt = composerValue.trimEnd()
+    const prompt = (promptOverride ?? composerValue).trimEnd()
     if (!prompt.trim()) return
 
     setErrorText('')
@@ -688,6 +700,10 @@ export function useChatConversation({
     void handleSendMessage()
   }, [handleSendMessage])
 
+  const sendPrompt = useCallback((prompt: string) => {
+    void handleSendMessage(prompt)
+  }, [handleSendMessage])
+
   const onComposerKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key !== 'Enter' || event.shiftKey) {
@@ -765,5 +781,6 @@ export function useChatConversation({
     onAbortStream,
     onClearCurrentContext,
     smoothScrollToBottom,
+    sendPrompt,
   }
 }
