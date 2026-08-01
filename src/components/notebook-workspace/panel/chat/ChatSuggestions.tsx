@@ -32,7 +32,7 @@ export function ChatSuggestions({
         onClick={() => onSelect?.(question)}
         data-suggestion={question}
         sx={{
-          flex: '1 1 0',
+          flex: '0 1 auto',
           minWidth: 0,
           px: workspaceSpace.sm,
           py: workspaceSpace.xxs,
