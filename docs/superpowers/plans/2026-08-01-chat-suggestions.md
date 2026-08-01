@@ -919,9 +919,9 @@ vi.mock('./ChatComposer', () => ({
         readySourceIds={[]}
 ```
 
-5. 用例末尾断言加：
+5. 用例末尾断言加（注意：`renderToStaticMarkup` 会 HTML 转义属性值，`"` → `&quot;`，故断言不含引号的文本）：
 ```ts
-    expect(html).toContain('"追问建议一"')
+    expect(html).toContain('追问建议一')
 ```
 
 - [ ] **Step 2: 运行测试确认失败**
