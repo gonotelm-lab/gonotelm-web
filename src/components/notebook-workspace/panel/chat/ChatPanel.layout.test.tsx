@@ -31,11 +31,24 @@ vi.mock('./useChatConversation', () => ({
     onAbortStream: () => undefined,
     onClearCurrentContext: () => undefined,
     smoothScrollToBottom: () => undefined,
+    sendPrompt: () => undefined,
   }),
 }))
 
 vi.mock('./ChatComposer', () => ({
-  ChatComposer: () => <div data-testid="chat-composer" />,
+  ChatComposer: ({ suggestions }: { suggestions?: string[] }) => (
+    <div
+      data-testid="chat-composer"
+      data-suggestions={JSON.stringify(suggestions ?? [])}
+    />
+  ),
+}))
+
+vi.mock('./useChatSuggestions', () => ({
+  useChatSuggestions: () => ({
+    suggestions: ['追问建议一', '追问建议二'],
+    fetchFollowup: () => undefined,
+  }),
 }))
 
 vi.mock('./ChatMessagesList', () => ({
@@ -83,6 +96,7 @@ describe('ChatPanel layout', () => {
         notebookDescription="Interoperability proposal"
         notebookSourceCount={9}
         selectedSourceIds={[]}
+        readySourceIds={[]}
         sourcesPanelCollapsed={false}
         insightsPanelCollapsed={false}
         onExpandSourcesPanel={() => undefined}
@@ -97,5 +111,6 @@ describe('ChatPanel layout', () => {
     expect(messagesListIndex).toBeGreaterThan(-1)
     expect(infoHeaderIndex).toBeGreaterThan(messagesListIndex)
     expect(html).toContain('DMA Notebook|Interoperability proposal|9')
+    expect(html).toContain('追问建议一')
   })
 })

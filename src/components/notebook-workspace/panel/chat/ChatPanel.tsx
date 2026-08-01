@@ -15,6 +15,7 @@ import {
 } from './chatSettings'
 import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './useChatConversation'
+import { useChatSuggestions } from './useChatSuggestions'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { chatPanelLayoutTokens } from './layoutTokens'
 import { workspaceType } from '../../shared/ui/typeTokens'
@@ -119,6 +120,7 @@ interface ChatPanelProps {
   notebookDescription: string
   notebookSourceCount: number
   selectedSourceIds: string[]
+  readySourceIds: string[]
   sourcesPanelCollapsed: boolean
   insightsPanelCollapsed: boolean
   onExpandSourcesPanel: () => void
@@ -142,6 +144,7 @@ function ChatPanelContent({
   notebookDescription,
   notebookSourceCount,
   selectedSourceIds,
+  readySourceIds,
   sourcesPanelCollapsed,
   insightsPanelCollapsed,
   onExpandSourcesPanel,
@@ -164,6 +167,12 @@ function ChatPanelContent({
   const errorToastKeyRef = useRef(0)
   const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const wasStreamingRef = useRef(false)
+
+  const { suggestions, fetchFollowup } = useChatSuggestions({
+    chatId,
+    readySourceIds,
+    selectedSourceIds,
+  })
 
   const {
     composerValue,
@@ -189,12 +198,14 @@ function ChatPanelContent({
     onAbortStream,
     onClearCurrentContext,
     smoothScrollToBottom,
+    sendPrompt,
   } = useChatConversation({
     chatId,
     selectedSourceIds,
     chatStyle,
     answerLength,
     enableThinking,
+    onStreamCompleted: fetchFollowup,
   })
 
   const handleOpenSettingsDialog = () => {
@@ -354,6 +365,9 @@ function ChatPanelContent({
           onKeyDown={onComposerKeyDown}
           onSend={onSendMessage}
           onAbort={onAbortStream}
+          suggestions={suggestions}
+          suggestionsDisabled={isStreaming}
+          onSuggestionSelect={sendPrompt}
         />
       </Box>
 

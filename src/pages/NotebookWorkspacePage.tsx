@@ -1412,6 +1412,7 @@ export function NotebookWorkspacePage() {
               notebookDescription={notebookMeta.desc}
               notebookSourceCount={notebookMeta.sourceCount}
               selectedSourceIds={selectedSourceIdList}
+              readySourceIds={readySourceIdList}
               sourcesPanelCollapsed={isSourcesPanelCollapsed}
               insightsPanelCollapsed={isInsightsPanelCollapsed}
               onExpandSourcesPanel={handleExpandSourcesPanel}
