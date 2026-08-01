@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/http'
-import { createChatMessage, listChatMessages } from './chat'
+import { createChatMessage, getChatSuggestions, listChatMessages } from './chat'
 import { setMockScenario } from '@/test/mocks'
 
 describe('chat api with msw mock', () => {
@@ -59,5 +59,20 @@ describe('chat api with msw mock', () => {
       status: 504,
       code: 504_001,
     })
+  })
+
+  it('fetches chat suggestions with source ids', async () => {
+    const result = await getChatSuggestions({ id: 'chat-1', source_ids: ['source-1', 'source-2'] })
+
+    expect(result.type).toBe('opener')
+    expect(result.questions).toHaveLength(3)
+  })
+
+  it('returns empty questions under empty scenario', async () => {
+    setMockScenario('chat', 'empty')
+
+    const result = await getChatSuggestions({ id: 'chat-1', source_ids: ['source-1'] })
+
+    expect(result.questions).toEqual([])
   })
 })

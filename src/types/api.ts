@@ -420,6 +420,11 @@ export interface ChatListMessagesResponse {
   next_cursor: number
 }
 
+export interface ChatGetSuggestionsResponse {
+  type: string
+  questions: string[]
+}
+
 export type ChatStyle = 'default' | 'analyst' | 'guide'
 export type ChatAnswerLength = 'default' | 'longer' | 'shorter'
 

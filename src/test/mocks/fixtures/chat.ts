@@ -1,5 +1,6 @@
 import type {
   ChatCreateMessageResponse,
+  ChatGetSuggestionsResponse,
   ChatListMessagesResponse,
   ChatMessage,
 } from '@/types/api'
@@ -45,5 +46,13 @@ export const createChatCreateMessageResponseFixture = (
 ): ChatCreateMessageResponse => ({
   msg_id: 'msg-1',
   task_id: 'task-1',
+  ...overrides,
+})
+
+export const createChatGetSuggestionsResponseFixture = (
+  overrides: Partial<ChatGetSuggestionsResponse> = {},
+): ChatGetSuggestionsResponse => ({
+  type: 'opener',
+  questions: ['什么是 Rust 的所有权？', '如何避免借用检查错误？', 'Rust 与 C++ 相比有什么优势？'],
   ...overrides,
 })

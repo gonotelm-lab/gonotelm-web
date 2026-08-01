@@ -4,6 +4,7 @@ import type {
   ChatAbortStreamRequest,
   ChatCreateMessageRequest,
   ChatCreateMessageResponse,
+  ChatGetSuggestionsResponse,
   ChatListMessagesResponse,
   StreamHeartbeatEvent,
   StreamTaskEvent,
@@ -137,6 +138,24 @@ export function deleteChatContext(chatId: string) {
   return request<null>(`/api/v1/chats/${encodeURIComponent(chatId)}/context`, {
     method: 'DELETE',
   })
+}
+
+interface GetChatSuggestionsParams {
+  id: string
+  source_ids?: string[]
+}
+
+export function getChatSuggestions(params: GetChatSuggestionsParams) {
+  const query = new URLSearchParams()
+  for (const sourceId of params.source_ids ?? []) {
+    query.append('source_ids', sourceId)
+  }
+  const queryString = query.toString()
+  const chatId = encodeURIComponent(params.id)
+  const url = queryString
+    ? `/api/v1/chats/${chatId}/suggestions?${queryString}`
+    : `/api/v1/chats/${chatId}/suggestions`
+  return request<ChatGetSuggestionsResponse>(url)
 }
 
 function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
