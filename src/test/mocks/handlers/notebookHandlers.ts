@@ -7,7 +7,7 @@ import {
   createNotebookSummaryFixture,
 } from '../fixtures/notebook'
 import { getMockScenario } from '../scenarios'
-import { createSuccessResponse, resolveScenarioResponse } from './httpResponse'
+import { createSuccessResponse, resolveNoContentScenarioResponse, resolveScenarioResponse } from './httpResponse'
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
 
@@ -84,11 +84,7 @@ export const notebookHandlers = [
 
   http.delete(`${apiBaseUrl}/api/v1/notebooks/:notebookId`, async () => {
     const scenario = getMockScenario('notebook')
-    return resolveScenarioResponse({
-      scenario,
-      successData: null,
-      emptyData: null,
-    })
+    return resolveNoContentScenarioResponse({ scenario })
   }),
 
   http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId`, async ({ params }) => {

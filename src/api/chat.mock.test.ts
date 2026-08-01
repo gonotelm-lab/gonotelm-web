@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/lib/http'
 import { createChatMessage, getChatSuggestions, listChatMessages } from './chat'
 import { setMockScenario } from '@/test/mocks'
@@ -66,6 +66,16 @@ describe('chat api with msw mock', () => {
 
     expect(result.type).toBe('opener')
     expect(result.questions).toHaveLength(3)
+  })
+
+  it('serializes source ids as a comma-separated query parameter', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+    await getChatSuggestions({ id: 'chat-1', source_ids: ['source-1', 'source-2'] })
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    const calledUrl = String(fetchSpy.mock.calls[0]?.[0])
+    expect(calledUrl).toContain('/suggestions?source_ids=source-1%2Csource-2')
   })
 
   it('returns empty questions under empty scenario', async () => {

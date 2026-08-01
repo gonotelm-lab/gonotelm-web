@@ -1,6 +1,6 @@
 import { http } from 'msw'
 import { getMockScenario } from '../scenarios'
-import { createErrorResponse, resolveScenarioResponse } from './httpResponse'
+import { createErrorResponse, resolveNoContentScenarioResponse, resolveScenarioResponse } from './httpResponse'
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
 let taskSeq = 1
@@ -226,11 +226,7 @@ export const studioHandlers = [
     const taskId = String(params.taskId ?? '')
     studioTaskStore.delete(taskId)
 
-    return resolveScenarioResponse({
-      scenario,
-      successData: null,
-      emptyData: null,
-    })
+    return resolveNoContentScenarioResponse({ scenario })
   }),
   http.patch(`${apiBaseUrl}/api/v1/artifacts/:taskId`, async ({ params, request }) => {
     const scenario = getMockScenario('studio')

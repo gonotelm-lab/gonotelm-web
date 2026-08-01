@@ -125,6 +125,7 @@ export function ChatInputBox({
           display: 'flex',
           alignItems: 'center',
           gap: workspaceSpace.md,
+          py: workspaceSpace.xxs,
         }}
       >
         {leftControlsExtra ? (

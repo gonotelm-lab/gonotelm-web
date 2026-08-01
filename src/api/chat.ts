@@ -147,8 +147,8 @@ interface GetChatSuggestionsParams {
 
 export function getChatSuggestions(params: GetChatSuggestionsParams) {
   const query = new URLSearchParams()
-  for (const sourceId of params.source_ids ?? []) {
-    query.append('source_ids', sourceId)
+  if (params.source_ids && params.source_ids.length > 0) {
+    query.set('source_ids', params.source_ids.join(','))
   }
   const queryString = query.toString()
   const chatId = encodeURIComponent(params.id)

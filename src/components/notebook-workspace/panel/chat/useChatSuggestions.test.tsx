@@ -1,6 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 import { getChatSuggestions } from '@/api/chat'
+import { ApiError } from '@/lib/http'
 import { useChatSuggestions } from './useChatSuggestions'
 
 vi.mock('@/api/chat', () => ({
@@ -81,6 +82,60 @@ describe('useChatSuggestions', () => {
     expect(readSuggestions(renderer)).toBe('')
   })
 
+  it('defers opener until sources are selected, then fetches with selected ids only', async () => {
+    mockGetChatSuggestions.mockResolvedValue({ type: 'opener', questions: ['q1'] })
+    let renderer!: ReactTestRenderer
+    act(() => {
+      renderer = create(
+        <SuggestionsHarness chatId="chat-1" readySourceIds={[]} selectedSourceIds={[]} />,
+      )
+    })
+
+    await act(async () => {
+      renderer.update(
+        <SuggestionsHarness chatId="chat-1" readySourceIds={['s1']} selectedSourceIds={[]} />,
+      )
+    })
+    expect(mockGetChatSuggestions).not.toHaveBeenCalled()
+
+    await act(async () => {
+      renderer.update(
+        <SuggestionsHarness chatId="chat-1" readySourceIds={['s1']} selectedSourceIds={['s1']} />,
+      )
+    })
+    expect(mockGetChatSuggestions).toHaveBeenCalledTimes(1)
+    expect(mockGetChatSuggestions).toHaveBeenCalledWith({ id: 'chat-1', source_ids: ['s1'] })
+
+    await act(async () => {
+      renderer.update(
+        <SuggestionsHarness
+          chatId="chat-1"
+          readySourceIds={['s1', 's2']}
+          selectedSourceIds={['s1', 's2']}
+        />,
+      )
+    })
+    expect(mockGetChatSuggestions).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears suggestions when the response questions is null', async () => {
+    mockGetChatSuggestions.mockResolvedValue({ type: 'opener', questions: null as never })
+    let renderer!: ReactTestRenderer
+    act(() => {
+      renderer = create(
+        <SuggestionsHarness chatId="chat-1" readySourceIds={[]} selectedSourceIds={[]} />,
+      )
+    })
+
+    await act(async () => {
+      renderer.update(
+        <SuggestionsHarness chatId="chat-1" readySourceIds={['s1']} selectedSourceIds={['s1']} />,
+      )
+    })
+    expect(mockGetChatSuggestions).toHaveBeenCalledTimes(1)
+    expect(readSuggestions(renderer)).toBe('')
+  })
+
   it('does not fetch when chatId is empty', async () => {
     mockGetChatSuggestions.mockResolvedValue({ type: 'opener', questions: ['q1'] })
     act(() => {
@@ -150,5 +205,42 @@ describe('useChatSuggestions', () => {
       renderer.root.findByProps({ 'data-testid': 'followup' }).props.onClick()
     })
     expect(readSuggestions(renderer)).toBe('q1')
+    expect(mockGetChatSuggestions).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries with capped exponential backoff on lock-taken errors until success', async () => {
+    vi.useFakeTimers()
+    try {
+      mockGetChatSuggestions
+        .mockRejectedValueOnce(new ApiError('LOCK_TAKEN', 1005, 200))
+        .mockRejectedValueOnce(new ApiError('suggestion is generating', 1005, 200))
+        .mockResolvedValue({ type: 'opener', questions: ['q1'] })
+      let renderer!: ReactTestRenderer
+      act(() => {
+        renderer = create(
+          <SuggestionsHarness chatId="chat-1" readySourceIds={[]} selectedSourceIds={[]} />,
+        )
+      })
+      await act(async () => {
+        renderer.update(
+          <SuggestionsHarness chatId="chat-1" readySourceIds={['s1']} selectedSourceIds={['s1']} />,
+        )
+      })
+      expect(mockGetChatSuggestions).toHaveBeenCalledTimes(1)
+      expect(readSuggestions(renderer)).toBe('')
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000)
+      })
+      expect(mockGetChatSuggestions).toHaveBeenCalledTimes(2)
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+      expect(mockGetChatSuggestions).toHaveBeenCalledTimes(3)
+      expect(readSuggestions(renderer)).toBe('q1')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

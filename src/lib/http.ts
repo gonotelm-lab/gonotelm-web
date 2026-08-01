@@ -41,6 +41,10 @@ export async function request<T>(
     )
   }
 
+  if (response.status === 204) {
+    return null as T
+  }
+
   if (!body) {
     throw new ApiError('Empty response body', -1, response.status)
   }

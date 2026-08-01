@@ -11,6 +11,11 @@ export const createSuccessResponse = (data: unknown) =>
     data,
   })
 
+export const createNoContentResponse = () =>
+  new HttpResponse(null, {
+    status: 204,
+  })
+
 export const createErrorResponse = (
   status = 500,
   message = 'mock server error',
@@ -48,4 +53,21 @@ export const resolveScenarioResponse = async ({
   }
 
   return createSuccessResponse(successData)
+}
+
+export const resolveNoContentScenarioResponse = async ({
+  scenario,
+}: {
+  scenario: MockApiScenario
+}) => {
+  if (scenario === 'server-error') {
+    return createErrorResponse(500, 'mock server error', 500_001)
+  }
+
+  if (scenario === 'timeout') {
+    await delay(timeoutDelayMs)
+    return createErrorResponse(504, 'mock timeout', 504_001)
+  }
+
+  return createNoContentResponse()
 }

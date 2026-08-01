@@ -5,7 +5,7 @@ import {
   createChatMessageFixture,
 } from '../fixtures/chat'
 import { getMockScenario } from '../scenarios'
-import { createErrorResponse, createSuccessResponse, resolveScenarioResponse } from './httpResponse'
+import { createErrorResponse, createNoContentResponse, createSuccessResponse, resolveScenarioResponse } from './httpResponse'
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
 const validChatStyleSet = new Set(['default', 'analyst', 'guide'])
@@ -90,6 +90,6 @@ export const chatHandlers = [
     createSuccessResponse(null),
   ),
   http.delete(`${apiBaseUrl}/api/v1/chats/:chatId/context`, async () =>
-    createSuccessResponse(null),
+    createNoContentResponse(),
   ),
 ]

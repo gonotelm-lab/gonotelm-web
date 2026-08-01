@@ -7,6 +7,7 @@ import {
 import { getMockScenario } from '../scenarios'
 import {
   createErrorResponse,
+  createNoContentResponse,
   createSuccessResponse,
   resolveScenarioResponse,
 } from './httpResponse'
@@ -73,7 +74,7 @@ export const sourceHandlers = [
     createSuccessResponse(null),
   ),
   http.delete(`${apiBaseUrl}/api/v1/sources/:sourceId`, async () =>
-    createSuccessResponse(null),
+    createNoContentResponse(),
   ),
   http.patch(`${apiBaseUrl}/api/v1/sources/:sourceId`, async () =>
     createSuccessResponse(null),
