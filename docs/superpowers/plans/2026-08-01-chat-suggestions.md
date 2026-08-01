@@ -726,6 +726,7 @@ export function ChatSuggestions({
   const renderSuggestion = (question: string) => {
     const button = (
       <Button
+        key={question}
         variant="outlined"
         size="small"
         disabled={disabled}
