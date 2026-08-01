@@ -11,6 +11,7 @@ import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { workspaceType } from '../../shared/ui/typeTokens'
+import { ChatSuggestions } from './ChatSuggestions'
 
 export interface ChatInputInteractionState {
   isStreaming: boolean
@@ -23,12 +24,15 @@ interface ChatInputBoxProps {
   value: string
   inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
   interactionState: ChatInputInteractionState
+  suggestions?: string[]
+  suggestionsDisabled?: boolean
   leftControlsExtra?: ReactNode
   rightControlsExtra?: ReactNode
   onValueChange: (value: string) => void
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
   onSend: () => void
   onAbort: () => void
+  onSuggestionSelect?: (question: string) => void
 }
 
 const inputBoxLayoutTokens = {
@@ -55,12 +59,15 @@ export function ChatInputBox({
   value,
   inputRef,
   interactionState,
+  suggestions = [],
+  suggestionsDisabled = false,
   leftControlsExtra,
   rightControlsExtra,
   onValueChange,
   onKeyDown,
   onSend,
   onAbort,
+  onSuggestionSelect,
 }: ChatInputBoxProps) {
   const {
     isStreaming,
@@ -112,16 +119,23 @@ export function ChatInputBox({
       />
 
       <Box
+        data-testid="chat-input-controls-row"
         sx={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: workspaceSpace.md,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: leftControlRowGap }}>
           {leftControlsExtra}
         </Box>
+        <ChatSuggestions
+          suggestions={suggestions}
+          disabled={suggestionsDisabled}
+          onSelect={onSuggestionSelect}
+        />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: rightControlRowGap }}>
           {rightControlsExtra}
           <IconButton

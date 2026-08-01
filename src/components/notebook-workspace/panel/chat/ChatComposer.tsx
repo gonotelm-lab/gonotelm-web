@@ -2,7 +2,6 @@ import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import { Box } from '@mui/material'
 import { workspaceLayout } from '../../shared/ui/layoutTokens'
 import { ChatInputBox, type ChatInputInteractionState } from './ChatInputBox'
-import { ChatSuggestions } from './ChatSuggestions'
 
 const composerMarginTop = workspaceLayout.panelPaddingY
 
@@ -43,15 +42,13 @@ export function ChatComposer({
         onValueChange={onValueChange}
         onKeyDown={onKeyDown}
         interactionState={interactionState}
+        suggestions={suggestions}
+        suggestionsDisabled={suggestionsDisabled}
         leftControlsExtra={leftControlsExtra}
         rightControlsExtra={rightControlsExtra}
         onSend={onSend}
         onAbort={onAbort}
-      />
-      <ChatSuggestions
-        suggestions={suggestions}
-        disabled={suggestionsDisabled}
-        onSelect={onSuggestionSelect}
+        onSuggestionSelect={onSuggestionSelect}
       />
     </Box>
   )

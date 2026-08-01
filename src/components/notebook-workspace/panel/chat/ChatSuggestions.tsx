@@ -78,11 +78,11 @@ export function ChatSuggestions({
   return (
     <Box
       sx={{
+        flex: '1 1 auto',
+        minWidth: 0,
         display: 'flex',
         alignItems: 'stretch',
         gap: suggestionsRowGap,
-        width: '100%',
-        mt: workspaceSpace.sm,
       }}
     >
       {visibleSuggestions.map(renderSuggestion)}
