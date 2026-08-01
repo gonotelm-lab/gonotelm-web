@@ -3,7 +3,7 @@ import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
 const maxSuggestionCount = 3
-const suggestionsRowGap = workspaceSpace.sm
+const suggestionsRowGap = workspaceSpace.md
 
 interface ChatSuggestionsProps {
   suggestions: string[]
