@@ -428,7 +428,7 @@ export function useChatConversation({
           streamAbortControllerRef.current = controller
           let shouldStopAfterStream = false
 
-          await streamChatEvents({
+          const streamEndStatus = await streamChatEvents({
             id: chatId,
             task_id: taskId,
             last_stream_id: lastStreamId || undefined,
@@ -476,10 +476,15 @@ export function useChatConversation({
 
           flushLiveMessageImmediately()
 
+          // 服务端明确报告任务已结束（如连接建立时任务已完成）属于正常完成，
+          // 无需重连，也不应提示“流式连接中断”。
+          if (streamEndStatus === 'task-not-running') {
+            break
+          }
+
           shouldStopAfterStream = abortRequestedRef.current || finished
           if (!shouldStopAfterStream) {
             if (reconnectCount >= streamReconnectMaxRetries) {
-              setErrorText('流式连接中断，请稍后重试。')
               break
             }
             reconnectCount += 1

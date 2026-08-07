@@ -30,6 +30,9 @@ interface StreamChatEventsOptions extends BuildChatStreamUrlParams {
   onEvent: (eventType: string, event: StreamTaskEvent | StreamHeartbeatEvent) => void
 }
 
+/** 流式连接结束方式：服务端已无运行中的任务，或 SSE 流被正常消费到 EOF。 */
+export type StreamChatEndStatus = 'task-not-running' | 'eof'
+
 interface ParsedSseFrame {
   eventType: string
   dataText: string
@@ -169,7 +172,7 @@ function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
   return `${API_BASE_URL}/api/v1/chats/${chatId}/stream?${query.toString()}`
 }
 
-export async function streamChatEvents(options: StreamChatEventsOptions) {
+export async function streamChatEvents(options: StreamChatEventsOptions): Promise<StreamChatEndStatus> {
   const response = await fetch(buildChatStreamUrl(options), {
     method: 'GET',
     headers: {
@@ -193,7 +196,7 @@ export async function streamChatEvents(options: StreamChatEventsOptions) {
     if (body && body.code !== 0) {
       throw new ApiError(body.msg, body.code, response.status)
     }
-    return
+    return 'task-not-running'
   }
 
   if (!response.body) {
@@ -221,4 +224,6 @@ export async function streamChatEvents(options: StreamChatEventsOptions) {
   if (buffer.trim()) {
     consumeSseBuffer(`${buffer}\n\n`, options.onEvent)
   }
+
+  return 'eof'
 }

@@ -26,6 +26,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     description: '即将支持',
     icon: VideocamRoundedIcon,
     availability: 'coming-soon',
+    hasAdvancedConfig: true,
   },
   {
     id: 'mind-map',
@@ -83,6 +84,7 @@ export const studioToolCatalog: StudioToolDefinition[] = [
     description: '即将支持',
     icon: SlideshowRoundedIcon,
     availability: 'coming-soon',
+    hasAdvancedConfig: true,
   },
   {
     id: 'data-table',

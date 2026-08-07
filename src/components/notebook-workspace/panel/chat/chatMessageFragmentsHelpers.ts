@@ -30,10 +30,11 @@ export const resolvePhaseStatusLabel = (message: ChatUiMessage) =>
 
 export const shouldShowPhaseStatus = ({
   isActiveAssistant,
+  fragments,
 }: {
   isActiveAssistant?: boolean
   fragments: ChatUiFragment[]
-}) => Boolean(isActiveAssistant)
+}) => Boolean(isActiveAssistant && !hasResponseContent(fragments))
 
 export const resolveStickyPhaseStatusLabel = (
   message: ChatUiMessage,

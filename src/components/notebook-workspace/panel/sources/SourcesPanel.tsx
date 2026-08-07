@@ -226,7 +226,8 @@ function SourcesPanelLayout({
                       sx={{
                         position: 'sticky',
                         top: 0,
-                        zIndex: 1,
+                        // 必须高于行内 Stack 的 zIndex(1)，否则滚动时行内容会压到表头上方。
+                        zIndex: 2,
                         boxSizing: 'border-box',
                         height: sourceListRowHeightPx,
                         minWidth: 0,

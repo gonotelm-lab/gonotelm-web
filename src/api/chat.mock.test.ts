@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/lib/http'
-import { createChatMessage, getChatSuggestions, listChatMessages } from './chat'
+import { createChatMessage, getChatSuggestions, listChatMessages, streamChatEvents } from './chat'
 import { setMockScenario } from '@/test/mocks'
 
 describe('chat api with msw mock', () => {
@@ -84,5 +84,31 @@ describe('chat api with msw mock', () => {
     const result = await getChatSuggestions({ id: 'chat-1', source_ids: ['source-1'] })
 
     expect(result.questions).toEqual([])
+  })
+
+  it('reports task-not-running end status when task already finished', async () => {
+    setMockScenario('chat', 'empty')
+
+    const onEvent = vi.fn()
+    const endStatus = await streamChatEvents({
+      id: 'chat-1',
+      task_id: 'task-1',
+      onEvent,
+    })
+
+    expect(endStatus).toBe('task-not-running')
+    expect(onEvent).not.toHaveBeenCalled()
+  })
+
+  it('reports eof end status after consuming an sse stream with terminal event', async () => {
+    const onEvent = vi.fn()
+    const endStatus = await streamChatEvents({
+      id: 'chat-1',
+      task_id: 'task-1',
+      onEvent,
+    })
+
+    expect(endStatus).toBe('eof')
+    expect(onEvent).toHaveBeenCalledWith('message', expect.objectContaining({ done: true }))
   })
 })

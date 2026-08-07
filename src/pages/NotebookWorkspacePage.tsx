@@ -577,12 +577,12 @@ export function NotebookWorkspacePage() {
     setSelectedSourceIds(next)
   }
 
-  const toggleSourceItemChecked = (id: string, checked: boolean) => {
+  const toggleSourceItemChecked = useCallback((id: string, checked: boolean) => {
     setSelectedSourceIds((prev) => ({
       ...prev,
       [id]: checked,
     }))
-  }
+  }, [])
 
   const handleCreateSimpleSource = async (
     kind: Extract<SourceKind, 'text' | 'url'>,

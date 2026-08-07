@@ -1,4 +1,4 @@
-import { http } from 'msw'
+import { http, HttpResponse } from 'msw'
 import {
   createChatCreateMessageResponseFixture,
   createChatListMessagesResponseFixture,
@@ -89,6 +89,16 @@ export const chatHandlers = [
   http.post(`${apiBaseUrl}/api/v1/chats/:chatId/stream/abort`, async () =>
     createSuccessResponse(null),
   ),
+  http.get(`${apiBaseUrl}/api/v1/chats/:chatId/stream`, async () => {
+    const scenario = getMockScenario('chat')
+    if (scenario === 'empty') {
+      // 任务已结束且事件流不可用时的服务端响应（JSON，非 SSE）。
+      return createSuccessResponse('task not running')
+    }
+    return new HttpResponse('event: message\ndata: {"id":"1-0","done":true}\n\n', {
+      headers: { 'Content-Type': 'text/event-stream' },
+    })
+  }),
   http.delete(`${apiBaseUrl}/api/v1/chats/:chatId/context`, async () =>
     createNoContentResponse(),
   ),

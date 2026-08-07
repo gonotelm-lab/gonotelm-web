@@ -35,7 +35,7 @@ export function StudioToolCard({
   const tooltipLabel = tool.availability === 'available'
     ? tool.description
     : statusLabel
-  const showAdvancedEntry = Boolean(tool.hasAdvancedConfig && onAdvancedClick)
+  const showAdvancedEntry = Boolean(tool.hasAdvancedConfig)
 
   return (
     <Tooltip title={tooltipLabel} arrow placement="top" enterDelay={240}
@@ -122,52 +122,54 @@ export function StudioToolCard({
                     flexShrink: 0,
                   })}
                 />
-              ) : interactive ? (
-                showAdvancedEntry ? (
-                  <Box
-                    component="span"
-                    role="button"
-                    tabIndex={0}
-                    data-testid="studio-tool-card-advanced-entry"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onAdvancedClick?.()
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' && e.key !== ' ') {
-                        return
-                      }
-                      e.preventDefault()
-                      e.stopPropagation()
-                      onAdvancedClick?.()
-                    }}
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '50%',
-                      cursor: workspaceInteraction.cursorPointer,
-                      color: 'text.secondary',
-                      '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
-                      '&:focus-visible': {
-                        outline: '2px solid',
-                        outlineColor: 'primary.main',
-                        outlineOffset: 1,
-                      },
-                    }}
-                  >
-                    <EditRoundedIcon sx={{ fontSize: workspaceIconSize.sm }} />
-                  </Box>
-                ) : (
-                  <ArrowOutwardRoundedIcon sx={{ fontSize: workspaceIconSize.sm, color: 'text.disabled' }} />
-                )
-              ) : null}
+              ) : showAdvancedEntry ? (
+                <Box
+                  component="span"
+                  role="button"
+                  tabIndex={interactive ? 0 : -1}
+                  data-testid="studio-tool-card-advanced-entry"
+                  aria-disabled={!interactive}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (interactive) onAdvancedClick?.()
+                  }}
+                  onKeyDown={(e) => {
+                    if (!interactive) return
+                    if (e.key !== 'Enter' && e.key !== ' ') {
+                      return
+                    }
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onAdvancedClick?.()
+                  }}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    cursor: interactive ? workspaceInteraction.cursorPointer : 'not-allowed',
+                    color: interactive ? 'text.secondary' : 'action.disabled',
+                    '&:hover': interactive
+                      ? { color: 'primary.main', bgcolor: 'action.hover' }
+                      : undefined,
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 1,
+                    },
+                  }}
+                >
+                  <EditRoundedIcon sx={{ fontSize: workspaceIconSize.sm }} />
+                </Box>
+              ) : (
+                <ArrowOutwardRoundedIcon sx={{ fontSize: workspaceIconSize.sm, color: 'text.disabled' }} />
+              )}
             </Stack>
           </Box>
         </ButtonBase>

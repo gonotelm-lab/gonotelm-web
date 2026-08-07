@@ -69,7 +69,7 @@ describe('shouldShowPhaseStatus', () => {
     ).toBe(true)
   })
 
-  it('keeps loading visible even after response content arrives', () => {
+  it('hides loading once response content arrives during streaming', () => {
     expect(
       shouldShowPhaseStatus({
         isActiveAssistant: true,
@@ -78,7 +78,16 @@ describe('shouldShowPhaseStatus', () => {
           { id: 2, type: 'RESPONSE', response: { status: 'RUNNING', content: '回答' } },
         ],
       }),
-    ).toBe(true)
+    ).toBe(false)
+  })
+
+  it('hides loading for inactive assistant even without response content', () => {
+    expect(
+      shouldShowPhaseStatus({
+        isActiveAssistant: false,
+        fragments: [{ id: 1, type: 'PHASE', phase: { summary: '检索证据', thought: '' } }],
+      }),
+    ).toBe(false)
   })
 })
 
@@ -137,7 +146,8 @@ describe('ChatMessageFragments', () => {
     )
 
     expect(html).toContain('assistant-markdown')
-    expect(html).toContain('思考中')
+    expect(html).not.toContain('思考中')
+    expect(html).not.toContain('MuiCircularProgress')
     expect(html).toContain('## Rust')
     expect(html).toContain('**所有权**很重要')
   })
@@ -250,7 +260,7 @@ describe('ChatMessageFragments', () => {
     expect(html).toContain('MuiCircularProgress')
   })
 
-  it('keeps phase status visible when response streams', () => {
+  it('hides phase status once response content starts streaming', () => {
     const message: ChatUiMessage = {
       id: 'a6',
       role: 'assistant',
@@ -273,8 +283,9 @@ describe('ChatMessageFragments', () => {
       <ChatMessageFragments message={message} isStreaming isActiveAssistant />,
     )
 
-    expect(html).toContain('检索证据')
+    expect(html).not.toContain('检索证据')
     expect(html).not.toContain('思考中')
+    expect(html).not.toContain('MuiCircularProgress')
     expect(html).toContain('正在生成回答')
   })
 })

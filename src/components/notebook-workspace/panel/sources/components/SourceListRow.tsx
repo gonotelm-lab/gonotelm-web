@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import AddLinkIcon from '@mui/icons-material/AddLink'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
@@ -76,7 +76,7 @@ interface SourceListRowProps {
   previewLoading: boolean
 }
 
-export function SourceListRow({
+export const SourceListRow = memo(function SourceListRow({
   item,
   selectionColumnWidth = sourceSelectionColumnWidthPx,
   checked,
@@ -488,4 +488,4 @@ export function SourceListRow({
       </Dialog>
     </Box>
   )
-}
+})
