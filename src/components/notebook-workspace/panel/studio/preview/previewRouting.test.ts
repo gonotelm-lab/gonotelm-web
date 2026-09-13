@@ -39,6 +39,15 @@ describe('resolveStudioPreviewEntryMode', () => {
     ).toBe('inline')
   })
 
+  it('routes completed video_overview to inline mode', () => {
+    expect(
+      resolveStudioPreviewEntryMode({
+        kind: 'video_overview',
+        status: 'completed',
+      }),
+    ).toBe('inline')
+  })
+
   it('routes completed unknown kinds to overlay mode', () => {
     expect(
       resolveStudioPreviewEntryMode({

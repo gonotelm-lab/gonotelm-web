@@ -33,6 +33,7 @@ const buildArtifactTitle = (kind: string) => {
   if (kind === 'report') return 'Report'
   if (kind === 'info_graphic') return '信息图'
   if (kind === 'slides') return '幻灯片'
+  if (kind === 'video_overview') return 'Video Overview'
   if (kind === 'note') return '笔记'
   return 'Studio Artifact'
 }
@@ -94,6 +95,25 @@ const buildArtifactResultPayload = (
       timestamp,
       content_url: 'https://example.com/mock-slides.pptx',
       content_kind: 'storage',
+      extras: {
+        tip: 'mock tip',
+      },
+    }
+  }
+
+  if (artifactKind === 'video_overview') {
+    return {
+      notebook_id: notebookId,
+      task_id: taskId,
+      kind: artifactKind,
+      status: 'completed',
+      title,
+      source_ids: sourceIds,
+      timestamp,
+      content_url:
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      content_kind: 'storage',
+      mime_type: 'video/mp4',
       extras: {
         tip: 'mock tip',
       },
@@ -163,10 +183,12 @@ export const studioHandlers = [
       successData: {
         task_id: taskId,
         status: snapshot?.status ?? 'completed',
+        timestamp: Date.now(),
       },
       emptyData: {
         task_id: taskId,
         status: 'completed',
+        timestamp: Date.now(),
       },
     })
   }),

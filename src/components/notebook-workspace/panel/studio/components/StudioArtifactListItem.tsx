@@ -14,6 +14,7 @@ import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined'
 import StyleOutlinedIcon from '@mui/icons-material/StyleOutlined'
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
 import SlideshowOutlinedIcon from '@mui/icons-material/SlideshowOutlined'
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import type { SvgIconComponent } from '@mui/icons-material'
 import i18n from '@/i18n'
 import type { StudioArtifactKind } from '@/types/api'
@@ -101,6 +102,7 @@ const artifactKindIconMap: Record<StudioArtifactKind, SvgIconComponent> = {
   report: MenuBookOutlinedIcon,
   info_graphic: ImageOutlinedIcon,
   audio_overview: GraphicEqOutlinedIcon,
+  video_overview: VideocamOutlinedIcon,
   flashcard: StyleOutlinedIcon,
   quiz: QuizOutlinedIcon,
   data_table: TableChartOutlinedIcon,

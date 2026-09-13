@@ -34,6 +34,11 @@ export function resolveStudioArtifactDownload(params: {
     return { type: 'url', url, filename: `${safeName}.wav` }
   }
 
+  if (kind === 'video_overview') {
+    if (!url) return null
+    return { type: 'url', url, filename: `${safeName}.mp4` }
+  }
+
   if (kind === 'slides') {
     if (!url) return null
     return { type: 'url', url, filename: `${safeName}.pptx` }

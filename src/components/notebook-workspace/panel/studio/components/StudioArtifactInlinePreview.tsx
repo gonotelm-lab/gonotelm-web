@@ -54,7 +54,8 @@ export function StudioArtifactInlinePreview({
   const urlBasedDownload =
     artifact.kind === 'audio_overview' ||
     artifact.kind === 'info_graphic' ||
-    artifact.kind === 'slides'
+    artifact.kind === 'slides' ||
+    artifact.kind === 'video_overview'
   const hasDownloadableContent = urlBasedDownload
     ? Boolean(artifact.contentUrl.trim())
     : Boolean(content.trim())
@@ -62,8 +63,9 @@ export function StudioArtifactInlinePreview({
   const isMindmapArtifact = artifact.kind === 'mindmap'
   const isFlashcardArtifact = artifact.kind === 'flashcard'
   const isSlidesArtifact = artifact.kind === 'slides'
+  const isVideoArtifact = artifact.kind === 'video_overview'
   const selfScrollContent =
-    isMindmapArtifact || isFlashcardArtifact || isSlidesArtifact
+    isMindmapArtifact || isFlashcardArtifact || isSlidesArtifact || isVideoArtifact
   const displayTitle = resolveStudioArtifactDisplayTitle(artifact.title, artifact.kind)
   const canRename = artifact.status === 'completed' && Boolean(onRenameTitle)
 
@@ -176,6 +178,7 @@ export function StudioArtifactInlinePreview({
                 ? (slideIndex) => onOpenOverlay(slideIndex)
                 : undefined,
               onContentUrlRefreshed,
+              onRetryLoad,
             })
           )
         )}

@@ -130,6 +130,7 @@ export type StudioArtifactKind =
   | 'report'
   | 'info_graphic'
   | 'audio_overview'
+  | 'video_overview'
   | 'flashcard'
   | 'quiz'
   | 'data_table'
@@ -173,6 +174,7 @@ export type StudioArtifactReportStyle =
   | 'detailed'
 
 export type StudioArtifactSlidesVisualStyle = 'default' | 'educational' | 'cute'
+export type StudioArtifactVideoOverviewVisualStyle = 'default' | 'educational' | 'cute'
 
 export interface GenerateMindmapParameters {
   tip?: string
@@ -218,6 +220,12 @@ export interface GenerateSlidesParameters {
   tip?: string
   language?: string
   visual_style?: StudioArtifactSlidesVisualStyle
+}
+
+export interface GenerateVideoOverviewParameters {
+  tip?: string
+  language?: string
+  visual_style?: StudioArtifactVideoOverviewVisualStyle
 }
 
 export interface MindmapArtifactExtras {
@@ -270,6 +278,12 @@ export interface SlidesArtifactExtras {
   visual_style?: StudioArtifactSlidesVisualStyle
 }
 
+export interface VideoOverviewArtifactExtras {
+  tip?: string
+  language?: string
+  visual_style?: StudioArtifactVideoOverviewVisualStyle
+}
+
 export interface NoteArtifactExtras {
   chat_id?: string
   msg_id?: string
@@ -296,6 +310,7 @@ export interface GenerateStudioArtifactRequest {
   quiz?: GenerateQuizParameters
   data_table?: GenerateDataTableParameters
   slides?: GenerateSlidesParameters
+  video_overview?: GenerateVideoOverviewParameters
   note?: GenerateNoteParameters
 }
 
@@ -313,6 +328,7 @@ export interface UpdateStudioArtifactRequest {
 export interface GetStudioArtifactStatusResponse {
   task_id: string
   status: StudioArtifactTaskStatus
+  timestamp?: number
 }
 
 export interface StudioArtifactResult {

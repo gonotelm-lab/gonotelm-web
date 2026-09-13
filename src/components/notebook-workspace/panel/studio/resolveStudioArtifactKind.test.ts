@@ -58,3 +58,11 @@ describe('resolveStudioArtifactKind slides', () => {
     expect(resolveStudioArtifactFallbackTitle('slides')).toBe('幻灯片')
   })
 })
+
+describe('resolveStudioArtifactKind video_overview', () => {
+  it('maps video_overview kind', () => {
+    expect(resolveStudioArtifactKind('video_overview')).toBe('video_overview')
+    expect(resolveStudioArtifactActionId('video_overview')).toBe('generate-video_overview')
+    expect(resolveStudioArtifactFallbackTitle('video_overview')).toBe('视频概览')
+  })
+})

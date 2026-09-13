@@ -25,9 +25,11 @@ export function getStudioToolCatalog(): StudioToolDefinition[] {
     {
       id: 'video-overview',
       title: i18n.t('studio:kind.videoOverview'),
-      description: i18n.t('studio:tool.desc.comingSoon'),
+      description: i18n.t('studio:tool.desc.videoOverview'),
       icon: VideocamOutlinedIcon,
-      availability: 'coming-soon',
+      availability: 'available',
+      actionId: 'generate-video_overview',
+      artifactKind: 'video_overview',
       hasAdvancedConfig: true,
     },
     {

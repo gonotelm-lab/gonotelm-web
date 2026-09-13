@@ -21,6 +21,7 @@ describe('studio api with msw mock', () => {
 
     const statusResp = await getStudioArtifactStatus(submitResp.task_id)
     expect(statusResp.status).toBe('completed')
+    expect(statusResp.timestamp).toBeTypeOf('number')
 
     const resultResp = await getStudioArtifact(submitResp.task_id)
     expect(resultResp.status).toBe('completed')

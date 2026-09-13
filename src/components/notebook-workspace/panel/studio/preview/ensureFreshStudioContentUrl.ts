@@ -2,7 +2,12 @@ import { getStudioArtifact } from '@/api/studio'
 import { isPresignedGetUrlExpired } from './presignedUrlExpiry'
 
 export function isUrlBasedStudioArtifactKind(kind: string): boolean {
-  return kind === 'slides' || kind === 'info_graphic' || kind === 'audio_overview'
+  return (
+    kind === 'slides' ||
+    kind === 'info_graphic' ||
+    kind === 'audio_overview' ||
+    kind === 'video_overview'
+  )
 }
 
 /**

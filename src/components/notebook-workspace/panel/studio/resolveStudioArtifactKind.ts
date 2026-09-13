@@ -7,6 +7,7 @@ export const resolveStudioArtifactKind = (kind: unknown): StudioArtifactKind => 
   if (kind === 'report') return 'report'
   if (kind === 'info_graphic') return 'info_graphic'
   if (kind === 'audio_overview') return 'audio_overview'
+  if (kind === 'video_overview') return 'video_overview'
   if (kind === 'flashcard') return 'flashcard'
   if (kind === 'quiz') return 'quiz'
   if (kind === 'data_table') return 'data_table'
@@ -20,6 +21,7 @@ export const resolveStudioArtifactActionId = (kind: StudioArtifactKind): StudioT
   if (kind === 'report') return 'generate-report'
   if (kind === 'info_graphic') return 'generate-info_graphic'
   if (kind === 'audio_overview') return 'generate-audio_overview'
+  if (kind === 'video_overview') return 'generate-video_overview'
   if (kind === 'flashcard') return 'generate-flashcard'
   if (kind === 'quiz') return 'generate-quiz'
   if (kind === 'data_table') return 'generate-data_table'
@@ -32,6 +34,7 @@ export const resolveStudioArtifactFallbackTitle = (kind: StudioArtifactKind) => 
   if (kind === 'report') return i18n.t('studio:kind.report')
   if (kind === 'info_graphic') return i18n.t('studio:kind.infoGraphic')
   if (kind === 'audio_overview') return i18n.t('studio:kind.audioOverview')
+  if (kind === 'video_overview') return i18n.t('studio:kind.videoOverview')
   if (kind === 'flashcard') return i18n.t('studio:kind.flashcard')
   if (kind === 'quiz') return i18n.t('studio:kind.quiz')
   if (kind === 'data_table') return i18n.t('studio:kind.dataTable')

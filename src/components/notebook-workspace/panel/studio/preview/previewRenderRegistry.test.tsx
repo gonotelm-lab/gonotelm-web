@@ -10,6 +10,7 @@ import { MarkdownRenderer } from '@/components/notebook-workspace/shared/markdow
 import type { StudioArtifactKind } from '@/types/api'
 import type { StudioArtifactItem } from '../types'
 import { MindmapCanvas } from '../components/MindmapCanvas'
+import { StudioVideoPlayer } from '../components/StudioVideoPlayer'
 import { renderStudioArtifactPreviewContent } from './previewRenderRegistry'
 
 const createArtifact = (kind: StudioArtifactItem['kind']): StudioArtifactItem => ({
@@ -83,6 +84,41 @@ describe('renderStudioArtifactPreviewContent', () => {
         children?: ReactElement<{ src?: string }>
       }>
       expect(container.props.children?.props?.src).toBe('https://example.com/infographic.png')
+    }
+  })
+
+  it('uses video player for video_overview in inline and overlay modes', () => {
+    const artifact = {
+      ...createArtifact('video_overview'),
+      contentUrl: 'https://example.com/video.mp4',
+    }
+    const inlineNode = renderStudioArtifactPreviewContent({
+      artifact,
+      content: '',
+      mode: 'inline',
+    })
+    expect(isValidElement(inlineNode)).toBe(true)
+    if (isValidElement(inlineNode)) {
+      const container = inlineNode as ReactElement<{
+        children?: ReactElement<{ videoUrl?: string; playbackKey?: string }>
+      }>
+      expect(container.props.children?.type).toBe(StudioVideoPlayer)
+      expect(container.props.children?.props?.videoUrl).toBe('https://example.com/video.mp4')
+      expect(container.props.children?.props?.playbackKey).toBe('artifact-1')
+    }
+
+    const overlayNode = renderStudioArtifactPreviewContent({
+      artifact,
+      content: '',
+      mode: 'overlay',
+    })
+    expect(isValidElement(overlayNode)).toBe(true)
+    if (isValidElement(overlayNode)) {
+      const container = overlayNode as ReactElement<{
+        children?: ReactElement<{ mode?: string }>
+      }>
+      expect(container.props.children?.type).toBe(StudioVideoPlayer)
+      expect(container.props.children?.props?.mode).toBe('overlay')
     }
   })
 

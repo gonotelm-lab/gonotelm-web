@@ -43,6 +43,10 @@ const previewCapabilityByKind: Partial<Record<StudioArtifactKind, StudioArtifact
     inline: true,
     overlay: true,
   },
+  video_overview: {
+    inline: true,
+    overlay: true,
+  },
   note: {
     inline: true,
     overlay: true,

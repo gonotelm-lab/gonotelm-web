@@ -37,6 +37,7 @@
   "tool": {
     "desc": {
       "audioOverview": "Generate an audio overview from selected sources",
+      "videoOverview": "Generate a video overview from selected sources",
       "mindmap": "Generate a mind map from selected sources",
       "report": "Generate a report from selected sources",
       "flashcard": "Generate flashcards from selected sources",
@@ -90,6 +91,22 @@
     "unmute": "Unmute",
     "volume": "Volume"
   },
+  "video": {
+    "loading": "Loading…",
+    "unsupported": "Your browser does not support video playback.",
+    "interrupted": "Playback interrupted",
+    "reload": "Reload",
+    "play": "Play",
+    "pause": "Pause",
+    "volume": "Volume",
+    "unmute": "Unmute",
+    "speed": "Playback speed",
+    "speedNormal": "Normal",
+    "pip": "Picture in picture",
+    "exitPip": "Exit picture in picture",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
+  },
   "extras": {
     "viewParams": "View generation parameters",
     "title": "Generation parameters",
@@ -138,12 +155,14 @@
     "quiz": { "title": "Generate quiz" },
     "dataTable": { "title": "Generate data table" },
     "slides": { "title": "Generate slides" },
+    "videoOverview": { "title": "Generate video overview" },
     "language": "Language",
     "languageHelp": {
       "report": "Controls the language of the report output.",
       "audio": "Controls the language of the audio overview script.",
       "infoGraphic": "Controls the visible text language in the infographic.",
-      "slides": "Controls the language of slide titles and body text."
+      "slides": "Controls the language of slide titles and body text.",
+      "videoOverview": "Controls the language of narration and on-screen copy."
     },
     "style": "Generation style",
     "styleHelp": {
@@ -155,19 +174,22 @@
       "generic": "Add focus, audience, or tone requirements.",
       "mindmap": "e.g. Emphasize the 'implementation' and 'risk' branches.",
       "dataTable": "e.g. Compare definitions, use cases, and caveats by concept.",
-      "slides": "e.g. Focus on key takeaways, audience, or slide structure."
+      "slides": "e.g. Focus on key takeaways, audience, or slide structure.",
+      "videoOverview": "e.g. Focus on key takeaways, audience, or pacing."
     },
     "tipHelp": {
       "mindmap": "Add focus areas, hierarchy preferences, or structure requirements.",
       "dataTable": "Add desired fields, comparison dimensions, or table focus.",
-      "slides": "Add focus areas, audience, or outline/structure preferences."
+      "slides": "Add focus areas, audience, or outline/structure preferences.",
+      "videoOverview": "Add focus areas, audience, or narration preferences."
     },
     "detailLevel": "Detail level",
     "detailLevelHelp": "Controls how detailed the infographic content is.",
     "visualStyle": "Visual style",
     "visualStyleHelp": {
       "infoGraphic": "Controls the visual look of the infographic.",
-      "slides": "Controls the color palette and layout tone of the slides."
+      "slides": "Controls the color palette and layout tone of the slides.",
+      "videoOverview": "Controls the narration tone and expressive style."
     },
     "orientation": "Orientation",
     "orientationHelp": "Controls the aspect ratio of the infographic.",
@@ -205,6 +227,11 @@
       "default": { "label": "Default", "description": "Warm educational tone: flat sketched look on a cream paper base." },
       "educational": { "label": "Educational", "description": "Textbook style: high contrast, clear geometric sections, calm and readable." },
       "cute": { "label": "Cute", "description": "Soft pastel look: rounded shapes, generous whitespace, gentle mood." }
+    },
+    "videoOverview": {
+      "default": { "label": "Default", "description": "Concise and professional with balanced density for general explanations." },
+      "educational": { "label": "Educational", "description": "Learner-first: clear structure, emphasized points, patient teaching tone." },
+      "cute": { "label": "Cute", "description": "Light and friendly with metaphors and playful phrasing for beginners." }
     }
   },
   "infoGraphic": {

@@ -124,6 +124,12 @@ export const workspaceColorPalette = {
       icon: '#3d5a80',
       surface: 'rgba(61, 90, 128, 0.08)',
     },
+    video_overview: {
+      accent: '#3d5a80',
+      border: '#b7c4d4',
+      icon: '#3d5a80',
+      surface: 'rgba(61, 90, 128, 0.08)',
+    },
     flashcard: {
       accent: '#9a7b2f',
       border: '#d4c49a',

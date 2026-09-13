@@ -27,4 +27,30 @@ describe('resolveStudioArtifactDownload', () => {
       }),
     ).toBeNull()
   })
+
+  it('downloads video_overview from contentUrl as mp4 even when content is empty', () => {
+    expect(
+      resolveStudioArtifactDownload({
+        kind: 'video_overview',
+        title: 'Kickoff Video',
+        content: '',
+        contentUrl: 'https://cdn.example.com/kickoff.mp4',
+      }),
+    ).toEqual({
+      type: 'url',
+      url: 'https://cdn.example.com/kickoff.mp4',
+      filename: 'Kickoff_Video.mp4',
+    })
+  })
+
+  it('returns null for video_overview when contentUrl is blank', () => {
+    expect(
+      resolveStudioArtifactDownload({
+        kind: 'video_overview',
+        title: 'Kickoff Video',
+        content: '',
+        contentUrl: '',
+      }),
+    ).toBeNull()
+  })
 })

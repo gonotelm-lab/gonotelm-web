@@ -77,6 +77,9 @@ export function StudioArtifactPreviewOverlay({
   const isReportArtifact = artifact?.kind === 'report'
   const isInfographicArtifact = artifact?.kind === 'info_graphic'
   const isSlidesArtifact = artifact?.kind === 'slides'
+  const isVideoArtifact = artifact?.kind === 'video_overview'
+  const isFullBleedArtifact =
+    isMindmapArtifact || isInfographicArtifact || isSlidesArtifact || isVideoArtifact
 
   const hasDownloadableContent = artifact
     ? hasStudioArtifactPreviewContent(artifact.kind, content, artifact.contentUrl)
@@ -231,17 +234,13 @@ export function StudioArtifactPreviewOverlay({
           sx={(theme) => ({
             flex: 1,
             minHeight: 0,
-            overflow: isMindmapArtifact || isInfographicArtifact || isSlidesArtifact
-              ? 'hidden'
-              : 'auto',
-            ...(isMindmapArtifact || isInfographicArtifact || isSlidesArtifact
+            overflow: isFullBleedArtifact ? 'hidden' : 'auto',
+            ...(isFullBleedArtifact
               ? { p: 0 }
               : isReportArtifact
                 ? { px: workspaceSpace.xl, py: workspaceSpace.md }
                 : { p: workspaceSpace.md }),
-            ...(isMindmapArtifact || isInfographicArtifact || isSlidesArtifact
-              ? null
-              : subtleScrollbarSx(theme)),
+            ...(isFullBleedArtifact ? null : subtleScrollbarSx(theme)),
           })}
         >
           {loading ? (
@@ -273,6 +272,7 @@ export function StudioArtifactPreviewOverlay({
                 mode: 'overlay',
                 initialSlideIndex,
                 onContentUrlRefreshed,
+                onRetryLoad,
               })}
             </Box>
           )}

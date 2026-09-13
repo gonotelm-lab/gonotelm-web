@@ -78,6 +78,14 @@ function getSlidesVisualStyleLabels(): Record<string, string> {
   }
 }
 
+function getVideoOverviewVisualStyleLabels(): Record<string, string> {
+  return {
+    default: i18n.t('studio:style.videoOverview.default.label'),
+    educational: i18n.t('studio:style.videoOverview.educational.label'),
+    cute: i18n.t('studio:style.videoOverview.cute.label'),
+  }
+}
+
 function getLanguageLabels(): Record<string, string> {
   return {
     'zh-CN': i18n.t('studio:lang.zhCN'),
@@ -212,6 +220,22 @@ function resolveExtrasEntries(artifact: StudioArtifactItem): ExtrasEntry[] {
             slidesVisualStyleLabels[e.visual_style || ''] ||
             e.visual_style ||
             i18n.t('studio:style.slides.default.label'),
+        },
+        { label: languageLabel, value: languageLabels[e.language || ''] || e.language || '—' },
+        { label: tipLabel, value: e.tip?.trim() || '—' },
+      ]
+    }
+    case 'video_overview': {
+      const e = extras as { tip?: string; language?: string; visual_style?: string }
+      const videoVisualStyleLabels = getVideoOverviewVisualStyleLabels()
+      const languageLabels = getLanguageLabels()
+      return [
+        {
+          label: i18n.t('studio:extras.label.visualStyle'),
+          value:
+            videoVisualStyleLabels[e.visual_style || ''] ||
+            e.visual_style ||
+            i18n.t('studio:style.videoOverview.default.label'),
         },
         { label: languageLabel, value: languageLabels[e.language || ''] || e.language || '—' },
         { label: tipLabel, value: e.tip?.trim() || '—' },

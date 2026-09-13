@@ -12,6 +12,7 @@ import type {
   StudioArtifactContentKind,
   StudioArtifactKind,
   StudioArtifactTaskStatus,
+  VideoOverviewArtifactExtras,
 } from '@/types/api'
 
 export type StudioArtifactExtras =
@@ -19,6 +20,7 @@ export type StudioArtifactExtras =
   | ReportArtifactExtras
   | InfoGraphicArtifactExtras
   | AudioOverviewArtifactExtras
+  | VideoOverviewArtifactExtras
   | FlashcardArtifactExtras
   | QuizArtifactExtras
   | DataTableArtifactExtras
@@ -30,6 +32,7 @@ export type StudioToolActionId =
   | 'generate-report'
   | 'generate-info_graphic'
   | 'generate-audio_overview'
+  | 'generate-video_overview'
   | 'generate-flashcard'
   | 'generate-quiz'
   | 'generate-data_table'

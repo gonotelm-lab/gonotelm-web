@@ -23,6 +23,7 @@ import type {
   GenerateQuizParameters,
   GenerateReportParameters,
   GenerateSlidesParameters,
+  GenerateVideoOverviewParameters,
 } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { workspaceLayout, workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
@@ -39,6 +40,7 @@ import { MindmapSettingsDialog } from './MindmapSettingsDialog'
 import { QuizSettingsDialog } from './QuizSettingsDialog'
 import { ReportSettingsDialog } from './ReportSettingsDialog'
 import { SlidesSettingsDialog } from './SlidesSettingsDialog'
+import { VideoOverviewSettingsDialog } from './VideoOverviewSettingsDialog'
 import { getDefaultStudioOutputLanguage } from '@/i18n/studioOutputLanguage'
 import { getDefaultAudioOverviewParameters } from './audioOverviewSettings'
 import { defaultDataTableParameters } from './datatableSettings'
@@ -48,6 +50,7 @@ import { defaultMindmapParameters } from './mindmapSettings'
 import { defaultQuizParameters } from './quizSettings'
 import { getDefaultReportParameters } from './reportSettings'
 import { getDefaultSlidesParameters } from './slidesSettings'
+import { getDefaultVideoOverviewParameters } from './videoOverviewSettings'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
@@ -154,6 +157,11 @@ export const StudioPanel = memo(function StudioPanel({
   const [slidesParams, setSlidesParams] = useState<GenerateSlidesParameters>(
     getDefaultSlidesParameters,
   )
+  const [videoOverviewDialogOpen, setVideoOverviewDialogOpen] = useState(false)
+  const [videoOverviewDialogKey, setVideoOverviewDialogKey] = useState(0)
+  const [videoOverviewParams, setVideoOverviewParams] = useState<GenerateVideoOverviewParameters>(
+    getDefaultVideoOverviewParameters,
+  )
 
   // Keep Studio output-language defaults aligned with UI locale (gonotelm.locale).
   useEffect(() => {
@@ -170,6 +178,9 @@ export const StudioPanel = memo(function StudioPanel({
         : { ...prev, text_language: outputLanguage },
     )
     setSlidesParams((prev) =>
+      prev.language === outputLanguage ? prev : { ...prev, language: outputLanguage },
+    )
+    setVideoOverviewParams((prev) =>
       prev.language === outputLanguage ? prev : { ...prev, language: outputLanguage },
     )
   }, [i18n.language])
@@ -338,6 +349,24 @@ export const StudioPanel = memo(function StudioPanel({
     setSlidesDialogOpen(false)
   }, [canSubmitArtifactTask, slidesParams, selectedReadySourceIds, submitArtifactTask, t])
 
+  const handleCreateVideoOverview = useCallback((params?: GenerateVideoOverviewParameters) => {
+    if (!canSubmitArtifactTask) {
+      return
+    }
+    const submitParams = params ?? videoOverviewParams
+    if (params) {
+      setVideoOverviewParams(params)
+    }
+    void submitArtifactTask({
+      kind: 'video_overview',
+      sourceIds: selectedReadySourceIds,
+      title: t('studio:kind.videoOverview'),
+      actionId: 'generate-video_overview',
+      videoOverview: submitParams,
+    })
+    setVideoOverviewDialogOpen(false)
+  }, [canSubmitArtifactTask, selectedReadySourceIds, submitArtifactTask, t, videoOverviewParams])
+
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)
   }, [])
@@ -410,6 +439,15 @@ export const StudioPanel = memo(function StudioPanel({
     setSlidesDialogOpen(false)
   }, [])
 
+  const handleOpenVideoOverviewDialog = useCallback(() => {
+    setVideoOverviewDialogKey((prev) => prev + 1)
+    setVideoOverviewDialogOpen(true)
+  }, [])
+
+  const handleCloseVideoOverviewDialog = useCallback(() => {
+    setVideoOverviewDialogOpen(false)
+  }, [])
+
   const actionHandlers = useMemo<Record<StudioToolActionId, () => void>>(
     () => ({
       'generate-mindmap': () => {
@@ -423,6 +461,9 @@ export const StudioPanel = memo(function StudioPanel({
       },
       'generate-audio_overview': () => {
         void handleCreateAudioOverview()
+      },
+      'generate-video_overview': () => {
+        void handleCreateVideoOverview()
       },
       'generate-flashcard': () => {
         void handleCreateFlashcard()
@@ -444,6 +485,7 @@ export const StudioPanel = memo(function StudioPanel({
       handleCreateReport,
       handleCreateInfoGraphic,
       handleCreateAudioOverview,
+      handleCreateVideoOverview,
       handleCreateFlashcard,
       handleCreateQuiz,
       handleCreateDataTable,
@@ -457,6 +499,7 @@ export const StudioPanel = memo(function StudioPanel({
       'generate-report': handleOpenReportDialog,
       'generate-info_graphic': handleOpenInfoGraphicDialog,
       'generate-audio_overview': handleOpenAudioOverviewDialog,
+      'generate-video_overview': handleOpenVideoOverviewDialog,
       'generate-flashcard': handleOpenFlashcardDialog,
       'generate-quiz': handleOpenQuizDialog,
       'generate-data_table': handleOpenDataTableDialog,
@@ -467,6 +510,7 @@ export const StudioPanel = memo(function StudioPanel({
       handleOpenReportDialog,
       handleOpenInfoGraphicDialog,
       handleOpenAudioOverviewDialog,
+      handleOpenVideoOverviewDialog,
       handleOpenFlashcardDialog,
       handleOpenQuizDialog,
       handleOpenDataTableDialog,
@@ -637,6 +681,7 @@ export const StudioPanel = memo(function StudioPanel({
           report: t('studio:kind.report'),
           info_graphic: t('studio:kind.infoGraphic'),
           audio_overview: t('studio:kind.audioOverview'),
+          video_overview: t('studio:kind.videoOverview'),
           flashcard: t('studio:kind.flashcard'),
           quiz: t('studio:kind.quiz'),
           data_table: t('studio:kind.dataTable'),
@@ -761,6 +806,14 @@ export const StudioPanel = memo(function StudioPanel({
         initialParams={slidesParams}
         onClose={handleCloseSlidesDialog}
         onGenerate={handleCreateSlides}
+      />
+
+      <VideoOverviewSettingsDialog
+        key={`video-overview-${videoOverviewDialogKey}`}
+        open={videoOverviewDialogOpen}
+        initialParams={videoOverviewParams}
+        onClose={handleCloseVideoOverviewDialog}
+        onGenerate={handleCreateVideoOverview}
       />
 
       {typeof document !== 'undefined'

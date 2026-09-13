@@ -17,6 +17,11 @@ describe('hasStudioArtifactPreviewContent', () => {
     expect(hasStudioArtifactPreviewContent('slides', '', '')).toBe(false)
   })
 
+  it('treats video_overview preview as content_url based', () => {
+    expect(hasStudioArtifactPreviewContent('video_overview', '', 'https://example.com/a.mp4')).toBe(true)
+    expect(hasStudioArtifactPreviewContent('video_overview', 'ignored', '')).toBe(false)
+  })
+
   it('treats text artifacts as content based', () => {
     expect(hasStudioArtifactPreviewContent('report', '# title', '')).toBe(true)
     expect(hasStudioArtifactPreviewContent('mindmap', '', '')).toBe(false)

@@ -25,6 +25,7 @@ import type {
   GenerateQuizParameters,
   GenerateDataTableParameters,
   GenerateSlidesParameters,
+  GenerateVideoOverviewParameters,
 } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -46,6 +47,7 @@ import { buildFlashcardRequestParams } from '../flashcardSettings'
 import { buildQuizRequestParams } from '../quizSettings'
 import { buildDataTableRequestParams } from '../datatableSettings'
 import { buildSlidesRequestParams } from '../slidesSettings'
+import { buildVideoOverviewRequestParams } from '../videoOverviewSettings'
 import {
   resolveStudioArtifactActionId,
   resolveStudioArtifactFallbackTitle,
@@ -102,6 +104,7 @@ const buildLocalExtras = (
   quiz?: GenerateQuizParameters,
   dataTable?: GenerateDataTableParameters,
   slides?: GenerateSlidesParameters,
+  videoOverview?: GenerateVideoOverviewParameters,
 ): StudioArtifactItem['extras'] => {
   switch (kind) {
     case 'mindmap':
@@ -147,6 +150,12 @@ const buildLocalExtras = (
         tip: slides?.tip,
         language: slides?.language,
         visual_style: slides?.visual_style,
+      }
+    case 'video_overview':
+      return {
+        tip: videoOverview?.tip,
+        language: videoOverview?.language,
+        visual_style: videoOverview?.visual_style,
       }
     case 'note':
       return undefined
@@ -204,6 +213,7 @@ interface SubmitStudioArtifactTaskParams {
   quiz?: GenerateQuizParameters
   data_table?: GenerateDataTableParameters
   slides?: GenerateSlidesParameters
+  videoOverview?: GenerateVideoOverviewParameters
 }
 
 export function useStudioArtifactTasks({
@@ -357,6 +367,7 @@ export function useStudioArtifactTasks({
           if (activeNotebookIdRef.current !== notebookSnapshot) {
             return
           }
+          const statusTimestampMs = normalizeStudioTimestampMs(statusResp.timestamp)
 
           if (isStudioTaskCompleted(statusResp.status)) {
             clearStatusPollFailure(item.id)
@@ -372,7 +383,12 @@ export function useStudioArtifactTasks({
                 if (target.id !== item.id) {
                   return target
                 }
-                if (target.status === statusResp.status && target.error === failedMessage) {
+                const nextCreatedAt = statusTimestampMs ?? target.createdAt
+                if (
+                  target.status === statusResp.status &&
+                  target.error === failedMessage &&
+                  target.createdAt === nextCreatedAt
+                ) {
                   return target
                 }
                 changed = true
@@ -380,6 +396,7 @@ export function useStudioArtifactTasks({
                   ...target,
                   status: statusResp.status,
                   error: failedMessage,
+                  createdAt: nextCreatedAt,
                 }
               })
               return changed ? next : prev
@@ -401,7 +418,12 @@ export function useStudioArtifactTasks({
                 if (target.id !== item.id) {
                   return target
                 }
-                if (target.status === statusResp.status && target.error === failedMessage) {
+                const nextCreatedAt = statusTimestampMs ?? target.createdAt
+                if (
+                  target.status === statusResp.status &&
+                  target.error === failedMessage &&
+                  target.createdAt === nextCreatedAt
+                ) {
                   return target
                 }
                 changed = true
@@ -409,6 +431,7 @@ export function useStudioArtifactTasks({
                   ...target,
                   status: statusResp.status,
                   error: failedMessage,
+                  createdAt: nextCreatedAt,
                 }
               })
               return changed ? next : prev
@@ -423,7 +446,12 @@ export function useStudioArtifactTasks({
               if (target.id !== item.id) {
                 return target
               }
-              if (target.status === statusResp.status && !target.error) {
+              const nextCreatedAt = statusTimestampMs ?? target.createdAt
+              if (
+                target.status === statusResp.status &&
+                !target.error &&
+                target.createdAt === nextCreatedAt
+              ) {
                 return target
               }
               changed = true
@@ -431,6 +459,7 @@ export function useStudioArtifactTasks({
                 ...target,
                 status: statusResp.status,
                 error: '',
+                createdAt: nextCreatedAt,
               }
             })
             return changed ? next : prev
@@ -550,6 +579,7 @@ export function useStudioArtifactTasks({
       quiz,
       data_table: dataTable,
       slides,
+      videoOverview,
     }: SubmitStudioArtifactTaskParams) => {
       if (!notebookId) {
         return
@@ -563,6 +593,7 @@ export function useStudioArtifactTasks({
         quiz,
         dataTable,
         slides,
+        videoOverview,
       )
       setPendingActions((prev) => ({ ...prev, [actionId]: true }))
 
@@ -593,6 +624,9 @@ export function useStudioArtifactTasks({
             : {}),
           ...(kind === 'slides'
             ? { slides: buildSlidesRequestParams(slides) }
+            : {}),
+          ...(kind === 'video_overview'
+            ? { video_overview: buildVideoOverviewRequestParams(videoOverview) }
             : {}),
         })
 

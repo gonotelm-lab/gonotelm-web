@@ -7,6 +7,7 @@ import { FlashcardViewer } from '../components/FlashcardViewer'
 import { MindmapCanvas } from '../components/MindmapCanvas'
 import { QuizViewer } from '../components/QuizViewer'
 import { StudioAudioPlayer } from '../components/StudioAudioPlayer'
+import { StudioVideoPlayer } from '../components/StudioVideoPlayer'
 import { StudioSlidesViewer } from '../slides/StudioSlidesViewer'
 import { workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceType } from '@/components/notebook-workspace/shared/ui/typeTokens'
@@ -23,6 +24,7 @@ interface StudioArtifactPreviewRenderContext {
   /** overlay 初始定位页（0-based） */
   initialSlideIndex?: number
   onContentUrlRefreshed?: (nextUrl: string) => void
+  onRetryLoad?: () => void
 }
 
 interface StudioArtifactPreviewRenderer {
@@ -128,6 +130,32 @@ const previewRendererByKind: Partial<Record<StudioArtifactKind, StudioArtifactPr
       </Box>
     ),
   },
+  video_overview: {
+    renderInline: ({ artifact, onRetryLoad }) => (
+      <Box sx={{ width: '100%', height: '100%', minHeight: 0 }}>
+        <StudioVideoPlayer
+          key={artifact.id}
+          videoUrl={artifact.contentUrl}
+          title={artifact.title}
+          playbackKey={artifact.id}
+          mode="inline"
+          onRetry={onRetryLoad}
+        />
+      </Box>
+    ),
+    renderOverlay: ({ artifact, onRetryLoad }) => (
+      <Box sx={{ width: '100%', height: '100%', minHeight: 0 }}>
+        <StudioVideoPlayer
+          key={artifact.id}
+          videoUrl={artifact.contentUrl}
+          title={artifact.title}
+          playbackKey={artifact.id}
+          mode="overlay"
+          onRetry={onRetryLoad}
+        />
+      </Box>
+    ),
+  },
   flashcard: {
     renderInline: ({ content, mode }) => (
       <Box sx={{ height: '100%', minHeight: 0 }}>
@@ -210,6 +238,7 @@ export const renderStudioArtifactPreviewContent = ({
   onOpenOverlayAtSlide,
   initialSlideIndex,
   onContentUrlRefreshed,
+  onRetryLoad,
 }: StudioArtifactPreviewRenderContext) => {
   const renderer = previewRendererByKind[artifact.kind]
   if (!renderer) {
@@ -223,6 +252,7 @@ export const renderStudioArtifactPreviewContent = ({
       onOpenOverlayAtSlide,
       initialSlideIndex,
       onContentUrlRefreshed,
+      onRetryLoad,
     })
   }
   if (mode === 'overlay' && renderer.renderOverlay) {
@@ -233,6 +263,7 @@ export const renderStudioArtifactPreviewContent = ({
       onOpenOverlayAtSlide,
       initialSlideIndex,
       onContentUrlRefreshed,
+      onRetryLoad,
     })
   }
   return renderFallbackPreview(content)
