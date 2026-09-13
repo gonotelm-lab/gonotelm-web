@@ -88,4 +88,45 @@ describe('useStudioArtifactTasks poll timestamp', () => {
 
     renderer.unmount()
   })
+
+  it('refreshes the polling item even when the status timestamp is unchanged', async () => {
+    let renderer = null as unknown as ReactTestRenderer
+    await act(async () => {
+      renderer = create(createElement(Harness))
+    })
+
+    studioApiMocks.getStudioArtifactStatus.mockResolvedValue({
+      task_id: 'task-1',
+      status: 'running',
+      timestamp: 1_700_000_000_000,
+    })
+
+    await act(async () => {
+      await latestState?.submitArtifactTask({
+        kind: 'mindmap',
+        sourceIds: [],
+        title: 'Mind Map',
+        actionId: 'generate-mindmap',
+      })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    const firstItem = latestState?.artifactItems[0]
+    expect(firstItem?.createdAt).toBe(1_700_000_000_000)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000)
+    })
+
+    const secondItem = latestState?.artifactItems[0]
+    expect(secondItem?.createdAt).toBe(1_700_000_000_000)
+    // A new object reference is required for the memoized list item to re-render
+    // and recompute the relative time while the task keeps polling.
+    expect(secondItem).not.toBe(firstItem)
+
+    renderer.unmount()
+  })
 })

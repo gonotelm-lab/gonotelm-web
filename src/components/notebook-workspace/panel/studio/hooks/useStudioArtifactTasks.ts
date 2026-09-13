@@ -440,30 +440,22 @@ export function useStudioArtifactTasks({
           }
 
           clearStatusPollFailure(item.id)
-          setArtifactItems((prev) => {
-            let changed = false
-            const next = prev.map((target) => {
-              if (target.id !== item.id) {
-                return target
-              }
-              const nextCreatedAt = statusTimestampMs ?? target.createdAt
-              if (
-                target.status === statusResp.status &&
-                !target.error &&
-                target.createdAt === nextCreatedAt
-              ) {
-                return target
-              }
-              changed = true
-              return {
-                ...target,
-                status: statusResp.status,
-                error: '',
-                createdAt: nextCreatedAt,
-              }
-            })
-            return changed ? next : prev
-          })
+          // Always write the poll timestamp back onto the item. The memoized
+          // list item only recomputes its relative time on re-render, so a
+          // long-running task must keep producing a new item object even when
+          // the status/timestamp are unchanged.
+          setArtifactItems((prev) =>
+            prev.map((target) =>
+              target.id === item.id
+                ? {
+                    ...target,
+                    status: statusResp.status,
+                    error: '',
+                    createdAt: statusTimestampMs ?? target.createdAt,
+                  }
+                : target,
+            ),
+          )
         } catch (error) {
           const failureCount = bumpStatusPollFailure(item.id)
           if (!shouldFinalizeStatusPollFailure(failureCount)) {
