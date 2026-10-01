@@ -50,142 +50,128 @@ export function LoginPage() {
 
   return (
     <Box
+      component="main"
       sx={{
         minHeight: '100vh',
-        display: 'grid',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         bgcolor: 'background.default',
-        gridTemplateColumns: { xs: '1fr', md: '1.05fr 1fr' },
+        px: workspaceSpace.lg,
+        pt: { xs: 6, md: 10 },
+        pb: { xs: 6, md: 8 },
       }}
     >
-      <Box
+      <Stack
         className="login-rise"
-        sx={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: workspaceSpace.md,
-          px: { xs: workspaceSpace.lg, md: workspaceSpace.xl },
-          py: { xs: workspaceSpace.xl, md: workspaceSpace.xl },
-          bgcolor: 'background.paper',
-          borderColor: 'divider',
-          borderRight: { xs: 0, md: 1 },
-          borderBottom: { xs: 1, md: 0 },
-        }}
+        direction="row"
+        spacing={1.25}
+        sx={{ alignItems: 'center', mb: { xs: 3, md: 4 } }}
       >
         <Box
-          sx={{
-            position: 'absolute',
-            top: { xs: workspaceSpace.lg, md: workspaceSpace.xl },
-            left: { xs: workspaceSpace.lg, md: workspaceSpace.xl },
-            width: 28,
-            height: 2,
-            bgcolor: 'primary.main',
-          }}
+          component="img"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden
+          sx={{ width: 28, height: 28, display: 'block' }}
         />
         <Typography
-          component="h1"
           sx={{
             fontFamily: displayFont,
             fontWeight: 400,
-            fontSize: 'clamp(2.75rem, 7vw, 4.5rem)',
-            lineHeight: 0.95,
+            fontSize: '1.375rem',
+            lineHeight: 1,
             letterSpacing: 0,
             color: 'text.primary',
+            whiteSpace: 'nowrap',
           }}
         >
           {t('login.brand')}
         </Typography>
-        <Box sx={{ width: 48, height: '1px', bgcolor: 'text.primary', opacity: 0.3 }} />
-        <Typography
-          sx={{
-            maxWidth: '34ch',
-            fontSize: { xs: '0.95rem', md: '1rem' },
-            lineHeight: 1.7,
-            color: 'text.secondary',
-          }}
-        >
-          {t('login.tagline')}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: 'text.secondary', opacity: 0.72, letterSpacing: '0.02em' }}
-        >
-          {t('login.modes')}
-        </Typography>
-      </Box>
+      </Stack>
 
-      <Box
+      <Paper
+        className="login-rise login-rise-delayed"
+        component="section"
+        aria-labelledby="auth-title"
+        variant="outlined"
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          px: { xs: workspaceSpace.lg, md: workspaceSpace.xl },
-          py: { xs: workspaceSpace.xl, md: workspaceSpace.xl },
+          width: '100%',
+          maxWidth: 440,
+          p: { xs: 2.5, sm: 4 },
+          borderRadius: workspaceRadiusPx.lg,
         }}
       >
-        <Paper
-          className="login-rise login-rise-delayed"
-          variant="outlined"
-          sx={{ width: '100%', maxWidth: 360, p: workspaceSpace.lg, borderRadius: workspaceRadiusPx.lg }}
-        >
-          <Stack spacing={workspaceSpace.md}>
-            <Stack spacing={workspaceSpace.xxs}>
-              <Typography variant="h6">{t('login.title')}</Typography>
+        <Stack spacing={3} sx={{ alignItems: 'center', textAlign: 'center' }}>
+          <Stack spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
+            <Typography id="auth-title" variant="h5" sx={{ letterSpacing: '-0.01em' }}>
+              {t('login.title')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('login.subtitle')}
+            </Typography>
+          </Stack>
+
+          {providersQuery.isPending ? (
+            <Stack
+              direction="row"
+              spacing={workspaceSpace.sm}
+              sx={{ py: workspaceSpace.sm, alignItems: 'center' }}
+            >
+              <CircularProgress size={16} />
               <Typography variant="body2" color="text.secondary">
-                {t('login.subtitle')}
+                {t('login.loading')}
               </Typography>
             </Stack>
-
-            {providersQuery.isPending ? (
-              <Stack
-                direction="row"
-                spacing={workspaceSpace.sm}
-                sx={{ py: workspaceSpace.md, alignItems: 'center' }}
-              >
-                <CircularProgress size={16} />
-                <Typography variant="body2" color="text.secondary">
-                  {t('login.loading')}
-                </Typography>
-              </Stack>
-            ) : providersQuery.isError ? (
-              <Stack data-testid="login-error" spacing={workspaceSpace.sm}>
-                <Typography variant="body2" color="text.secondary">
-                  {t('login.error')}
-                </Typography>
-                <Button variant="outlined" onClick={() => void providersQuery.refetch()}>
-                  {t('login.retry')}
-                </Button>
-              </Stack>
-            ) : providers.length === 0 ? (
-              <Typography data-testid="login-empty" variant="body2" color="text.secondary">
-                {t('login.empty')}
+          ) : providersQuery.isError ? (
+            <Stack data-testid="login-error" spacing={workspaceSpace.md} sx={{ width: '100%' }}>
+              <Typography variant="body2" color="text.secondary">
+                {t('login.error')}
               </Typography>
-            ) : (
-              <Stack spacing={workspaceSpace.sm}>
-                {providers.map((provider) => {
-                  const label = providerLabel(provider.name, t)
-                  return (
-                    <Button
-                      key={provider.name}
-                      data-provider={provider.name}
-                      variant="contained"
-                      fullWidth
-                      size="large"
-                      startIcon={<ProviderIcon name={provider.name} />}
-                      onClick={() => goToAuthLogin({ provider: provider.name, from: 'web', returnTo })}
-                      sx={{ py: 1.1 }}
-                    >
-                      {t('login.continueWith', { provider: label })}
-                    </Button>
-                  )
-                })}
-              </Stack>
-            )}
-          </Stack>
-        </Paper>
-      </Box>
+              <Button variant="outlined" onClick={() => void providersQuery.refetch()}>
+                {t('login.retry')}
+              </Button>
+            </Stack>
+          ) : providers.length === 0 ? (
+            <Typography data-testid="login-empty" variant="body2" color="text.secondary">
+              {t('login.empty')}
+            </Typography>
+          ) : (
+            <Stack spacing={1.5} sx={{ width: '100%' }}>
+              {providers.map((provider) => {
+                const label = providerLabel(provider.name, t)
+                return (
+                  <Button
+                    key={provider.name}
+                    data-provider={provider.name}
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<ProviderIcon name={provider.name} />}
+                    onClick={() => goToAuthLogin({ provider: provider.name, from: 'web', returnTo })}
+                    sx={{ minHeight: 44, fontWeight: 600 }}
+                  >
+                    {t('login.continueWith', { provider: label })}
+                  </Button>
+                )
+              })}
+            </Stack>
+          )}
+        </Stack>
+      </Paper>
+
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{
+          mt: { xs: 4, md: 6 },
+          maxWidth: 380,
+          textAlign: 'center',
+          fontSize: '0.8125rem',
+          lineHeight: 1.6,
+        }}
+      >
+        {t('login.legal')}
+      </Typography>
     </Box>
   )
 }
