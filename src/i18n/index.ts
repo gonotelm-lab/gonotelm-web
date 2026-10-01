@@ -8,6 +8,7 @@ import workspaceZh from '../locales/zh/workspace.json'
 import sourcesZh from '../locales/zh/sources.json'
 import studioZh from '../locales/zh/studio.json'
 import chatZh from '../locales/zh/chat.json'
+import authZh from '../locales/zh/auth.json'
 
 import commonEn from '../locales/en/common.json'
 import homeEn from '../locales/en/home.json'
@@ -15,6 +16,7 @@ import workspaceEn from '../locales/en/workspace.json'
 import sourcesEn from '../locales/en/sources.json'
 import studioEn from '../locales/en/studio.json'
 import chatEn from '../locales/en/chat.json'
+import authEn from '../locales/en/auth.json'
 
 export const LOCALE_STORAGE_KEY = 'gonotelm.locale'
 export const SUPPORTED_LOCALES = ['zh', 'en'] as const
@@ -33,6 +35,7 @@ void i18n
         sources: sourcesZh,
         studio: studioZh,
         chat: chatZh,
+        auth: authZh,
       },
       en: {
         common: commonEn,
@@ -41,12 +44,13 @@ void i18n
         sources: sourcesEn,
         studio: studioEn,
         chat: chatEn,
+        auth: authEn,
       },
     },
     fallbackLng: DEFAULT_LOCALE,
     supportedLngs: [...SUPPORTED_LOCALES],
     defaultNS: 'common',
-    ns: ['common', 'home', 'workspace', 'sources', 'studio', 'chat'],
+    ns: ['common', 'home', 'workspace', 'sources', 'studio', 'chat', 'auth'],
     interpolation: {
       escapeValue: false,
     },
