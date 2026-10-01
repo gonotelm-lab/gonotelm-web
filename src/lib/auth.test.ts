@@ -24,6 +24,9 @@ describe('sanitizeReturnTo', () => {
     ['', '/'],
     [null, '/'],
     [undefined, '/'],
+    ['/%', '/'],
+    ['/a%2', '/'],
+    ['/\u0000', '/'],
   ])('非法 %s 回退 /', (raw, expected) => {
     expect(sanitizeReturnTo(raw as string)).toBe(expected)
   })
@@ -76,5 +79,17 @@ describe('redirectToLogin', () => {
     redirectToLogin()
 
     expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('重复调用只跳转一次', () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/notebook/n-1', search: '?x=1', assign, origin: 'http://localhost' },
+    })
+
+    redirectToLogin()
+    redirectToLogin()
+
+    expect(assign).toHaveBeenCalledTimes(1)
   })
 })

@@ -24,7 +24,12 @@ export function sanitizeReturnTo(raw: string | null | undefined): string {
   if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) {
     return '/'
   }
-  if (/[\\\r\n]/.test(raw)) {
+  if (/[\u0000-\u001f\u007f\\]/.test(raw)) {
+    return '/'
+  }
+  try {
+    decodeURIComponent(raw)
+  } catch {
     return '/'
   }
   return raw
