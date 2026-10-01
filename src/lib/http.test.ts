@@ -55,6 +55,26 @@ describe('request csrf & auth handling', () => {
     expect(calls).toBe(2)
   })
 
+  it('连续 2003 只刷新重试一次后上抛', async () => {
+    vi.stubGlobal('document', { cookie: '' })
+    let endpointCalls = 0
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/api/v1/auth/providers')) {
+        vi.stubGlobal('document', { cookie: 'gnlm_csrf=refreshed' })
+        return jsonResponse(200, { code: 0, msg: 'ok', data: { providers: [] } })
+      }
+      endpointCalls += 1
+      return jsonResponse(403, { code: 2003, msg: 'CSRF_TOKEN_INVALID', data: null })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      request('/api/v1/notebooks', { method: 'POST', body: '{}' }),
+    ).rejects.toMatchObject({ code: 2003 })
+    expect(endpointCalls).toBe(2)
+  })
+
   it('2002 触发登录跳转并上抛', async () => {
     const assign = vi.fn()
     vi.stubGlobal('window', {

@@ -28,6 +28,12 @@ describe('csrf', () => {
     expect(readCsrfToken()).toBe('tok+1')
   })
 
+  it('cookie 编码非法时返回空且不抛错', () => {
+    vi.stubGlobal('document', { cookie: 'gnlm_csrf=%E0%A4%A' })
+    expect(() => readCsrfToken()).not.toThrow()
+    expect(readCsrfToken()).toBe('')
+  })
+
   it('非安全方法附加 X-CSRF-Token', () => {
     vi.stubGlobal('document', { cookie: 'gnlm_csrf=tok' })
     const headers = attachCsrfHeader({ 'Content-Type': 'application/json' }, 'POST')

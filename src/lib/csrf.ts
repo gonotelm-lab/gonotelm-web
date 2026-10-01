@@ -19,7 +19,11 @@ export function readCsrfToken(): string {
       continue
     }
     if (trimmed.slice(0, separatorIndex) === CSRF_COOKIE_NAME) {
-      return decodeURIComponent(trimmed.slice(separatorIndex + 1))
+      try {
+        return decodeURIComponent(trimmed.slice(separatorIndex + 1))
+      } catch {
+        return ''
+      }
     }
   }
   return ''

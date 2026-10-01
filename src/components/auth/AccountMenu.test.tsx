@@ -1,7 +1,10 @@
 import type { ReactNode, MouseEvent } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { mockServer } from '@/test/mocks'
+import { createErrorResponse } from '@/test/mocks/handlers/httpResponse'
 
 vi.mock('@mui/material', () => ({
   IconButton: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
@@ -67,5 +70,27 @@ describe('AccountMenu', () => {
       await renderer.root.findByProps({ 'data-testid': 'account-logout' }).props.onClick()
     })
     expect(assign).toHaveBeenCalledWith('/login')
+  })
+
+  it('退出失败时展示错误且不跳转', async () => {
+    mockServer.use(
+      http.post('http://127.0.0.1:4173/api/v1/auth/logout', () =>
+        createErrorResponse(500, 'boom', 500_001),
+      ),
+    )
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { assign, pathname: '/', search: '', origin: 'http://localhost' },
+    })
+    const renderer = await renderMenu()
+    openMenu(renderer)
+    await act(async () => {
+      await renderer.root.findByProps({ 'data-testid': 'account-logout' }).props.onClick()
+    })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(assign).not.toHaveBeenCalled()
+    expect(renderer.root.findByProps({ 'data-testid': 'account-logout-error' })).toBeTruthy()
   })
 })

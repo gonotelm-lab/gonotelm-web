@@ -12,6 +12,7 @@ export function AccountMenu() {
   const { data } = useMeQuery()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [logoutFailed, setLogoutFailed] = useState(false)
 
   const nickname = data?.nickname ?? data?.user_id ?? ''
 
@@ -30,13 +31,16 @@ export function AccountMenu() {
       return
     }
     setIsLoggingOut(true)
+    setLogoutFailed(false)
     try {
       await logout()
-    } finally {
       queryClient.clear()
       if (typeof window !== 'undefined') {
         window.location.assign('/login')
       }
+    } catch {
+      setIsLoggingOut(false)
+      setLogoutFailed(true)
     }
   }
 
@@ -63,6 +67,13 @@ export function AccountMenu() {
         >
           {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
         </MenuItem>
+        {logoutFailed ? (
+          <MenuItem disabled sx={{ opacity: 1 }}>
+            <Typography data-testid="account-logout-error" variant="caption" color="error.main">
+              {t('account.logoutFailed')}
+            </Typography>
+          </MenuItem>
+        ) : null}
       </Menu>
     </>
   )
