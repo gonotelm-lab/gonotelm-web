@@ -2,7 +2,7 @@ import { Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/ma
 import GitHubIcon from '@mui/icons-material/GitHub'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { getAuthProviders, goToAuthLogin } from '../api/auth'
 import { sanitizeReturnTo } from '../lib/auth'
 import { useMeQuery } from '../components/auth/useMeQuery'
@@ -41,8 +41,7 @@ export function LoginPage() {
   }
 
   if (meQuery.isSuccess) {
-    window.location.assign(returnTo)
-    return null
+    return <Navigate to={returnTo} replace />
   }
 
   const providers = providersQuery.data?.providers ?? []

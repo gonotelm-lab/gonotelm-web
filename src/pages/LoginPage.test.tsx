@@ -1,6 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
@@ -65,5 +65,27 @@ describe('LoginPage', () => {
     )
     const renderer = await renderLogin()
     expect(renderer.root.findByProps({ 'data-testid': 'login-error' })).toBeTruthy()
+  })
+
+  it('已登录时重定向到 return_to', async () => {
+    // 使用默认 /user/me 成功 handler：已登录应重定向
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    let renderer!: ReactTestRenderer
+    await act(async () => {
+      renderer = create(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/login?return_to=%2Fnotebook%2Fn-1']}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/notebook/:id" element={<div data-testid="landed" />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      )
+    })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(renderer.root.findByProps({ 'data-testid': 'landed' })).toBeTruthy()
   })
 })
