@@ -1,4 +1,5 @@
 import { ApiError, request } from '../lib/http'
+import { isNotLoginError, redirectToLogin } from '../lib/auth'
 import type {
   ApiResult,
   ChatAbortStreamRequest,
@@ -186,6 +187,8 @@ function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
 export async function streamChatEvents(options: StreamChatEventsOptions): Promise<StreamChatEndStatus> {
   const response = await fetch(buildChatStreamUrl(options), {
     method: 'GET',
+    // 直通后端时属于跨源请求，必须显式带上 cookie
+    credentials: 'include',
     headers: {
       Accept: 'text/event-stream',
     },
@@ -194,18 +197,26 @@ export async function streamChatEvents(options: StreamChatEventsOptions): Promis
 
   if (!response.ok) {
     const body = await tryParseApiResult<unknown>(response)
-    throw new ApiError(
+    const error = new ApiError(
       body?.msg ?? `HTTP request failed: ${response.status}`,
       body?.code ?? -1,
       response.status,
     )
+    if (isNotLoginError(error)) {
+      redirectToLogin()
+    }
+    throw error
   }
 
   const contentType = response.headers.get('content-type') ?? ''
   if (contentType.includes('application/json')) {
     const body = await tryParseApiResult<unknown>(response)
     if (body && body.code !== 0) {
-      throw new ApiError(body.msg, body.code, response.status)
+      const error = new ApiError(body.msg, body.code, response.status)
+      if (isNotLoginError(error)) {
+        redirectToLogin()
+      }
+      throw error
     }
     return 'task-not-running'
   }
