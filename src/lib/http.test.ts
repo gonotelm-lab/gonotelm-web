@@ -19,21 +19,21 @@ describe('request csrf & auth handling', () => {
   })
 
   it('非安全方法带上 X-CSRF-Token', async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(200, { code: 0, msg: 'ok', data: null }),
     )
     vi.stubGlobal('fetch', fetchMock)
 
     await request('/api/v1/notebooks', { method: 'POST', body: '{}' })
 
-    const init = fetchMock.mock.calls[0][1] as RequestInit
-    expect((init.headers as Headers).get('X-CSRF-Token')).toBe('tok')
+    const init = fetchMock.mock.calls[0][1]
+    expect((init?.headers as Headers | undefined)?.get('X-CSRF-Token')).toBe('tok')
   })
 
   it('2003 刷新 token 后重试一次', async () => {
     vi.stubGlobal('document', { cookie: '' })
     let calls = 0
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith('/api/v1/auth/providers')) {
         vi.stubGlobal('document', { cookie: 'gnlm_csrf=refreshed' })
