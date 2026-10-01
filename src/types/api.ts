@@ -12,6 +12,23 @@ export interface ApiResult<T> {
   data: T
 }
 
+export type AuthLoginProvider = 'github'
+
+export type AuthLoginFrom = 'web'
+
+export interface AuthProvider {
+  name: string
+}
+
+export interface AuthProvidersResponse {
+  providers: AuthProvider[]
+}
+
+export interface MeResponse {
+  user_id: string
+  nickname: string
+}
+
 export interface Notebook {
   id: string
   name: string
