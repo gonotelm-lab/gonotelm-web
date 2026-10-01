@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { AccountMenu } from '../../auth/AccountMenu'
 import { workspaceRadius, workspaceSpace } from '../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../shared/ui/motionTokens'
 import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
@@ -196,6 +197,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             flexShrink: 0,
           }}
         >
+          <AccountMenu />
           <IconButton
             size="small"
             aria-label={t('workspace:header.deleteAria')}

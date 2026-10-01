@@ -6,10 +6,12 @@ import {
   CircularProgress,
   Container,
   Stack,
+  Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import type { ListNotebooksSortBy } from '@/types/api'
 import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
+import { AccountMenu } from '../components/auth/AccountMenu'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
@@ -100,7 +102,9 @@ export function HomePage() {
   return (
     <Container maxWidth="lg" sx={{ py: workspaceSpace.xl }}>
       <Stack spacing={workspaceLayout.panelPaddingY}>
-        <Stack spacing={workspaceSpace.sm}>
+        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">GoNoteLM</Typography>
+          <AccountMenu />
         </Stack>
         <Box
           sx={{
