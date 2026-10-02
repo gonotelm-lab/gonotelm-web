@@ -43,7 +43,7 @@ describe('LoginPage', () => {
     act(() => button.props.onClick())
 
     expect(assign).toHaveBeenCalledWith(
-      'http://127.0.0.1:4173/api/v1/auth/login?login_provider=github&login_from=web&return_to=%2Fnotebook%2Fn-1',
+      'http://127.0.0.1:4173/api/v1/auth/login?login_provider=github&login_from=web&return_to=http%3A%2F%2Flocalhost%2Fnotebook%2Fn-1',
     )
   })
 
