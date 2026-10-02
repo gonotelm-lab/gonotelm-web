@@ -1,4 +1,5 @@
 import { request } from '../lib/http'
+import { absoluteReturnTo } from '../lib/auth'
 import type { AuthProvidersResponse } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -27,8 +28,12 @@ export function buildAuthLoginPath(params: AuthLoginParams): string {
   return `${AUTH_LOGIN_PATH}?${query.toString()}`
 }
 
+/** return_to 必须带上前端 origin：只给 `/` 时后端回调会 302 到 API 域名（见 lib/auth.absoluteReturnTo）。 */
 export function buildAuthLoginUrl(params: AuthLoginParams): string {
-  return `${API_BASE_URL}${buildAuthLoginPath(params)}`
+  return `${API_BASE_URL}${buildAuthLoginPath({
+    ...params,
+    returnTo: absoluteReturnTo(params.returnTo),
+  })}`
 }
 
 /**

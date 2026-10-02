@@ -85,6 +85,6 @@ describe('request csrf & auth handling', () => {
     ))
 
     await expect(request('/api/v1/user/me')).rejects.toMatchObject({ code: 2002 })
-    expect(assign).toHaveBeenCalledWith('/login?return_to=%2F')
+    expect(assign).toHaveBeenCalledWith('/login?return_to=http%3A%2F%2Flocalhost%2F')
   })
 })
