@@ -27,6 +27,8 @@ export interface AuthProvidersResponse {
 export interface MeResponse {
   user_id: string
   nickname: string
+  /** 头像公开地址；用户未设置头像时后端返回空串。 */
+  avatar_url: string
 }
 
 export interface Notebook {

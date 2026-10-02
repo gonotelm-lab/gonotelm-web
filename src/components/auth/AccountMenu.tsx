@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from 'react'
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
-import { IconButton, Menu, MenuItem, Typography } from '@mui/material'
+import { Avatar, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { logout } from '../../api/auth'
@@ -16,6 +16,8 @@ export function AccountMenu() {
   const [logoutFailed, setLogoutFailed] = useState(false)
 
   const nickname = data?.nickname ?? data?.user_id ?? ''
+  // 后端在用户未设置头像时返回空串；空串不交给 <img>，避免向当前页发起无效请求。
+  const avatarUrl = data?.avatar_url?.trim() || undefined
 
   const handleOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -53,7 +55,16 @@ export function AccountMenu() {
         aria-label={t('account.menuAria')}
         onClick={handleOpen}
       >
-        <AccountCircleOutlinedIcon fontSize="small" />
+        {avatarUrl ? (
+          <Avatar
+            data-testid="account-trigger-avatar"
+            src={avatarUrl}
+            alt={nickname}
+            sx={{ width: 28, height: 28 }}
+          />
+        ) : (
+          <AccountCircleOutlinedIcon fontSize="small" />
+        )}
       </IconButton>
       <Menu
         anchorEl={anchorEl}
@@ -73,16 +84,27 @@ export function AccountMenu() {
         }}
       >
         <MenuItem disabled sx={{ opacity: 1 }}>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            // MenuItem 默认 white-space: nowrap：昵称过长会把菜单撑到满宽再被硬裁掉，改成省略号。
-            noWrap
-            title={nickname}
-            sx={{ minWidth: 0 }}
-          >
-            <span data-testid="account-nickname">{nickname}</span>
-          </Typography>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+            {avatarUrl ? (
+              <Avatar
+                data-testid="account-menu-avatar"
+                src={avatarUrl}
+                // 昵称就在旁边，头像对读屏器是装饰性的。
+                alt=""
+                sx={{ width: 24, height: 24 }}
+              />
+            ) : null}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              // MenuItem 默认 white-space: nowrap：昵称过长会把菜单撑到满宽再被硬裁掉，改成省略号。
+              noWrap
+              title={nickname}
+              sx={{ minWidth: 0 }}
+            >
+              <span data-testid="account-nickname">{nickname}</span>
+            </Typography>
+          </Stack>
         </MenuItem>
         <MenuItem
           data-testid="account-logout"

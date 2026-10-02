@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
-import { createErrorResponse } from '@/test/mocks/handlers/httpResponse'
+import { createErrorResponse, createSuccessResponse } from '@/test/mocks/handlers/httpResponse'
 
 vi.mock('@mui/material', () => ({
   IconButton: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
@@ -18,6 +18,19 @@ vi.mock('@mui/material', () => ({
     <button type="button" {...props}>
       {children}
     </button>
+  ),
+  Avatar: ({
+    children,
+    src,
+    alt,
+    ...props
+  }: { children?: ReactNode; src?: string; alt?: string } & Record<string, unknown>) => (
+    <span data-avatar-src={src} data-avatar-alt={alt} {...props}>
+      {children}
+    </span>
+  ),
+  Stack: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
+    <div {...props}>{children}</div>
   ),
   Typography: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
     <span {...props}>{children}</span>
@@ -59,6 +72,29 @@ describe('AccountMenu', () => {
       renderer.root.findByProps({ 'data-testid': 'account-nickname' }).children.join(''),
     ).toBe('测试用户')
     expect(renderer.root.findByProps({ 'data-testid': 'account-logout' })).toBeTruthy()
+  })
+
+  it('avatar_url 有值时触发器与菜单都渲染头像', async () => {
+    const renderer = await renderMenu()
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'account-trigger-avatar' }).props.src,
+    ).toBe('https://cdn.example.com/avatars/user-1.png')
+    openMenu(renderer)
+    expect(renderer.root.findByProps({ 'data-testid': 'account-menu-avatar' }).props.src).toBe(
+      'https://cdn.example.com/avatars/user-1.png',
+    )
+  })
+
+  it('avatar_url 为空时回退为默认图标', async () => {
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/user/me', () =>
+        createSuccessResponse({ user_id: 'user-1', nickname: '测试用户', avatar_url: '' }),
+      ),
+    )
+    const renderer = await renderMenu()
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'account-trigger-avatar' }),
+    ).toHaveLength(0)
   })
 
   it('点击退出登录调用接口并回登录页', async () => {
