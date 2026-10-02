@@ -27,3 +27,6 @@ __pycache__
 /.agents
 /.superpowers
 /.worktrees
+
+# Local design specs / implementation plans — kept on disk, not in version control
+/docs/
