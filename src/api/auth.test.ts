@@ -48,7 +48,7 @@ describe('buildAuthLoginUrl', () => {
 describe('auth api', () => {
   it('getAuthProviders 解析 providers', async () => {
     await expect(getAuthProviders()).resolves.toEqual({
-      providers: [{ name: 'github' }],
+      providers: [{ name: 'github' }, { name: 'google' }],
     })
   })
 

@@ -47,6 +47,35 @@ describe('LoginPage', () => {
     )
   })
 
+  it('后端同时启用 github 与 google 时逐个渲染，点击 google 用对应 provider 跳转', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', { location: { assign, pathname: '/login', search: '', origin: 'http://localhost' } })
+
+    const renderer = await renderLogin()
+
+    // 两个 provider 各一个按钮，且文案走 i18n（provider.google → 「使用 Google 登录」）
+    expect(renderer.root.findByProps({ 'data-provider': 'github' })).toBeTruthy()
+    expect(renderer.root.findByProps({ 'data-provider': 'google' })).toBeTruthy()
+    expect(JSON.stringify(renderer.toJSON())).toContain('使用 Google 登录')
+
+    // 品牌标志是四色 Google「G」，四条 path 对应红/蓝/黄/绿
+    const glyphPaths = renderer.root
+      .findByProps({ 'data-provider': 'google' })
+      .findAllByType('path')
+    expect(glyphPaths.map((node) => node.props.fill)).toEqual([
+      '#EA4335',
+      '#4285F4',
+      '#FBBC05',
+      '#34A853',
+    ])
+
+    act(() => renderer.root.findByProps({ 'data-provider': 'google' }).props.onClick())
+
+    expect(assign).toHaveBeenCalledWith(
+      'http://127.0.0.1:4173/api/v1/auth/login?login_provider=google&login_from=web&return_to=http%3A%2F%2Flocalhost%2Fnotebook%2Fn-1',
+    )
+  })
+
   it('providers 为空时展示空态', async () => {
     mockServer.use(
       http.get('http://127.0.0.1:4173/api/v1/auth/providers', () =>
