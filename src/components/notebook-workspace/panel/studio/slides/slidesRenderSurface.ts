@@ -4,7 +4,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
  * 阻断站点主题字体（Geist 等）渗入 pptx 渲染树，
  * 避免未显式设 font 的节点继承后改变行距/换行。
  */
-export const slidesRenderSurfaceSx: SxProps<Theme> = {
+export const slidesRenderSurfaceSx = {
   fontFamily: 'Arial, "Microsoft YaHei", "微软雅黑", "Noto Sans SC", sans-serif',
   lineHeight: 'normal',
   letterSpacing: 'normal',
@@ -17,4 +17,4 @@ export const slidesRenderSurfaceSx: SxProps<Theme> = {
   '& *': {
     fontSynthesis: 'none',
   },
-}
+} satisfies SxProps<Theme>

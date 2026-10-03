@@ -1,0 +1,44 @@
+{
+  "title": "设置",
+  "nav": {
+    "aria": "设置导航",
+    "profile": "个人资料",
+    "general": "通用"
+  },
+  "profile": {
+    "title": "个人资料",
+    "subtitle": "更新账号对外展示的信息。",
+    "avatarLabel": "头像",
+    "nicknameLabel": "昵称",
+    "nicknameCount": "{{count}}/{{max}} 字",
+    "nicknameRequired": "昵称不能为空。",
+    "nicknameTooLong": "昵称最多 {{max}} 个字符。",
+    "userIdLabel": "用户 ID",
+    "saved": "已保存",
+    "saveFailed": "保存失败，请重试。",
+    "avatarConstraints": "选择图片上传：支持 PNG / JPEG 格式，大小不超过 1MB"
+  },
+  "avatar": {
+    "tooLarge": "图片超过 1MB，请压缩后重试。",
+    "unsupportedFormat": "仅支持 PNG 或 JPEG 格式的图片。",
+    "empty": "图片内容为空，请重新选择。",
+    "decodeFailed": "无法读取该图片，请换一张重试。",
+    "readFailed": "读取图片失败，请重试。",
+    "select": "选择图片",
+    "change": "更换头像",
+    "uploading": "上传中...",
+    "uploadFailed": "头像上传失败，请重试。",
+    "updated": "头像已更新",
+    "title": "裁剪头像",
+    "dragHint": "拖动虚线框移动选区，拖右下角手柄缩放。",
+    "confirm": "使用此头像"
+  },
+  "general": {
+    "title": "通用",
+    "subtitle": "调整应用在当前浏览器中的使用方式。",
+    "languageLabel": "界面语言",
+    "languageHelp": "切换后立即生效，并记住你的选择。",
+    "languageZh": "简体中文",
+    "languageEn": "English"
+  }
+}

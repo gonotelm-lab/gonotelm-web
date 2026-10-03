@@ -31,6 +31,16 @@ export interface MeResponse {
   avatar_url: string
 }
 
+/** PATCH /api/v1/user/me 请求体；当前后端仅接受昵称。 */
+export interface UpdateMeRequest {
+  nickname: string
+}
+
+/** POST /api/v1/user/me/avatar 响应；返回转存后的头像直链。 */
+export interface UpdateAvatarResponse {
+  avatar_url: string
+}
+
 export interface Notebook {
   id: string
   name: string

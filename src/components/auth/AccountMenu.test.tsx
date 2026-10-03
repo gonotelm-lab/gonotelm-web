@@ -29,15 +29,18 @@ vi.mock('@mui/material', () => ({
       {children}
     </span>
   ),
-  Stack: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
-    <div {...props}>{children}</div>
-  ),
   Typography: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
     <span {...props}>{children}</span>
   ),
 }))
 
 vi.mock('@mui/icons-material/AccountCircleOutlined', () => ({ default: () => null }))
+
+// 设置对话框有自己的测试；这里只验证账号菜单的开关接线。
+vi.mock('../settings/SettingsDialog', () => ({
+  SettingsDialog: ({ open }: { open?: boolean; onClose?: () => void }) =>
+    open ? <div data-testid="settings-dialog" /> : null,
+}))
 
 import { AccountMenu } from './AccountMenu'
 
@@ -65,24 +68,19 @@ const openMenu = (renderer: ReactTestRenderer) => {
 describe('AccountMenu', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('打开菜单展示昵称与退出项', async () => {
+  it('打开菜单展示设置与退出项，不再展示昵称', async () => {
     const renderer = await renderMenu()
     openMenu(renderer)
-    expect(
-      renderer.root.findByProps({ 'data-testid': 'account-nickname' }).children.join(''),
-    ).toBe('测试用户')
+    expect(renderer.root.findByProps({ 'data-testid': 'account-settings' })).toBeTruthy()
     expect(renderer.root.findByProps({ 'data-testid': 'account-logout' })).toBeTruthy()
+    expect(renderer.root.findAllByProps({ 'data-testid': 'account-nickname' })).toHaveLength(0)
   })
 
-  it('avatar_url 有值时触发器与菜单都渲染头像', async () => {
+  it('avatar_url 有值时触发器渲染头像', async () => {
     const renderer = await renderMenu()
     expect(
       renderer.root.findByProps({ 'data-testid': 'account-trigger-avatar' }).props.src,
     ).toBe('https://cdn.example.com/avatars/user-1.png')
-    openMenu(renderer)
-    expect(renderer.root.findByProps({ 'data-testid': 'account-menu-avatar' }).props.src).toBe(
-      'https://cdn.example.com/avatars/user-1.png',
-    )
   })
 
   it('avatar_url 为空时回退为默认图标', async () => {
@@ -95,6 +93,16 @@ describe('AccountMenu', () => {
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'account-trigger-avatar' }),
     ).toHaveLength(0)
+  })
+
+  it('点击设置项打开设置对话框', async () => {
+    const renderer = await renderMenu()
+    expect(renderer.root.findAllByProps({ 'data-testid': 'settings-dialog' })).toHaveLength(0)
+
+    openMenu(renderer)
+    act(() => renderer.root.findByProps({ 'data-testid': 'account-settings' }).props.onClick())
+
+    expect(renderer.root.findByProps({ 'data-testid': 'settings-dialog' })).toBeTruthy()
   })
 
   it('点击退出登录调用接口并回登录页', async () => {

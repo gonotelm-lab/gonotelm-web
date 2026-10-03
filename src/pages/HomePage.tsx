@@ -23,6 +23,13 @@ import {
 import { buildCreateNotebookRequest } from './home/createNotebookRequest'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
 
+/** Home header mirrors the workspace chrome so the account trigger matches across pages. */
+const homeHeaderChrome = {
+  rowMinHeight: 48,
+  controlHeight: 36,
+  avatarSize: 32,
+} as const
+
 export function HomePage() {
   const { t } = useTranslation('home')
   const navigate = useNavigate()
@@ -102,9 +109,19 @@ export function HomePage() {
   return (
     <Container maxWidth="lg" sx={{ py: workspaceSpace.xl }}>
       <Stack spacing={workspaceLayout.panelPaddingY}>
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            minHeight: homeHeaderChrome.rowMinHeight,
+          }}
+        >
           <Typography variant="h6">GoNoteLM</Typography>
-          <AccountMenu />
+          <AccountMenu
+            triggerSize={homeHeaderChrome.controlHeight}
+            avatarSize={homeHeaderChrome.avatarSize}
+          />
         </Stack>
         <Box
           sx={{

@@ -35,12 +35,17 @@ export async function request<T>(
     if (unsafe) {
       await ensureCsrfToken()
     }
+    // FormData 必须让浏览器自行生成 multipart boundary，不能预设 Content-Type。
+    const isFormData = init?.body instanceof FormData
     return fetch(`${API_BASE_URL}${path}`, {
       ...init,
       method,
       credentials: 'include',
       headers: attachCsrfHeader(
-        { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+        {
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+          ...(init?.headers ?? {}),
+        },
         method,
       ),
     })

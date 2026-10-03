@@ -20,10 +20,17 @@ import { workspaceRadius, workspaceSpace } from '../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../shared/ui/motionTokens'
 import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
 
-/** Workbench chrome: keep header thin so panels get the viewport. */
+/**
+ * Workbench chrome. The 48px row is sized together with its contents: 36px controls
+ * leave 6px breathing top/bottom, and 20px glyphs keep the icon-to-button ratio sane.
+ * Title type stays on the locked 14px step — 18px would read as a page title, not chrome.
+ */
 const headerChrome = {
-  rowMinHeight: 40,
-  controlHeight: 32,
+  rowMinHeight: 48,
+  controlHeight: 36,
+  controlIconSize: workspaceIconSize.lg,
+  accountAvatarSize: 32,
+  statusSpinnerSize: workspaceIconSize.sm,
   titleFontSize: workspaceTypeRem.sm,
 } as const
 
@@ -132,7 +139,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             p: 0,
           }}
         >
-          <ArrowBackOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+          <ArrowBackOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />
         </IconButton>
         <InputBase
           value={draftName}
@@ -160,7 +167,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             minWidth: 0,
             maxWidth: { xs: '100%', md: 560 },
             height: headerChrome.controlHeight,
-            px: workspaceSpace.sm,
+            px: workspaceSpace.md,
             py: 0,
             borderRadius: workspaceRadius.md,
             border: 1,
@@ -197,7 +204,10 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             flexShrink: 0,
           }}
         >
-          <AccountMenu />
+          <AccountMenu
+            triggerSize={headerChrome.controlHeight}
+            avatarSize={headerChrome.accountAvatarSize}
+          />
           <IconButton
             size="small"
             aria-label={t('workspace:header.deleteAria')}
@@ -209,9 +219,11 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
               p: 0,
             }}
           >
-            <DeleteOutlineOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+            <DeleteOutlineOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />
           </IconButton>
-          {(isFetching || isUpdatingName || isDeletingNotebook) && <CircularProgress size={14} />}
+          {(isFetching || isUpdatingName || isDeletingNotebook) && (
+            <CircularProgress size={headerChrome.statusSpinnerSize} />
+          )}
         </Box>
       </Box>
       <Dialog

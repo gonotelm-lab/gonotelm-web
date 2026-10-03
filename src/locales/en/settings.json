@@ -1,0 +1,44 @@
+{
+  "title": "Settings",
+  "nav": {
+    "aria": "Settings navigation",
+    "profile": "Profile",
+    "general": "General"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Update the information shown on your account.",
+    "avatarLabel": "Avatar",
+    "nicknameLabel": "Nickname",
+    "nicknameCount": "{{count}}/{{max}} characters",
+    "nicknameRequired": "Nickname cannot be empty.",
+    "nicknameTooLong": "Nickname can be at most {{max}} characters.",
+    "userIdLabel": "User ID",
+    "saved": "Saved",
+    "saveFailed": "Save failed. Please retry.",
+    "avatarConstraints": "Upload an image: PNG / JPEG, up to 1MB"
+  },
+  "avatar": {
+    "tooLarge": "The image exceeds 1MB. Please compress it and retry.",
+    "unsupportedFormat": "Only PNG and JPEG images are supported.",
+    "empty": "The image file is empty. Please choose another one.",
+    "decodeFailed": "This image could not be read. Please try another one.",
+    "readFailed": "Failed to read the image. Please retry.",
+    "select": "Choose image",
+    "change": "Change avatar",
+    "uploading": "Uploading...",
+    "uploadFailed": "Avatar upload failed. Please retry.",
+    "updated": "Avatar updated",
+    "title": "Crop avatar",
+    "dragHint": "Drag the dashed box to move it, or its corner handle to resize.",
+    "confirm": "Use this avatar"
+  },
+  "general": {
+    "title": "General",
+    "subtitle": "Adjust how the app behaves in this browser.",
+    "languageLabel": "Interface language",
+    "languageHelp": "Applies immediately and is remembered.",
+    "languageZh": "简体中文",
+    "languageEn": "English"
+  }
+}
