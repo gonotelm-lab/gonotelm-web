@@ -183,6 +183,12 @@ export type StudioArtifactContentKind = 'inline' | 'storage'
 
 export type StudioArtifactInfoGraphicOrientation = 'portrait' | 'landscape' | 'square'
 export type StudioArtifactInfoGraphicDetailLevel = 'concise' | 'standard' | 'detailed'
+/**
+ * Info graphic visual styles are backend-driven
+ * (`GET /artifacts/style-previews?kind=info_graphic`). Known values keep
+ * autocomplete; the open `(string & {})` member lets the backend add a style
+ * without a frontend type change.
+ */
 export type StudioArtifactInfoGraphicVisualStyle =
   | 'default'
   | 'hand-drawn'
@@ -190,6 +196,7 @@ export type StudioArtifactInfoGraphicVisualStyle =
   | 'cute'
   | 'educational'
   | 'minimal-2.5d'
+  | (string & {})
 export type StudioArtifactAudioOverviewStyle =
   | 'deep-research'
   | 'abstract'
@@ -202,8 +209,27 @@ export type StudioArtifactReportStyle =
   | 'study-guide'
   | 'detailed'
 
-export type StudioArtifactSlidesVisualStyle = 'default' | 'educational' | 'cute'
-export type StudioArtifactVideoOverviewVisualStyle = 'default' | 'educational' | 'cute'
+/**
+ * Slides visual styles are backend-driven (`GET /artifacts/style-previews`).
+ * Known values keep autocomplete; the open `(string & {})` member lets the
+ * backend add a style without a frontend type change.
+ */
+export type StudioArtifactSlidesVisualStyle =
+  | 'default'
+  | 'educational'
+  | 'cute'
+  | (string & {})
+/**
+ * Video overview visual styles are backend-driven
+ * (`GET /artifacts/style-previews?kind=video_overview`). Known values keep
+ * autocomplete; the open `(string & {})` member lets the backend add a style
+ * without a frontend type change.
+ */
+export type StudioArtifactVideoOverviewVisualStyle =
+  | 'default'
+  | 'educational'
+  | 'cute'
+  | (string & {})
 
 export interface GenerateMindmapParameters {
   tip?: string
@@ -390,6 +416,20 @@ export interface ListNotebookStudioArtifactsResponse {
   limit: number
   offset: number
   has_more: boolean
+}
+
+/** One previewable style of an artifact kind. `preview_url` is empty when the
+ * backend has no seeded preview image for the style. */
+export interface StudioStylePreviewItem {
+  visual_style: string
+  preview_url: string
+}
+
+export interface ListStudioStylePreviewsResponse {
+  kind: StudioArtifactKind
+  /** Visual style the backend uses when the request omits `visual_style`. */
+  default_visual_style: string
+  previews: StudioStylePreviewItem[]
 }
 
 export interface ConvertNoteToSourceResponse {

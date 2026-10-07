@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -11,20 +11,18 @@ import {
   MenuItem,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import type {
-  GenerateSlidesParameters,
-  StudioArtifactSlidesVisualStyle,
-} from '@/types/api'
+import type { GenerateSlidesParameters } from '@/types/api'
 import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
-import { settingsToggleButtonSx } from '../chat/chatSettings'
+import { StylePreviewPicker } from './components/StylePreviewPicker'
+import { useStudioStylePreviews } from './hooks/useStudioStylePreviews'
 import {
   getDefaultSlidesParameters,
   getSlidesLanguageOptionList,
-  getSlidesVisualStyleOptionList,
+  getSlidesVisualStyleOptionListFromPreviews,
+  resolveSlidesVisualStyle,
+  SLIDES_STYLE_PREVIEW_KIND,
 } from './slidesSettings'
 
 interface SlidesSettingsDialogProps {
@@ -43,11 +41,24 @@ export const SlidesSettingsDialog = memo(function SlidesSettingsDialog({
   const { t } = useTranslation(['studio', 'common'])
   const [draftParams, setDraftParams] = useState<GenerateSlidesParameters>(initialParams)
   const slidesLanguageOptionList = getSlidesLanguageOptionList()
-  const slidesVisualStyleOptionList = getSlidesVisualStyleOptionList()
+  // Fetched only once this dialog opens. The backend is the source of truth for
+  // styles + preview art; a failed or empty response resolves to the hardcoded
+  // option list.
+  const { data: stylePreviews } = useStudioStylePreviews(SLIDES_STYLE_PREVIEW_KIND, {
+    enabled: open,
+  })
+  const slidesVisualStyleOptionList = useMemo(
+    () => getSlidesVisualStyleOptionListFromPreviews(stylePreviews),
+    [stylePreviews],
+  )
 
   const defaults = getDefaultSlidesParameters()
   const language = draftParams.language || defaults.language
-  const visualStyle = draftParams.visual_style || defaults.visual_style || 'default'
+  const visualStyle = resolveSlidesVisualStyle(
+    slidesVisualStyleOptionList,
+    draftParams.visual_style,
+    stylePreviews?.default_visual_style,
+  )
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
@@ -88,22 +99,14 @@ export const SlidesSettingsDialog = memo(function SlidesSettingsDialog({
             <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               {t('studio:settings.visualStyleHelp.slides')}
             </Typography>
-            <ToggleButtonGroup
-              exclusive
+            <StylePreviewPicker
               value={visualStyle}
-              onChange={(_, nextValue: StudioArtifactSlidesVisualStyle | null) => {
-                if (nextValue) {
-                  setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
-                }
-              }}
-              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
-            >
-              {slidesVisualStyleOptionList.map((option) => (
-                <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
-                  {option.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+              options={slidesVisualStyleOptionList}
+              onChange={(nextValue) =>
+                setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
+              }
+              ariaLabel={t('studio:settings.visualStyle')}
+            />
             <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {slidesVisualStyleOptionList.find((option) => option.value === visualStyle)?.description}
             </Typography>
@@ -137,7 +140,10 @@ export const SlidesSettingsDialog = memo(function SlidesSettingsDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common:action.cancel')}</Button>
-        <Button variant="contained" onClick={() => onGenerate(draftParams)}>
+        <Button
+          variant="contained"
+          onClick={() => onGenerate({ ...draftParams, visual_style: visualStyle })}
+        >
           {t('common:action.generate')}
         </Button>
       </DialogActions>

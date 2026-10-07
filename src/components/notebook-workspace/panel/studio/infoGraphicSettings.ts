@@ -2,10 +2,19 @@ import i18n from '@/i18n'
 import { getDefaultStudioOutputLanguage } from '@/i18n/studioOutputLanguage'
 import type {
   GenerateInfoGraphicParameters,
+  ListStudioStylePreviewsResponse,
   StudioArtifactInfoGraphicDetailLevel,
   StudioArtifactInfoGraphicOrientation,
   StudioArtifactInfoGraphicVisualStyle,
 } from '@/types/api'
+import {
+  buildStylePreviewOptionList,
+  resolveStylePreviewValue,
+  type StylePreviewOption,
+} from './stylePreviewSettings'
+
+/** `kind` query sent to GET /api/v1/artifacts/style-previews. */
+export const INFO_GRAPHIC_STYLE_PREVIEW_KIND = 'info_graphic'
 
 export function getDefaultInfoGraphicParameters(): GenerateInfoGraphicParameters {
   return {
@@ -80,11 +89,7 @@ export function getInfoGraphicDetailLevelOptionList(): {
   ]
 }
 
-export function getInfoGraphicVisualStyleOptionList(): {
-  value: StudioArtifactInfoGraphicVisualStyle
-  label: string
-  description: string
-}[] {
+export function getInfoGraphicVisualStyleOptionList(): StylePreviewOption[] {
   return [
     {
       value: 'default',
@@ -117,4 +122,43 @@ export function getInfoGraphicVisualStyleOptionList(): {
       description: i18n.t('studio:infoGraphic.visual.minimal25d.description'),
     },
   ]
+}
+
+/**
+ * Backend list wins (order, membership, preview images); unknown styles keep the
+ * raw value as label. Empty/absent response falls back to the hardcoded list.
+ */
+export function getInfoGraphicVisualStyleOptionListFromPreviews(
+  response?: ListStudioStylePreviewsResponse | null,
+): StylePreviewOption[] {
+  return buildStylePreviewOptionList(response, getInfoGraphicVisualStyleOptionList())
+}
+
+/** Keeps the selection on a style the backend still lists, else backend default. */
+export function resolveInfoGraphicVisualStyle(
+  options: StylePreviewOption[],
+  current?: string,
+  backendDefault?: string,
+): StudioArtifactInfoGraphicVisualStyle {
+  return resolveStylePreviewValue(options, current, backendDefault) ?? 'default'
+}
+
+/**
+ * Generate-time guard: whatever style was requested (dialog choice or the plain
+ * tool-card click), submit only a style the backend lists — otherwise the
+ * backend default, otherwise the hardcoded first option.
+ */
+export function resolveInfoGraphicParamsWithPreviews(
+  params: GenerateInfoGraphicParameters,
+  previews?: ListStudioStylePreviewsResponse | null,
+): GenerateInfoGraphicParameters {
+  const options = getInfoGraphicVisualStyleOptionListFromPreviews(previews)
+  return {
+    ...params,
+    visual_style: resolveInfoGraphicVisualStyle(
+      options,
+      params.visual_style,
+      previews?.default_visual_style,
+    ),
+  }
 }

@@ -74,6 +74,33 @@ vi.mock('./preview/useStudioPreviewController', () => ({
   }),
 }))
 
+// Slides style picker falls back to its hardcoded list when previews are absent.
+vi.mock('./hooks/useStudioStylePreviews', () => ({
+  useStudioStylePreviews: () => ({ data: undefined }),
+}))
+
+// The resolver would query the backend; tests override its result per case.
+const resolveSlidesVisualStyleParamsMock = vi.hoisted(() =>
+  vi.fn(async (params: unknown) => params),
+)
+vi.mock('./hooks/useSlidesVisualStyleResolver', () => ({
+  useSlidesVisualStyleResolver: () => resolveSlidesVisualStyleParamsMock,
+}))
+
+const resolveInfoGraphicVisualStyleParamsMock = vi.hoisted(() =>
+  vi.fn(async (params: unknown) => params),
+)
+vi.mock('./hooks/useInfoGraphicVisualStyleResolver', () => ({
+  useInfoGraphicVisualStyleResolver: () => resolveInfoGraphicVisualStyleParamsMock,
+}))
+
+const resolveVideoOverviewVisualStyleParamsMock = vi.hoisted(() =>
+  vi.fn(async (params: unknown) => params),
+)
+vi.mock('./hooks/useVideoOverviewVisualStyleResolver', () => ({
+  useVideoOverviewVisualStyleResolver: () => resolveVideoOverviewVisualStyleParamsMock,
+}))
+
 vi.mock('./components/StudioToolCard', () => ({
   StudioToolCard: ({
     tool,
@@ -183,6 +210,9 @@ describe('StudioPanel 任务触发参数', () => {
   beforeEach(() => {
     submitArtifactTaskMock.mockClear()
     reloadHistoryArtifactsMock.mockClear()
+    resolveSlidesVisualStyleParamsMock.mockClear()
+    resolveInfoGraphicVisualStyleParamsMock.mockClear()
+    resolveVideoOverviewVisualStyleParamsMock.mockClear()
   })
 
   it('触发音频概览任务时携带默认参数', () => {
@@ -251,7 +281,7 @@ describe('StudioPanel 任务触发参数', () => {
     )
   })
 
-  it('高级设置确认后，直接点击也复用上一次参数', () => {
+  it('高级设置确认后，直接点击也复用上一次参数', async () => {
     const renderer = renderStudioPanel()
 
     const advancedEntry = renderer.root.findByProps({
@@ -264,14 +294,14 @@ describe('StudioPanel 任务触发参数', () => {
     const dialogGenerateButton = renderer.root.findByProps({
       'data-testid': 'dialog-generate-info-graphic',
     })
-    act(() => {
+    await act(async () => {
       dialogGenerateButton.props.onClick()
     })
 
     const quickCreateButton = renderer.root.findByProps({
       'data-testid': 'tool-generate-info_graphic',
     })
-    act(() => {
+    await act(async () => {
       quickCreateButton.props.onClick()
     })
 
@@ -290,6 +320,100 @@ describe('StudioPanel 任务触发参数', () => {
         kind: 'info_graphic',
         actionId: 'generate-info_graphic',
         infoGraphic: confirmedInfoGraphicParams,
+      }),
+    )
+  })
+
+  it('直接点击信息图生成时，先确认支持的风格再提交', async () => {
+    resolveInfoGraphicVisualStyleParamsMock.mockResolvedValueOnce({
+      orientation: 'landscape',
+      text_language: 'zh-CN',
+      detail_level: 'standard',
+      visual_style: 'hand-drawn',
+      extra_prompt: '',
+    })
+    const renderer = renderStudioPanel()
+
+    const quickCreateButton = renderer.root.findByProps({
+      'data-testid': 'tool-generate-info_graphic',
+    })
+    await act(async () => {
+      quickCreateButton.props.onClick()
+    })
+
+    expect(resolveInfoGraphicVisualStyleParamsMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'info_graphic',
+        actionId: 'generate-info_graphic',
+        infoGraphic: {
+          orientation: 'landscape',
+          text_language: 'zh-CN',
+          detail_level: 'standard',
+          visual_style: 'hand-drawn',
+          extra_prompt: '',
+        },
+      }),
+    )
+  })
+
+  it('直接点击幻灯片生成时，先确认支持的风格再提交', async () => {
+    resolveSlidesVisualStyleParamsMock.mockResolvedValueOnce({
+      language: 'zh-CN',
+      visual_style: 'cute',
+      tip: '',
+    })
+    const renderer = renderStudioPanel()
+
+    const quickCreateButton = renderer.root.findByProps({
+      'data-testid': 'tool-generate-slides',
+    })
+    await act(async () => {
+      quickCreateButton.props.onClick()
+    })
+
+    expect(resolveSlidesVisualStyleParamsMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'slides',
+        actionId: 'generate-slides',
+        slides: {
+          language: 'zh-CN',
+          visual_style: 'cute',
+          tip: '',
+        },
+      }),
+    )
+  })
+
+  it('直接点击视频概览生成时，先确认支持的风格再提交', async () => {
+    resolveVideoOverviewVisualStyleParamsMock.mockResolvedValueOnce({
+      language: 'zh-CN',
+      visual_style: 'educational',
+      tip: '',
+    })
+    const renderer = renderStudioPanel()
+
+    const quickCreateButton = renderer.root.findByProps({
+      'data-testid': 'tool-generate-video_overview',
+    })
+    await act(async () => {
+      quickCreateButton.props.onClick()
+    })
+
+    expect(resolveVideoOverviewVisualStyleParamsMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledTimes(1)
+    expect(submitArtifactTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'video_overview',
+        actionId: 'generate-video_overview',
+        videoOverview: {
+          language: 'zh-CN',
+          visual_style: 'educational',
+          tip: '',
+        },
       }),
     )
   })

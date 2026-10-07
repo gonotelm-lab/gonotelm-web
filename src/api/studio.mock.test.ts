@@ -8,6 +8,7 @@ import {
   getStudioArtifact,
   getStudioArtifactStatus,
   listNotebookStudioArtifacts,
+  listStudioStylePreviews,
   retryStudioArtifactTask,
 } from './studio'
 
@@ -36,6 +37,55 @@ describe('studio api with msw mock', () => {
 
     const result = await listNotebookStudioArtifacts('notebook-1')
     expect(result.artifacts).toHaveLength(0)
+  })
+
+  it('loads style previews from GET /artifacts/style-previews', async () => {
+    const result = await listStudioStylePreviews('slides')
+
+    expect(result.kind).toBe('slides')
+    expect(result.default_visual_style).toBe('default')
+    expect(result.previews.map((preview) => preview.visual_style)).toEqual([
+      'default',
+      'cute',
+      'educational',
+    ])
+    expect(result.previews[0].preview_url).toBe('https://example.com/style-default.webp')
+  })
+
+  it('loads info graphic style previews for kind=info_graphic', async () => {
+    const result = await listStudioStylePreviews('info_graphic')
+
+    expect(result.kind).toBe('info_graphic')
+    expect(result.default_visual_style).toBe('default')
+    expect(result.previews.map((preview) => preview.visual_style)).toEqual([
+      'default',
+      'hand-drawn',
+      'anime',
+      'cute',
+      'educational',
+      'minimal-2.5d',
+    ])
+    expect(result.previews[0].preview_url).toBe('https://example.com/info-default.webp')
+  })
+
+  it('loads video overview style previews for kind=video_overview', async () => {
+    const result = await listStudioStylePreviews('video_overview')
+
+    expect(result.kind).toBe('video_overview')
+    expect(result.default_visual_style).toBe('default')
+    expect(result.previews.map((preview) => preview.visual_style)).toEqual([
+      'default',
+      'cute',
+      'educational',
+    ])
+    expect(result.previews[0].preview_url).toBe('https://example.com/video-default.webp')
+  })
+
+  it('returns no style previews under empty scenario', async () => {
+    setMockScenario('studio', 'empty')
+
+    const result = await listStudioStylePreviews('slides')
+    expect(result.previews).toHaveLength(0)
   })
 
   it('supports retry, cancel and delete actions', async () => {

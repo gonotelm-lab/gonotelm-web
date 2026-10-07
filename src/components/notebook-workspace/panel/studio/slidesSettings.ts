@@ -2,8 +2,17 @@ import i18n from '@/i18n'
 import { getDefaultStudioOutputLanguage } from '@/i18n/studioOutputLanguage'
 import type {
   GenerateSlidesParameters,
+  ListStudioStylePreviewsResponse,
   StudioArtifactSlidesVisualStyle,
 } from '@/types/api'
+import {
+  buildStylePreviewOptionList,
+  resolveStylePreviewValue,
+  type StylePreviewOption,
+} from './stylePreviewSettings'
+
+/** `kind` query sent to GET /api/v1/artifacts/style-previews. */
+export const SLIDES_STYLE_PREVIEW_KIND = 'slides'
 
 export function getDefaultSlidesParameters(): GenerateSlidesParameters {
   return {
@@ -39,11 +48,11 @@ export function getSlidesLanguageOptionList(): { value: string; label: string }[
   ]
 }
 
-export function getSlidesVisualStyleOptionList(): {
-  value: StudioArtifactSlidesVisualStyle
-  label: string
-  description: string
-}[] {
+/**
+ * Hardcoded fallback list: used when the style-preview endpoint errors or
+ * returns no styles, so the dialog always offers a usable choice.
+ */
+export function getSlidesVisualStyleOptionList(): StylePreviewOption[] {
   return [
     {
       value: 'default',
@@ -61,4 +70,43 @@ export function getSlidesVisualStyleOptionList(): {
       description: i18n.t('studio:style.slides.cute.description'),
     },
   ]
+}
+
+/**
+ * Backend list wins (order, membership, preview images); unknown styles keep the
+ * raw value as label. Empty/absent response falls back to the hardcoded list.
+ */
+export function getSlidesVisualStyleOptionListFromPreviews(
+  response?: ListStudioStylePreviewsResponse | null,
+): StylePreviewOption[] {
+  return buildStylePreviewOptionList(response, getSlidesVisualStyleOptionList())
+}
+
+/** Keeps the selection on a style the backend still lists, else backend default. */
+export function resolveSlidesVisualStyle(
+  options: StylePreviewOption[],
+  current?: string,
+  backendDefault?: string,
+): StudioArtifactSlidesVisualStyle {
+  return resolveStylePreviewValue(options, current, backendDefault) ?? 'default'
+}
+
+/**
+ * Generate-time guard: whatever style was requested (dialog choice or the plain
+ * tool-card click), submit only a style the backend lists — otherwise the
+ * backend default, otherwise the hardcoded first option.
+ */
+export function resolveSlidesParamsWithPreviews(
+  params: GenerateSlidesParameters,
+  previews?: ListStudioStylePreviewsResponse | null,
+): GenerateSlidesParameters {
+  const options = getSlidesVisualStyleOptionListFromPreviews(previews)
+  return {
+    ...params,
+    visual_style: resolveSlidesVisualStyle(
+      options,
+      params.visual_style,
+      previews?.default_visual_style,
+    ),
+  }
 }

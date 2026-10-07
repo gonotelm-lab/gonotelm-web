@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -19,16 +19,19 @@ import type {
   GenerateInfoGraphicParameters,
   StudioArtifactInfoGraphicDetailLevel,
   StudioArtifactInfoGraphicOrientation,
-  StudioArtifactInfoGraphicVisualStyle,
 } from '@/types/api'
 import { workspaceDialogLayout } from '../../shared/ui/dialogLayoutTokens'
 import { settingsToggleButtonSx } from '../chat/chatSettings'
+import { StylePreviewPicker } from './components/StylePreviewPicker'
+import { useStudioStylePreviews } from './hooks/useStudioStylePreviews'
 import {
   getDefaultInfoGraphicParameters,
   getInfoGraphicDetailLevelOptionList,
   getInfoGraphicLanguageOptionList,
   getInfoGraphicOrientationOptionList,
-  getInfoGraphicVisualStyleOptionList,
+  getInfoGraphicVisualStyleOptionListFromPreviews,
+  INFO_GRAPHIC_STYLE_PREVIEW_KIND,
+  resolveInfoGraphicVisualStyle,
 } from './infoGraphicSettings'
 
 interface InfoGraphicSettingsDialogProps {
@@ -48,14 +51,27 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
   const [draftParams, setDraftParams] = useState<GenerateInfoGraphicParameters>(initialParams)
   const infoGraphicLanguageOptionList = getInfoGraphicLanguageOptionList()
   const infoGraphicDetailLevelOptionList = getInfoGraphicDetailLevelOptionList()
-  const infoGraphicVisualStyleOptionList = getInfoGraphicVisualStyleOptionList()
   const infoGraphicOrientationOptionList = getInfoGraphicOrientationOptionList()
+  // Fetched only once this dialog opens. The backend is the source of truth for
+  // styles + preview art; a failed or empty response resolves to the hardcoded
+  // option list.
+  const { data: stylePreviews } = useStudioStylePreviews(INFO_GRAPHIC_STYLE_PREVIEW_KIND, {
+    enabled: open,
+  })
+  const infoGraphicVisualStyleOptionList = useMemo(
+    () => getInfoGraphicVisualStyleOptionListFromPreviews(stylePreviews),
+    [stylePreviews],
+  )
 
   const defaults = getDefaultInfoGraphicParameters()
   const orientation = draftParams.orientation || defaults.orientation
   const textLanguage = draftParams.text_language || defaults.text_language
   const detailLevel = draftParams.detail_level || defaults.detail_level || 'standard'
-  const visualStyle = draftParams.visual_style || defaults.visual_style || 'default'
+  const visualStyle = resolveInfoGraphicVisualStyle(
+    infoGraphicVisualStyleOptionList,
+    draftParams.visual_style,
+    stylePreviews?.default_visual_style,
+  )
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}>
@@ -126,22 +142,14 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
             <Typography variant="body2" color="text.secondary" sx={{ mt: workspaceDialogLayout.helperTextMt }}>
               {t('studio:settings.visualStyleHelp.infoGraphic')}
             </Typography>
-            <ToggleButtonGroup
-              exclusive
+            <StylePreviewPicker
               value={visualStyle}
-              onChange={(_, nextValue: StudioArtifactInfoGraphicVisualStyle | null) => {
-                if (nextValue) {
-                  setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
-                }
-              }}
-              sx={{ mt: workspaceDialogLayout.controlMt, flexWrap: 'wrap', gap: workspaceDialogLayout.toggleGap, border: 'none' }}
-            >
-              {infoGraphicVisualStyleOptionList.map((option) => (
-                <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
-                  {option.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+              options={infoGraphicVisualStyleOptionList}
+              onChange={(nextValue) =>
+                setDraftParams((prev) => ({ ...prev, visual_style: nextValue }))
+              }
+              ariaLabel={t('studio:settings.visualStyle')}
+            />
             <Typography variant="caption" color="text.secondary" sx={{ mt: workspaceDialogLayout.captionMt, display: 'block' }}>
               {infoGraphicVisualStyleOptionList.find((option) => option.value === visualStyle)?.description}
             </Typography>
@@ -199,7 +207,7 @@ export const InfoGraphicSettingsDialog = memo(function InfoGraphicSettingsDialog
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common:action.cancel')}</Button>
-        <Button variant="contained" onClick={() => onGenerate(draftParams)}>
+        <Button variant="contained" onClick={() => onGenerate({ ...draftParams, visual_style: visualStyle })}>
           {t('common:action.generate')}
         </Button>
       </DialogActions>

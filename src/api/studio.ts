@@ -6,6 +6,8 @@ import type {
   GenerateStudioArtifactResponse,
   GetStudioArtifactStatusResponse,
   ListNotebookStudioArtifactsResponse,
+  ListStudioStylePreviewsResponse,
+  StudioArtifactKind,
   StudioArtifactResult,
   UpdateStudioArtifactRequest,
 } from '../types/api'
@@ -26,6 +28,17 @@ export function generateStudioArtifact(
 export function getStudioArtifactStatus(taskId: string) {
   return request<GetStudioArtifactStatusResponse>(
     `/api/v1/artifacts/${encodeURIComponent(taskId)}/status`,
+    {
+      method: 'GET',
+    },
+  )
+}
+
+/** Backend-driven list of previewable styles for an artifact kind. */
+export function listStudioStylePreviews(kind: StudioArtifactKind) {
+  const query = new URLSearchParams({ kind })
+  return request<ListStudioStylePreviewsResponse>(
+    `/api/v1/artifacts/style-previews?${query.toString()}`,
     {
       method: 'GET',
     },

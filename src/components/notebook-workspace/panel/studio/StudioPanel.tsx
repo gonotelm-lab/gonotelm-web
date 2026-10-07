@@ -52,6 +52,9 @@ import { getDefaultReportParameters } from './reportSettings'
 import { getDefaultSlidesParameters } from './slidesSettings'
 import { getDefaultVideoOverviewParameters } from './videoOverviewSettings'
 import { StudioToolCard } from './components/StudioToolCard'
+import { useInfoGraphicVisualStyleResolver } from './hooks/useInfoGraphicVisualStyleResolver'
+import { useSlidesVisualStyleResolver } from './hooks/useSlidesVisualStyleResolver'
+import { useVideoOverviewVisualStyleResolver } from './hooks/useVideoOverviewVisualStyleResolver'
 import { useStudioArtifactTasks } from './hooks/useStudioArtifactTasks'
 import { useStudioPreviewController } from './preview/useStudioPreviewController'
 import { getStudioToolCatalog } from './studioToolCatalog'
@@ -142,6 +145,7 @@ export const StudioPanel = memo(function StudioPanel({
   const [infoGraphicParams, setInfoGraphicParams] = useState<GenerateInfoGraphicParameters>(
     getDefaultInfoGraphicParameters,
   )
+  const resolveInfoGraphicVisualStyleParams = useInfoGraphicVisualStyleResolver()
   const [audioOverviewDialogOpen, setAudioOverviewDialogOpen] = useState(false)
   const [audioOverviewDialogKey, setAudioOverviewDialogKey] = useState(0)
   const [audioOverviewParams, setAudioOverviewParams] = useState<GenerateAudioOverviewParameters>(
@@ -157,11 +161,13 @@ export const StudioPanel = memo(function StudioPanel({
   const [slidesParams, setSlidesParams] = useState<GenerateSlidesParameters>(
     getDefaultSlidesParameters,
   )
+  const resolveSlidesVisualStyleParams = useSlidesVisualStyleResolver()
   const [videoOverviewDialogOpen, setVideoOverviewDialogOpen] = useState(false)
   const [videoOverviewDialogKey, setVideoOverviewDialogKey] = useState(0)
   const [videoOverviewParams, setVideoOverviewParams] = useState<GenerateVideoOverviewParameters>(
     getDefaultVideoOverviewParameters,
   )
+  const resolveVideoOverviewVisualStyleParams = useVideoOverviewVisualStyleResolver()
 
   // Keep Studio output-language defaults aligned with UI locale (gonotelm.locale).
   useEffect(() => {
@@ -263,19 +269,21 @@ export const StudioPanel = memo(function StudioPanel({
     if (!canSubmitArtifactTask) {
       return
     }
-    const submitParams = params ?? infoGraphicParams
-    if (params) {
-      setInfoGraphicParams(params)
-    }
-    void submitArtifactTask({
-      kind: 'info_graphic',
-      sourceIds: selectedReadySourceIds,
-      title: t('studio:kind.infoGraphic'),
-      actionId: 'generate-info_graphic',
-      infoGraphic: submitParams,
-    })
+    const requestedParams = params ?? infoGraphicParams
     setInfoGraphicDialogOpen(false)
-  }, [canSubmitArtifactTask, infoGraphicParams, selectedReadySourceIds, submitArtifactTask, t])
+    // Confirm the supported styles with the backend before submitting, because the
+    // user may generate straight from the tool card without opening the dialog.
+    void resolveInfoGraphicVisualStyleParams(requestedParams).then((submitParams) => {
+      setInfoGraphicParams(submitParams)
+      return submitArtifactTask({
+        kind: 'info_graphic',
+        sourceIds: selectedReadySourceIds,
+        title: t('studio:kind.infoGraphic'),
+        actionId: 'generate-info_graphic',
+        infoGraphic: submitParams,
+      })
+    })
+  }, [canSubmitArtifactTask, infoGraphicParams, resolveInfoGraphicVisualStyleParams, selectedReadySourceIds, submitArtifactTask, t])
 
   const handleCreateFlashcard = useCallback((params?: GenerateFlashcardParameters) => {
     if (!canSubmitArtifactTask) {
@@ -335,37 +343,41 @@ export const StudioPanel = memo(function StudioPanel({
     if (!canSubmitArtifactTask) {
       return
     }
-    const submitParams = params ?? slidesParams
-    if (params) {
-      setSlidesParams(params)
-    }
-    void submitArtifactTask({
-      kind: 'slides',
-      sourceIds: selectedReadySourceIds,
-      title: t('studio:kind.slideDeck'),
-      actionId: 'generate-slides',
-      slides: submitParams,
-    })
+    const requestedParams = params ?? slidesParams
     setSlidesDialogOpen(false)
-  }, [canSubmitArtifactTask, slidesParams, selectedReadySourceIds, submitArtifactTask, t])
+    // Confirm the supported styles with the backend before submitting, because the
+    // user may generate straight from the tool card without opening the dialog.
+    void resolveSlidesVisualStyleParams(requestedParams).then((submitParams) => {
+      setSlidesParams(submitParams)
+      return submitArtifactTask({
+        kind: 'slides',
+        sourceIds: selectedReadySourceIds,
+        title: t('studio:kind.slideDeck'),
+        actionId: 'generate-slides',
+        slides: submitParams,
+      })
+    })
+  }, [canSubmitArtifactTask, resolveSlidesVisualStyleParams, slidesParams, selectedReadySourceIds, submitArtifactTask, t])
 
   const handleCreateVideoOverview = useCallback((params?: GenerateVideoOverviewParameters) => {
     if (!canSubmitArtifactTask) {
       return
     }
-    const submitParams = params ?? videoOverviewParams
-    if (params) {
-      setVideoOverviewParams(params)
-    }
-    void submitArtifactTask({
-      kind: 'video_overview',
-      sourceIds: selectedReadySourceIds,
-      title: t('studio:kind.videoOverview'),
-      actionId: 'generate-video_overview',
-      videoOverview: submitParams,
-    })
+    const requestedParams = params ?? videoOverviewParams
     setVideoOverviewDialogOpen(false)
-  }, [canSubmitArtifactTask, selectedReadySourceIds, submitArtifactTask, t, videoOverviewParams])
+    // Confirm the supported styles with the backend before submitting, because the
+    // user may generate straight from the tool card without opening the dialog.
+    void resolveVideoOverviewVisualStyleParams(requestedParams).then((submitParams) => {
+      setVideoOverviewParams(submitParams)
+      return submitArtifactTask({
+        kind: 'video_overview',
+        sourceIds: selectedReadySourceIds,
+        title: t('studio:kind.videoOverview'),
+        actionId: 'generate-video_overview',
+        videoOverview: submitParams,
+      })
+    })
+  }, [canSubmitArtifactTask, resolveVideoOverviewVisualStyleParams, selectedReadySourceIds, submitArtifactTask, t, videoOverviewParams])
 
   const handleCloseInfoGraphicDialog = useCallback(() => {
     setInfoGraphicDialogOpen(false)

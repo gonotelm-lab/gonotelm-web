@@ -133,7 +133,48 @@ const buildArtifactResultPayload = (
   }
 }
 
+/** Mirrors the backend's seeded style catalog, including its per-kind order. */
+const stylePreviewsByKind: Record<string, { visual_style: string; preview_url: string }[]> = {
+  slides: [
+    { visual_style: 'default', preview_url: 'https://example.com/style-default.webp' },
+    { visual_style: 'cute', preview_url: 'https://example.com/style-cute.webp' },
+    { visual_style: 'educational', preview_url: 'https://example.com/style-educational.webp' },
+  ],
+  info_graphic: [
+    { visual_style: 'default', preview_url: 'https://example.com/info-default.webp' },
+    { visual_style: 'hand-drawn', preview_url: 'https://example.com/info-hand-drawn.webp' },
+    { visual_style: 'anime', preview_url: 'https://example.com/info-anime.webp' },
+    { visual_style: 'cute', preview_url: 'https://example.com/info-cute.webp' },
+    { visual_style: 'educational', preview_url: 'https://example.com/info-educational.webp' },
+    { visual_style: 'minimal-2.5d', preview_url: 'https://example.com/info-minimal-2.5d.webp' },
+  ],
+  video_overview: [
+    { visual_style: 'default', preview_url: 'https://example.com/video-default.webp' },
+    { visual_style: 'cute', preview_url: 'https://example.com/video-cute.webp' },
+    { visual_style: 'educational', preview_url: 'https://example.com/video-educational.webp' },
+  ],
+}
+
 export const studioHandlers = [
+  // Must precede `/artifacts/:taskId`, which would otherwise swallow it.
+  http.get(`${apiBaseUrl}/api/v1/artifacts/style-previews`, async ({ request }) => {
+    const scenario = getMockScenario('studio')
+    const kind = new URL(request.url).searchParams.get('kind') ?? 'slides'
+
+    return resolveScenarioResponse({
+      scenario,
+      successData: {
+        kind,
+        default_visual_style: 'default',
+        previews: stylePreviewsByKind[kind] ?? [],
+      },
+      emptyData: {
+        kind,
+        default_visual_style: 'default',
+        previews: [],
+      },
+    })
+  }),
   http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/artifacts`, async ({ params, request }) => {
     const scenario = getMockScenario('studio')
     const notebookId = String(params.notebookId ?? 'unknown')
