@@ -34,6 +34,31 @@ export interface AuthSessionResponse {
   user_id: string
 }
 
+/** GET /api/v1/auth/identities —— 当前账号已绑定的三方身份。 */
+export interface AuthIdentity {
+  provider: string
+  /** provider 侧邮箱快照（仅审计，不参与判定）。 */
+  provider_email: string
+  provider_email_verified: boolean
+  /** 绑定时间（unix ms）。 */
+  bound_at: number
+  /** 最近一次通过该身份登录的时间（unix ms），0 = 还没用过。 */
+  last_login_at: number
+}
+
+export interface AuthIdentitiesResponse {
+  identities: AuthIdentity[]
+}
+
+/** GET /api/v1/auth/supported-identities —— 代码支持绑定的 provider 列表。 */
+export interface AuthSupportedIdentity {
+  provider: string
+}
+
+export interface AuthSupportedIdentitiesResponse {
+  identities: AuthSupportedIdentity[]
+}
+
 export interface MeResponse {
   user_id: string
   nickname: string

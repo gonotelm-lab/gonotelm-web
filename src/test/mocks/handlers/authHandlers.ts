@@ -48,4 +48,23 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () => createNoContentResponse()),
   http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
   http.put(`${apiBaseUrl}/api/v1/auth/password`, () => createNoContentResponse()),
+
+  // ── 第三方账号状态（authed）───────────────────────────────────────────────
+  // 默认：github 已绑定、google 未绑定；两个 provider 都支持绑定。
+  http.get(`${apiBaseUrl}/api/v1/auth/identities`, () =>
+    createSuccessResponse({
+      identities: [
+        {
+          provider: 'github',
+          provider_email: 'octocat@github.com',
+          provider_email_verified: true,
+          bound_at: 1_700_000_000_000,
+          last_login_at: 1_700_000_000_000,
+        },
+      ],
+    }),
+  ),
+  http.get(`${apiBaseUrl}/api/v1/auth/supported-identities`, () =>
+    createSuccessResponse({ identities: [{ provider: 'github' }, { provider: 'google' }] }),
+  ),
 ]

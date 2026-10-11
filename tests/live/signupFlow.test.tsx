@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { useEffect } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -39,9 +40,11 @@ function LocationProbe() {
  */
 function LocationSync() {
   const location = useLocation()
-  windowLocation.pathname = location.pathname
-  windowLocation.search = location.search
-  windowLocation.hash = location.hash
+  useEffect(() => {
+    windowLocation.pathname = location.pathname
+    windowLocation.search = location.search
+    windowLocation.hash = location.hash
+  }, [location.pathname, location.search, location.hash])
   return null
 }
 

@@ -10,7 +10,7 @@ import { workspaceTransitionPresets } from '../notebook-workspace/shared/ui/moti
 import { subtleScrollbarSx } from '../notebook-workspace/shared/ui/scrollbar'
 import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
 import { LanguageSettingsSection } from './LanguageSettingsSection'
-import { PasswordSettingsSection } from './PasswordSettingsSection'
+import { SecuritySettingsSection } from './SecuritySettingsSection'
 import { ProfileSettingsSection } from './ProfileSettingsSection'
 import { SETTINGS_SECTIONS, type SettingsSectionId } from './settingsSections'
 
@@ -133,7 +133,7 @@ export function SettingsDialog({ open, onClose, createCanvas, createImage }: Set
           {activeSection === 'profile' ? (
             <ProfileSettingsSection createCanvas={createCanvas} createImage={createImage} />
           ) : activeSection === 'security' ? (
-            <PasswordSettingsSection />
+            <SecuritySettingsSection />
           ) : (
             <LanguageSettingsSection />
           )}

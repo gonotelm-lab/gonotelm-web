@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { PasswordForm } from '../auth/PasswordForm'
 import { useMeQuery } from '../auth/useMeQuery'
+import { ThirdPartyAccountsBlock } from './ThirdPartyAccountsBlock'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
 import { workspaceRadius, workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 import { workspaceIconSize } from '../notebook-workspace/shared/ui/typeTokens'
@@ -72,12 +73,12 @@ function SecurityRow({
 }
 
 /**
- * 「账号安全」设置分区：只读的登录方式 / 口令状态 + 一个「设置/修改口令」入口。
+ * 「账号安全」设置分区：账号概览（邮箱 / 登录方式 / 口令状态）+ 口令动作 + 第三方账号状态。
  *
  * 口令表单不常驻页面：点按钮后在独立对话框里改（与设置弹窗的其它分区保持一致的
  * 「概览 + 动作」节奏）。`/set-password` 引导页仍然用同一套 `PasswordForm` 内联渲染。
  */
-export function PasswordSettingsSection() {
+export function SecuritySettingsSection() {
   const { t } = useTranslation(['settings', 'auth'])
   const meQuery = useMeQuery()
   const hasPassword = meQuery.data?.has_password === true
@@ -169,6 +170,8 @@ export function PasswordSettingsSection() {
           </Typography>
         ) : null}
       </Stack>
+
+      <ThirdPartyAccountsBlock />
 
       <Dialog
         open={isDialogOpen}

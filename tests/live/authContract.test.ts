@@ -94,4 +94,16 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
       (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
     )
   })
+
+  it('GET /auth/identities 已挂载且要求已登录（2002）', async () => {
+    await expect(auth.getAuthIdentities()).rejects.toSatisfy(
+      (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
+    )
+  })
+
+  it('GET /auth/supported-identities 已挂载且要求已登录（2002）', async () => {
+    await expect(auth.getAuthSupportedIdentities()).rejects.toSatisfy(
+      (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
+    )
+  })
 })

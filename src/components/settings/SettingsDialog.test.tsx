@@ -2,7 +2,7 @@ import { StrictMode, type ReactNode } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToggleButtonGroup } from '@mui/material'
-import { http } from 'msw'
+import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import { mockServer } from '@/test/mocks'
@@ -542,6 +542,107 @@ describe('SettingsDialog', () => {
     act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
 
     expect(textOf(renderer, 'security-login-source')).toBe('邮箱与口令')
+  })
+
+  it('账号安全区展示第三方账号绑定状态（已绑定 provider 带邮箱快照）', async () => {
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    await flush()
+    await flush()
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('第三方账号')
+    expect(textOf(renderer, 'identity-status-github')).toBe('已绑定')
+    expect(textOf(renderer, 'identity-email-github')).toBe('octocat@github.com')
+    expect(textOf(renderer, 'identity-status-google')).toBe('未绑定')
+    // 未绑定就没有 provider 邮箱快照。
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-email-google' })).toHaveLength(0)
+  })
+
+  it('后端旧构建没有身份接口时，第三方账号块整体不渲染', async () => {
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/auth/identities', () =>
+        createErrorResponse(404, 'Not Found', -1),
+      ),
+      http.get('http://127.0.0.1:4173/api/v1/auth/supported-identities', () =>
+        createErrorResponse(404, 'Not Found', -1),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    await flush()
+
+    // 查不到 ≠ 未绑定：整块隐藏，避免误导。
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-status-github' })).toHaveLength(0)
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('第三方账号')
+  })
+
+  it('点「绑定」：POST bind 带 return_to，并整页跳到后端返回的 authorize_url', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: {
+        pathname: '/notebook/n-1',
+        search: '',
+        origin: 'http://localhost',
+        assign,
+      },
+    })
+
+    let received: unknown = null
+    mockServer.use(
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/google/bind', async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({
+          authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth?state=abc',
+        })
+      }),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    await flush()
+    await flush()
+
+    // 已绑定的 github 没有绑定按钮；未绑定的 google 才有。
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-bind-github' })).toHaveLength(0)
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-bind-google' }).props.onClick()
+    })
+    await flush()
+
+    expect(received).toEqual({ return_to: 'http://localhost/notebook/n-1' })
+    expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?state=abc')
+
+    // 这个文件在模块顶层 stub 了 Image，不能用 unstubAllGlobals 复原。
+    vi.stubGlobal('window', undefined)
+  })
+
+  it('后端仍以 302 跳 IdP 时，绑定给出明确提示而不是静默失败', async () => {
+    let bindCalls = 0
+    mockServer.use(
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/google/bind', () => {
+        bindCalls += 1
+        return new HttpResponse(null, {
+          status: 302,
+          headers: { Location: 'https://accounts.google.com/o/oauth2/v2/auth?state=abc' },
+        })
+      }),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-bind-google' }).props.onClick()
+    })
+    await flush()
+
+    expect(bindCalls).toBe(1)
+    renderer.root.findByProps({ 'data-testid': 'identity-bind-error' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('授权地址')
   })
 
   it('按钮与头像本身都能触发文件选择', async () => {
