@@ -33,7 +33,10 @@ export const authHandlers = [
 
   // ── users_v2 登录改造新增（P0）─────────────────────────────────────────────
   // 登录/验证成功：200 + { user_id }（后端 finishSession → AuthSessionResponse）。
-  http.post(`${apiBaseUrl}/api/v1/auth/login`, () => createSuccessResponse({ user_id: 'user-1' })),
+  // 口令登录在 `email/*` 分组下（不是 POST /auth/login）。
+  http.post(`${apiBaseUrl}/api/v1/auth/email/login`, () =>
+    createSuccessResponse({ user_id: 'user-1' }),
+  ),
   http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),

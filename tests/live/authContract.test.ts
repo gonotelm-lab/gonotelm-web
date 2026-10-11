@@ -100,7 +100,7 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
     )
   })
 
-  it('POST /auth/login 邮箱口令登录已挂载，错误凭证返回 106011', async () => {
+  it('POST /auth/email/login 邮箱口令登录已挂载，错误凭证返回 106011', async () => {
     await expect(
       auth.passwordLogin({ email: 'nobody@example.invalid', password: 'not-a-real-password' }),
     ).rejects.toSatisfy(

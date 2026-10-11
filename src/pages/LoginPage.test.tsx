@@ -11,7 +11,7 @@ import {
 import { LoginPage } from './LoginPage'
 
 const providersUrl = 'http://127.0.0.1:4173/api/v1/auth/providers'
-const passwordLoginUrl = 'http://127.0.0.1:4173/api/v1/auth/login'
+const passwordLoginUrl = 'http://127.0.0.1:4173/api/v1/auth/email/login'
 const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
 
 /** 后端 users_v2 改造落地后 providers 会带 password_enabled。 */

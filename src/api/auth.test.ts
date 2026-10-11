@@ -96,10 +96,10 @@ async function captureRequest(path: string) {
 }
 
 describe('邮箱口令登录', () => {
-  it('POST /auth/login，body 带 email/password 且固定 login_from=web，成功返回 user_id', async () => {
+  it('POST /auth/email/login，body 带 email/password 且固定 login_from=web，成功返回 user_id', async () => {
     let received: unknown = null
     mockServer.use(
-      http.post(`${apiBaseUrl}/api/v1/auth/login`, async ({ request }) => {
+      http.post(`${apiBaseUrl}/api/v1/auth/email/login`, async ({ request }) => {
         received = await request.json()
         return createSuccessResponse({ user_id: 'user-1' })
       }),
@@ -111,7 +111,7 @@ describe('邮箱口令登录', () => {
   })
 
   it('调用方显式给出的 login_from 优先', async () => {
-    const captured = await captureRequest('/api/v1/auth/login')
+    const captured = await captureRequest('/api/v1/auth/email/login')
     await passwordLogin({ email: 'a@b.com', password: 'secret-123', login_from: 'web' })
     expect(captured.body).toEqual({ email: 'a@b.com', password: 'secret-123', login_from: 'web' })
   })

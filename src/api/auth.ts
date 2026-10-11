@@ -19,6 +19,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
  */
 export const AUTH_LOGIN_PATH = '/api/v1/auth/login'
 
+/**
+ * POST 邮箱口令登录。与上面的 GET 不同路径：口令登录归属 `email/*` 分组，
+ * 不要因为名字相近而误用 `AUTH_LOGIN_PATH`。
+ */
+export const AUTH_EMAIL_LOGIN_PATH = '/api/v1/auth/email/login'
+
 export interface AuthLoginParams {
   provider: string
   from: string
@@ -64,11 +70,16 @@ export function logout() {
 }
 
 /**
- * 邮箱口令登录：与 `GET /auth/login` 同路径、不同方法。
+ * 邮箱口令登录。
+ *
+ * 路径是 `POST /api/v1/auth/email/login`：后端在 2026-10-11 14:45 把口令登录从
+ * 「与 `GET /auth/login` 同路径不同方法」改到了 `email/*` 分组下（设计稿 §12 原写
+ * `POST /auth/login`，按 §12 的分组原则 `email/*` 更自洽）。GET `/auth/login` 仍是三方登录发起。
+ *
  * 成功即签发会话（Set-Cookie）并返回账号标识，调用方通常只需 invalidate `me` 查询。
  */
 export function passwordLogin(body: PasswordLoginRequest) {
-  return request<AuthSessionResponse>('/api/v1/auth/login', {
+  return request<AuthSessionResponse>(AUTH_EMAIL_LOGIN_PATH, {
     method: 'POST',
     body: JSON.stringify({ login_from: 'web', ...body }),
   })
