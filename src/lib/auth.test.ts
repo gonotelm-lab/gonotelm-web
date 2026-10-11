@@ -193,8 +193,8 @@ describe('rememberAuthAttempt / recallAuthAttempt', () => {
 
 describe('parseCallbackFailure / buildBindErrorPath', () => {
   it('解析后端 302 过来的 reason 与 provider', () => {
-    expect(parseCallbackFailure('?reason=login-state-not-found&provider=github')).toEqual({
-      reason: 'login-state-not-found',
+    expect(parseCallbackFailure('?reason=oauth-state-not-found&provider=github')).toEqual({
+      reason: 'oauth-state-not-found',
       provider: 'github',
     })
   })
@@ -261,8 +261,8 @@ describe('AUTH_ERROR_CODE 契约', () => {
     // 这条断言是前后端错误码的硬契约：后端改了码而前端没跟，测试先红。
     expect(AUTH_ERROR_CODE).toEqual({
       idpError: 106002,
-      loginStateNotFound: 106003,
-      loginStateMismatch: 106004,
+      oauthStateNotFound: 106003,
+      oauthStateMismatch: 106004,
       idpExchangeError: 106005,
       userBanned: 106008,
       invalidCredentials: 106011,

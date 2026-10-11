@@ -25,11 +25,9 @@ export function describeCallbackFailure(
   const isBind = mode === 'bind'
 
   switch (reason) {
-    case CALLBACK_REASON.loginStateNotFound:
-    case CALLBACK_REASON.loginStateMismatch:
+    case CALLBACK_REASON.oauthStateNotFound:
+    case CALLBACK_REASON.oauthStateMismatch:
       return isBind ? t('callbackReason.bindSessionExpired') : t('callbackReason.sessionExpired')
-    case CALLBACK_REASON.idpAccessDenied:
-      return t('callbackReason.idpAccessDenied', { provider: providerLabel(provider, t) })
     case CALLBACK_REASON.idpError:
     case CALLBACK_REASON.idpExchangeError:
       return isBind
@@ -52,6 +50,8 @@ export function describeCallbackFailure(
     case CALLBACK_REASON.userNotFound:
     case CALLBACK_REASON.userSessionNotFound:
       return t('callbackReason.accountAbnormal')
+    case CALLBACK_REASON.tooManyRequests:
+      return t('callbackReason.tooManyRequests')
     default:
       // 含 internal-error 与后端将来新增但前端还没登记的 reason。
       return isBind ? t('callbackReason.bindFailed') : t('callbackReason.loginFailed')

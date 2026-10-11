@@ -1,6 +1,11 @@
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AUTH_ERROR_PATH, parseCallbackFailure } from '../../lib/auth'
+import {
+  AUTH_ERROR_PATH,
+  CALLBACK_SETTINGS_ACCOUNT,
+  CALLBACK_SETTINGS_PARAM,
+  parseCallbackFailure,
+} from '../../lib/auth'
 import { CallbackFailureToast } from './CallbackFailureToast'
 import { describeCallbackFailure } from './callbackFailureText'
 
@@ -22,7 +27,10 @@ export function GlobalCallbackFailureToast() {
     return null
   }
 
-  const mode = location.pathname === '/login' ? 'login' : 'bind'
+  const mode =
+    new URLSearchParams(location.search).get(CALLBACK_SETTINGS_PARAM) === CALLBACK_SETTINGS_ACCOUNT
+      ? 'bind'
+      : 'login'
   return (
     // key 带上 location.key：每次导航落地都重新弹一次，而不是被上一次的关闭状态吃掉。
     <CallbackFailureToast

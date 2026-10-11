@@ -35,12 +35,12 @@ describe('GlobalCallbackFailureToast', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('登录失败落地（/login?reason=）→ 登录语义的可读文案', async () => {
-    const renderer = await renderAt('/login?reason=login-state-not-found&provider=github')
+    const renderer = await renderAt('/login?reason=oauth-state-not-found&provider=github')
 
     renderer.root.findByProps({ 'data-testid': 'callback-failure-toast' })
     expect(text(renderer)).toContain('登录状态已过期')
     // 不再把 kebab 串直接甩给用户
-    expect(text(renderer)).not.toContain('login-state-not-found')
+    expect(text(renderer)).not.toContain('oauth-state-not-found')
   })
 
   it('绑定失败落地（?settings=account&reason=）→ 绑定语义的可读文案', async () => {
@@ -54,10 +54,17 @@ describe('GlobalCallbackFailureToast', () => {
   })
 
   it('文案里带上 provider 的可读名字', async () => {
-    const renderer = await renderAt('/login?reason=idp-access-denied&provider=google')
+    const renderer = await renderAt('/login?reason=idp-error&provider=google')
 
     expect(text(renderer)).toContain('Google')
-    expect(text(renderer)).toContain('已取消')
+    expect(text(renderer)).toContain('授权未完成')
+  })
+
+  it('登录失败带 return_to 落回业务页时，仍按登录语义（不靠路径猜）', async () => {
+    const renderer = await renderAt('/notebook/n-1?reason=idp-error&provider=github')
+
+    expect(text(renderer)).toContain('请重试')
+    expect(text(renderer)).not.toContain('重新发起绑定')
   })
 
   it('每个已登记的 reason 都有专属文案，不会退化成通用提示', async () => {
@@ -65,6 +72,7 @@ describe('GlobalCallbackFailureToast', () => {
       ['provider-not-found', '不支持该三方登录方式'],
       ['idp-error', '授权未完成'],
       ['idp-exchange-error', '授权未完成'],
+      ['too-many-requests', '尝试过于频繁'],
       ['user-banned', '该账号已被封禁'],
       ['idp-email-unavailable', '未提供已验证邮箱'],
       ['email-not-verified', '先验证账号邮箱'],

@@ -85,11 +85,11 @@ describe('LoginPage · 回调失败落地', () => {
     const { rememberAuthAttempt } = await import('@/lib/auth')
     rememberAuthAttempt('/notebook/n-1?settings=account', 'bind')
 
-    const renderer = await renderLogin('/login?reason=login-state-not-found&provider=github')
+    const renderer = await renderLogin('/login?reason=oauth-state-not-found&provider=github')
 
     expect(
       renderer.root.findByProps({ 'data-testid': 'location' }).children.join(''),
-    ).toBe('/auth/error?reason=login-state-not-found&provider=github')
+    ).toBe('/auth/error?reason=oauth-state-not-found&provider=github')
   })
 
   it('上次是登录流程时留在登录页（toast 由全局组件负责）', async () => {

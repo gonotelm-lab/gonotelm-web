@@ -67,16 +67,23 @@ describe('AuthErrorPage（绑定失败落地页）', () => {
   })
 
   it('state 过期：绑定语义（回到设置重新发起），而不是登录语义', async () => {
-    const renderer = await renderPage('/auth/error?reason=login-state-not-found&provider=github')
+    const renderer = await renderPage('/auth/error?reason=oauth-state-not-found&provider=github')
 
     expect(text(renderer)).toContain('绑定会话已过期')
     expect(text(renderer)).not.toContain('重新发起登录')
   })
 
-  it('用户取消授权：有单独的说法', async () => {
-    const renderer = await renderPage('/auth/error?reason=idp-access-denied&provider=github')
+  it('IdP 侧失败：绑定语义的「授权未完成」', async () => {
+    const renderer = await renderPage('/auth/error?reason=idp-error&provider=github')
 
-    expect(text(renderer)).toContain('已取消')
+    expect(text(renderer)).toContain('授权未完成')
+    expect(text(renderer)).toContain('重新发起绑定')
+  })
+
+  it('触发限流：有专门文案', async () => {
+    const renderer = await renderPage('/auth/error?reason=too-many-requests&provider=github')
+
+    expect(text(renderer)).toContain('尝试过于频繁')
   })
 
   it('后端新增的未知 reason 退回通用文案，并把原值展示出来便于排查', async () => {

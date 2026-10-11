@@ -12,10 +12,10 @@ export const UNAUTHORIZED_CODE = 2000
 export const AUTH_ERROR_CODE = {
   /** IdP 侧失败（回调 `?error=`，例如用户取消授权）。 */
   idpError: 106002,
-  /** 回调的 login state 不存在/已过期（超过 10 分钟、或换了浏览器）。 */
-  loginStateNotFound: 106003,
-  /** login state 不匹配（CSRF 防护命中）。 */
-  loginStateMismatch: 106004,
+  /** 回调的 oauth state 不存在/已过期（超过 10 分钟、或换了浏览器）。 */
+  oauthStateNotFound: 106003,
+  /** oauth state 不匹配（CSRF 防护命中）。 */
+  oauthStateMismatch: 106004,
   /** 用 code 换 token 失败。 */
   idpExchangeError: 106005,
   /** 账号被封禁（`CodeUserBanned`，登录与回调都会返回）。 */
@@ -243,7 +243,7 @@ export function buildSignupPath(returnTo?: string): string {
 export const AUTH_ERROR_PATH = '/auth/error'
 
 /**
- * 回调失败的 reason 取值，与后端 interfaces 层的映射一一对应：
+ * 回调失败的 reason 取值，与后端 `schema/auth_error.go` 的 `CallbackReason` 一一对应：
  * `domainerr` 里的错误转成 kebab-case，认不出来的一律 `internal-error`。
  *
  * 前端只在这里登记一次；后端加/改映射时改这一处，测试会先红。
@@ -253,12 +253,10 @@ export const CALLBACK_REASON = {
   providerNotFound: 'provider-not-found',
   /** IdP 侧失败（回调 `?error=`，含用户取消授权）。 */
   idpError: 'idp-error',
-  /** IdP 明确回了 access_denied（用户点了取消）。 */
-  idpAccessDenied: 'idp-access-denied',
-  /** login state 不存在/已过期（超过 10 分钟、换了浏览器）。 */
-  loginStateNotFound: 'login-state-not-found',
-  /** login state 不匹配（含 state cookie 缺失/不匹配，CSRF 防护命中）。 */
-  loginStateMismatch: 'login-state-mismatch',
+  /** oauth state 不存在/已过期（超过 10 分钟、换了浏览器）。 */
+  oauthStateNotFound: 'oauth-state-not-found',
+  /** oauth state 不匹配（含 state cookie 缺失/不匹配，CSRF 防护命中）。 */
+  oauthStateMismatch: 'oauth-state-mismatch',
   /** 用 code 换 token 失败。 */
   idpExchangeError: 'idp-exchange-error',
   userNotFound: 'user-not-found',
@@ -274,6 +272,8 @@ export const CALLBACK_REASON = {
   identityNotFound: 'identity-not-found',
   /** 该账号已绑定过同 provider 的另一个身份。 */
   providerAlreadyBound: 'provider-already-bound',
+  /** 触发限流。 */
+  tooManyRequests: 'too-many-requests',
   /** 认不出来的错误。 */
   internal: 'internal-error',
 } as const
@@ -283,6 +283,9 @@ export type CallbackReason = (typeof CALLBACK_REASON)[keyof typeof CALLBACK_REAS
 /** 回调失败落地页的两个 query 参数名（后端拼、前端读）。 */
 export const CALLBACK_REASON_PARAM = 'reason'
 export const CALLBACK_PROVIDER_PARAM = 'provider'
+/** 绑定失败时后端额外带的标记（`schema.CallbackSettingsAccount`）：据此区分登录/绑定语义。 */
+export const CALLBACK_SETTINGS_PARAM = 'settings'
+export const CALLBACK_SETTINGS_ACCOUNT = 'account'
 
 export interface CallbackFailure {
   /** 原始 reason 串：未知值原样保留，便于排查（文案退回通用）。 */
