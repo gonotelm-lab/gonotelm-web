@@ -15,7 +15,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/live/**/*.test.ts'],
+    include: ['tests/live/**/*.test.{ts,tsx}'],
     testTimeout: 15000,
     env: {
       VITE_API_BASE_URL: process.env.GNLM_API_BASE_URL ?? 'http://127.0.0.1:7099',

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import { installBrowserShims } from './browserShim'
 
 /**
  * 真机契约测试：直接用前端的 API 层打本机后端，验证 users_v2 登录改造的接口是否已经就位。
@@ -17,55 +18,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
  */
 
 const live = process.env.GNLM_LIVE_AUTH === '1'
-
-/** node fetch 没有 cookie 容器；这里给前端 http 层补一个最小可用的浏览器 cookie 环境。 */
-const jar = new Map<string, string>()
-
-const cookieHeader = () =>
-  [...jar.entries()].map(([name, value]) => `${name}=${value}`).join('; ')
-
-const applySetCookie = (raw: string) => {
-  const pair = raw.split(';')[0] ?? ''
-  const separator = pair.indexOf('=')
-  if (separator < 0) {
-    return
-  }
-  const name = pair.slice(0, separator).trim()
-  const value = pair.slice(separator + 1).trim()
-  if (value === '') {
-    jar.delete(name)
-    return
-  }
-  jar.set(name, value)
-}
-
-function installBrowserShims() {
-  Object.defineProperty(globalThis, 'document', {
-    configurable: true,
-    value: {
-      get cookie() {
-        return cookieHeader()
-      },
-      set cookie(raw: string) {
-        applySetCookie(raw)
-      },
-    },
-  })
-
-  const realFetch = globalThis.fetch
-  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const headers = new Headers(init?.headers)
-    const cookies = cookieHeader()
-    if (cookies) {
-      headers.set('Cookie', cookies)
-    }
-    const response = await realFetch(input, { ...init, headers })
-    for (const raw of response.headers.getSetCookie()) {
-      applySetCookie(raw)
-    }
-    return response
-  }
-}
 
 const errorCode = (error: unknown) => (error as { code?: number }).code
 
