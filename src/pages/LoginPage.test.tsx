@@ -193,6 +193,17 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     expect(() => renderer.root.findByProps({ 'data-testid': 'login-signup-link' })).toThrow()
   })
 
+  it('注册入口指向 /signup 并保留 return_to', async () => {
+    enablePasswordLogin()
+    const renderer = await renderLogin()
+
+    const link = renderer.root
+      .findAllByProps({ 'data-testid': 'login-signup-link' })
+      .find((node) => typeof node.props.to === 'string')
+    expect(link?.props.to).toContain('/signup?return_to=')
+    expect(link?.props.to).toContain(encodeURIComponent('/notebook/n-1'))
+  })
+
   it('提交口令登录：POST /auth/login 带归一化邮箱与 login_from', async () => {
     enablePasswordLogin()
     let received: unknown = null

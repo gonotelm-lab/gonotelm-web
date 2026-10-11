@@ -135,4 +135,23 @@ describe('SetPasswordPage', () => {
     renderer.root.findByProps({ 'data-testid': 'set-password-error' })
     expect(JSON.stringify(renderer.toJSON())).toContain('当前口令不正确')
   })
+
+  it('「稍后再说」不写口令直接回到 return_to', async () => {
+    useMe(false)
+    let putCalls = 0
+    mockServer.use(
+      http.put(passwordUrl, () => {
+        putCalls += 1
+        return createNoContentResponse()
+      }),
+    )
+
+    const renderer = await renderPage()
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'set-password-skip' }).props.onClick()
+    })
+
+    expect(putCalls).toBe(0)
+    expect(renderer.root.findByProps({ 'data-testid': 'notebook-landed' })).toBeTruthy()
+  })
 })

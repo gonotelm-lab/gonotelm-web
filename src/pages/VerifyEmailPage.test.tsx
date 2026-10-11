@@ -112,6 +112,59 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     renderer.root.findByProps({ 'data-testid': 'verify-error' })
     expect(JSON.stringify(renderer.toJSON())).toContain('已失效')
   })
+
+  it('打开链接页不消费 token：必须用户点「确认验证」才 POST', async () => {
+    vi.stubGlobal('window', {
+      location: { hash: '#token=tok-1', search: '', origin: 'http://localhost' },
+    })
+    let calls = 0
+    mockServer.use(
+      http.post(verifyUrl, () => {
+        calls += 1
+        return createNoContentResponse()
+      }),
+    )
+
+    const renderer = await renderVerify()
+
+    // 邮件网关/预览器预取的是静态页，这里断言只挂载不发请求，否则 token 会被提前烧掉。
+    expect(calls).toBe(0)
+    expect(renderer.root.findByProps({ 'data-testid': 'verify-link-submit' })).toBeTruthy()
+  })
+
+  it('token 也可从 query 兜底读出', async () => {
+    vi.stubGlobal('window', {
+      location: { hash: '', search: '?token=tok-9', origin: 'http://localhost' },
+    })
+    let received: unknown = null
+    mockServer.use(
+      http.post(verifyUrl, async ({ request }) => {
+        received = await request.json()
+        return createNoContentResponse()
+      }),
+    )
+    meWith(true)
+
+    const renderer = await renderVerify()
+    await submit(renderer, 'verify-link-submit')
+
+    expect(received).toEqual({ token: 'tok-9' })
+  })
+
+  it('在链接模式与验证码模式之间切换', async () => {
+    vi.stubGlobal('window', {
+      location: { hash: '#token=tok-1', search: '', origin: 'http://localhost' },
+    })
+
+    const renderer = await renderVerify()
+    expect(renderer.root.findByProps({ 'data-testid': 'verify-link-submit' })).toBeTruthy()
+
+    act(() => renderer.root.findByProps({ 'data-testid': 'verify-use-code' }).props.onClick())
+    expect(renderer.root.findByProps({ 'data-testid': 'verify-code-input' })).toBeTruthy()
+
+    act(() => renderer.root.findByProps({ 'data-testid': 'verify-use-link' }).props.onClick())
+    expect(renderer.root.findByProps({ 'data-testid': 'verify-link-submit' })).toBeTruthy()
+  })
 })
 
 describe('VerifyEmailPage · 验证码模式', () => {
@@ -164,6 +217,21 @@ describe('VerifyEmailPage · 验证码模式', () => {
 
     expect(received).toEqual({ email: 'a@b.com' })
     expect(renderer.root.findByProps({ 'data-testid': 'verify-resent' })).toBeTruthy()
+  })
+
+  it('重发失败按错误码给不同文案：无 pending / 邮箱已注册', async () => {
+    mockServer.use(http.post(resendUrl, () => createErrorResponse(200, 'NO_PENDING', 106016)))
+    const renderer = await renderVerify('/verify-email?email=a%40b.com&return_to=%2F')
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'verify-resend' }).props.onClick()
+    })
+    expect(JSON.stringify(renderer.toJSON())).toContain('未找到待验证的注册')
+
+    mockServer.use(http.post(resendUrl, () => createErrorResponse(200, 'EMAIL_TAKEN', 106012)))
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'verify-resend' }).props.onClick()
+    })
+    expect(JSON.stringify(renderer.toJSON())).toContain('该邮箱已注册')
   })
 
   it('邮箱非法时不能提交也不能重发', async () => {

@@ -129,6 +129,26 @@ describe('error guards', () => {
   })
 })
 
+describe('AUTH_ERROR_CODE 契约', () => {
+  it('与后端 internal/domain/identity/errors 的常量逐条一致', () => {
+    // 这条断言是前后端错误码的硬契约：后端改了码而前端没跟，测试先红。
+    expect(AUTH_ERROR_CODE).toEqual({
+      invalidCredentials: 106011,
+      emailTaken: 106012,
+      emailInvalid: 106013,
+      weakPassword: 106014,
+      idpEmailUnavailable: 106015,
+      verificationExpired: 106016,
+      verificationAttemptsExceeded: 106017,
+      verificationCodeMismatch: 106018,
+      identityAlreadyLinked: 106019,
+      emailNotVerified: 106020,
+      tooManyRequests: 106021,
+      identityNotFound: 106022,
+    })
+  })
+})
+
 describe('邮箱认证页路径', () => {
   afterEach(() => {
     vi.unstubAllGlobals()

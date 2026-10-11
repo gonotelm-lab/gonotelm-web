@@ -2,10 +2,10 @@ export const NOT_LOGIN_CODE = 2002
 export const CSRF_CODE = 2003
 
 /**
- * 认证域新增业务错误码（对应后端 users_v2 登录改造 §8 的错误表）。
+ * 认证域新增业务错误码。
  *
- * 注意：后端设计稿里写的是「建议码」，实现阶段可能微调。前端只在这里登记一次，
- * 后端 DTO/错误码落地后如有出入，改这一处即可。
+ * 与后端 `internal/domain/identity/errors/errors.go` 的 `CodeXxx` 常量一一对应
+ * （2026-10-11 已核对到 106022）；前端只在这里登记一次，后端再调整时改这一处。
  */
 export const AUTH_ERROR_CODE = {
   /** 账号密码不匹配 / 账号不存在（登录统一文案）。 */
@@ -30,6 +30,8 @@ export const AUTH_ERROR_CODE = {
   emailNotVerified: 106020,
   /** 触发限流（P1）。 */
   tooManyRequests: 106021,
+  /** 三方身份不存在（身份列表/解绑，P1）。 */
+  identityNotFound: 106022,
 } as const
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODE)[keyof typeof AUTH_ERROR_CODE]
