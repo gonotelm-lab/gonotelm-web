@@ -28,6 +28,50 @@ const createEmptyNotebookMeta = (): NotebookMeta => ({
   sourceCount: 0,
 })
 
+/**
+ * SourceCard 上参与“内容是否变化”判断的字段。
+ * `satisfies Record<keyof SourceCard, true>` 是编译期守卫：SourceCard 新增字段而这里没补，会直接报错。
+ */
+const sourceCardComparableFlags = {
+  id: true,
+  kind: true,
+  status: true,
+  title: true,
+  textContent: true,
+  urlContent: true,
+  fileFormat: true,
+  fileUrl: true,
+  parsedContentUrl: true,
+} satisfies Record<keyof SourceCard, true>
+
+const sourceCardComparableKeys = Object.keys(sourceCardComparableFlags) as Array<keyof SourceCard>
+
+const isSameSourceCard = (prev: SourceCard | undefined, next: SourceCard) => {
+  if (!prev) return false
+  return sourceCardComparableKeys.every((key) => prev[key] === next[key])
+}
+
+/**
+ * setSources 往往带着一整套新建对象进来（轮询重新水合、列表刷新）。
+ * 这里在 store 内部消化掉等价变更：内容没变的卡片复用旧对象，全部没变时直接返回旧数组。
+ * zustand 在 set 返回原 state 时不会通知订阅者，于是来源列表及其派生值
+ * （选中 / 就绪 id 列表）在数据等价时保持引用相等，渲染期就不必再用 ref 缓存做身份守卫。
+ */
+const ensureSourceCardIdentity = (prev: SourceCard[], next: SourceCard[]): SourceCard[] => {
+  if (prev === next) return prev
+  if (prev.length !== next.length) return next
+  let reusedAll = true
+  const merged = next.map((item, index) => {
+    const current = prev[index]
+    if (isSameSourceCard(current, item)) {
+      return current
+    }
+    reusedAll = false
+    return item
+  })
+  return reusedAll ? prev : merged
+}
+
 interface WorkspaceStore {
   sources: SourceCard[]
   notebookMeta: NotebookMeta
@@ -76,7 +120,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
       }
     }),
   setSources: (sources) =>
-    set((state) => (state.sources === sources ? state : { sources })),
+    set((state) => {
+      const nextSources = ensureSourceCardIdentity(state.sources, sources)
+      return nextSources === state.sources ? state : { sources: nextSources }
+    }),
   setSourceStatus: (id, status) =>
     set((state) => {
       const index = state.sources.findIndex((item) => item.id === id)

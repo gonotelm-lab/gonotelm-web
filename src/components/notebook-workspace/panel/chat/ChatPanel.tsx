@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
@@ -110,6 +110,22 @@ const persistChatSettings = (
   )
 }
 
+/**
+ * 顶栏“更多选项”菜单要用的两个动作。header 不是对话面板的子节点，
+ * 与其把整套会话状态（流式、草稿、滚动控制）上提，不如由面板暴露一个 remote 句柄。
+ */
+export interface ChatPanelActions {
+  openSettings: () => void
+  refreshConversation: () => void
+}
+
+/** 菜单需要的会话状态快照，用于“刷新对话”的禁用判断与 header spinner。 */
+export interface ChatPanelActionState {
+  hasChatId: boolean
+  isClearingContext: boolean
+  isStreaming: boolean
+}
+
 interface ChatPanelProps {
   notebookId: string
   chatId: string
@@ -125,16 +141,30 @@ interface ChatPanelProps {
   onExpandInsightsPanel: () => void
   onOpenCitationJump: (request: ChatCitationJumpRequest) => void
   onSaveMessageAsNote?: (params: { chatId: string; msgId: string }) => Promise<void>
+  /** 由上层持有并转交给顶栏“更多选项”菜单。 */
+  actionsRef?: Ref<ChatPanelActions>
+  /** 把菜单需要的状态同步到上层；上层需传入稳定引用。 */
+  onActionStateChange?: (state: ChatPanelActionState) => void
 }
 
 export const ChatPanel = memo(function ChatPanel({
   notebookId,
+  actionsRef,
+  onActionStateChange,
   ...restProps
 }: ChatPanelProps) {
-  return <ChatPanelContent notebookId={notebookId} key={`${notebookId}:${restProps.chatId}`} {...restProps} />
+  return (
+    <ChatPanelContent
+      notebookId={notebookId}
+      key={`${notebookId}:${restProps.chatId}`}
+      actionsRef={actionsRef}
+      onActionStateChange={onActionStateChange}
+      {...restProps}
+    />
+  )
 })
 
-type ChatPanelContentProps = Omit<ChatPanelProps, never>
+type ChatPanelContentProps = ChatPanelProps
 
 function ChatPanelContent({
   chatId,
@@ -150,6 +180,8 @@ function ChatPanelContent({
   onExpandInsightsPanel,
   onOpenCitationJump,
   onSaveMessageAsNote,
+  actionsRef,
+  onActionStateChange,
 }: ChatPanelContentProps) {
   const { t } = useTranslation(['chat', 'common'])
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
@@ -210,6 +242,34 @@ function ChatPanelContent({
   const handleOpenSettingsDialog = useCallback(() => {
     setSettingsDialogOpen(true)
   }, [])
+
+  // 顶栏“更多选项”菜单的远程入口：菜单项与面板内原按钮走同一套回调。
+  useImperativeHandle(
+    actionsRef,
+    () => ({
+      openSettings: handleOpenSettingsDialog,
+      refreshConversation: onClearCurrentContext,
+    }),
+    [handleOpenSettingsDialog, onClearCurrentContext],
+  )
+
+  const chatActionState = useMemo<ChatPanelActionState>(
+    () => ({
+      hasChatId: Boolean(chatId),
+      isClearingContext,
+      isStreaming,
+    }),
+    [chatId, isClearingContext, isStreaming],
+  )
+
+  // 经 ref 转发，避免上层传入的回调换引用时反复向上回报。
+  const onActionStateChangeRef = useRef(onActionStateChange)
+  useEffect(() => {
+    onActionStateChangeRef.current = onActionStateChange
+  }, [onActionStateChange])
+  useEffect(() => {
+    onActionStateChangeRef.current?.(chatActionState)
+  }, [chatActionState])
 
   const handleCloseSettingsDialog = useCallback(() => {
     setSettingsDialogOpen(false)
@@ -311,14 +371,8 @@ function ChatPanelContent({
         <ChatPanelHeader
           sourcesPanelCollapsed={sourcesPanelCollapsed}
           insightsPanelCollapsed={insightsPanelCollapsed}
-          hasChatId={Boolean(chatId)}
-          isClearingContext={isClearingContext}
-          isStreaming={isStreaming}
           onExpandSourcesPanel={onExpandSourcesPanel}
           onExpandInsightsPanel={onExpandInsightsPanel}
-          onClearCurrentContext={onClearCurrentContext}
-          onOpenSettingsDialog={handleOpenSettingsDialog}
-          rightContentPadding={0}
         />
       </Box>
 

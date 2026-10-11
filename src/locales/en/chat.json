@@ -3,9 +3,6 @@
     "title": "Chat",
     "expandSourcesAria": "Expand sources panel",
     "expandStudioAria": "Expand right panel",
-    "refreshTooltip": "Refresh conversation context",
-    "refresh": "Refresh",
-    "settingsAria": "Open chat settings",
     "scrollBottomAria": "Scroll to bottom"
   },
   "input": {

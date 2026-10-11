@@ -3,25 +3,16 @@ import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import { Avatar, IconButton, Menu, MenuItem, Typography } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { logout } from '../../api/auth'
 import { SettingsDialog } from '../settings/SettingsDialog'
-import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
-import { subtleScrollbarSx } from '../notebook-workspace/shared/ui/scrollbar'
-import { workspaceIconSize } from '../notebook-workspace/shared/ui/typeTokens'
+import {
+  headerMenuIconSx,
+  headerMenuItemSx,
+  headerMenuPaperSx,
+} from '../notebook-workspace/shared/ui/menuStyles'
 import { useMeQuery } from './useMeQuery'
-
-const menuItemSx = {
-  gap: workspaceSpace.md,
-  px: workspaceSpace.md,
-} as const
-
-const menuItemIconSx = {
-  fontSize: workspaceIconSize.md,
-  color: 'text.secondary',
-} as const
 
 interface AccountMenuProps {
   /** Trigger hit box in px. Omit to let MUI size the small IconButton itself. */
@@ -105,41 +96,25 @@ export function AccountMenu({ triggerSize, avatarSize = 28 }: AccountMenuProps) 
         // 右对齐触发器，否则 MUI 默认 top-left 原点会让菜单相对头像左偏。
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        // 默认 elevation=8 是 Material 三段重投影，和全站的 hairline 语言冲突。
         elevation={0}
-        slotProps={{
-          paper: {
-            sx: (theme) => ({
-              minWidth: 160,
-              maxWidth: 280,
-              mt: workspaceSpace.xxs,
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}, 0 4px 14px ${alpha(theme.palette.common.black, 0.12)}`,
-              // MUI 默认 calc(100% - 96px) 预留上下各 48px，矮窗口里会把两行菜单也压成滚动区。
-              // 16px 是 Popover 的 marginThreshold，两侧各留 16px 已经够点外面关闭了。
-              maxHeight: 'calc(100vh - 32px)',
-              ...subtleScrollbarSx(theme),
-            }),
-          },
-        }}
+        slotProps={{ paper: { sx: headerMenuPaperSx } }}
       >
         <MenuItem
           data-testid="account-settings"
           disabled={isLoggingOut}
           onClick={handleOpenSettings}
-          sx={menuItemSx}
+          sx={headerMenuItemSx}
         >
-          <SettingsOutlinedIcon sx={menuItemIconSx} />
+          <SettingsOutlinedIcon sx={headerMenuIconSx} />
           {t('settings:title')}
         </MenuItem>
         <MenuItem
           data-testid="account-logout"
           disabled={isLoggingOut}
           onClick={() => void handleLogout()}
-          sx={menuItemSx}
+          sx={headerMenuItemSx}
         >
-          <LogoutOutlinedIcon sx={menuItemIconSx} />
+          <LogoutOutlinedIcon sx={headerMenuIconSx} />
           {isLoggingOut ? t('account.loggingOut') : t('account.logout')}
         </MenuItem>
         {logoutFailed ? (

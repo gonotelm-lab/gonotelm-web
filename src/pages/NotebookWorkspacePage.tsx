@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box, Paper, Snackbar, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +21,6 @@ import {
   uploadToObjectStorage,
 } from '../api/source'
 import {
-  deleteNotebook,
   generateNotebookDescription,
   getNotebook,
   getOrCreateNotebookChat,
@@ -39,7 +38,10 @@ import {
   SourcesPanel,
   StudioPanel,
   WorkspaceHeader,
+  type ChatPanelActionState,
+  type ChatPanelActions,
   type SourceListItem,
+  type WorkspaceHeaderChatMenu,
 } from '../components/notebook-workspace'
 import { WorkspaceMobileTabBar } from '../components/notebook-workspace/layout/WorkspaceMobileTabBar'
 import {
@@ -72,6 +74,8 @@ const workspaceSourcesColumnVar = '--workspace-sources-column'
 const workspaceInsightsColumnVar = '--workspace-insights-column'
 const workspaceLeftHandleColumnVar = '--workspace-left-handle-column'
 const workspaceRightHandleColumnVar = '--workspace-right-handle-column'
+/** 序列化 id 列表用的分隔符，避免轮询产生的等价数组触发下游重渲染。 */
+const sourceIdListSeparator = '\u0000'
 
 const isProcessingStatus = (status?: SourceStatus) =>
   !!status && processingStatusSet.has(status)
@@ -151,7 +155,6 @@ const applyWorkspacePanelGridColumns = (
 export function NotebookWorkspacePage() {
   const { t } = useTranslation('workspace')
   const { id = '' } = useParams()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const theme = useTheme()
   const isMobileWorkspace = useMediaQuery(theme.breakpoints.down('md'))
@@ -179,6 +182,14 @@ export function NotebookWorkspacePage() {
   const [isGeneratingNotebookDescription, setIsGeneratingNotebookDescription] = useState(false)
   const pendingNotebookDescGenerationRef = useRef(false)
   const notebookDescGenerationInFlightRef = useRef(false)
+  // 顶栏“更多选项”菜单是对话面板的 remote：actionsRef 持有面板动作，
+  // actionState 由面板回报，用来禁用“刷新对话”并驱动 header spinner。
+  const chatPanelActionsRef = useRef<ChatPanelActions | null>(null)
+  const [chatPanelActionState, setChatPanelActionState] = useState<ChatPanelActionState>({
+    hasChatId: false,
+    isClearingContext: false,
+    isStreaming: false,
+  })
 
   const sources = useWorkspaceStore((s) => s.sources)
   const addSource = useWorkspaceStore((s) => s.addSource)
@@ -442,14 +453,15 @@ export function NotebookWorkspacePage() {
     if (hasNonTerminal) return
 
     const hasReady = activeSources.some((source) => source.status === 'ready')
-    if (!hasReady) {
-      clearPendingNotebookDescGeneration()
-      return
-    }
 
     notebookDescGenerationInFlightRef.current = true
     void (async () => {
       try {
+        // 全部失败时没有可用内容，直接落到 finally 收尾：
+        // 状态清理不放在 effect 体内同步执行（会连带触发级联渲染）。
+        if (!hasReady) {
+          return
+        }
         const result = await generateNotebookDescription(id)
         const nextDesc = result.desc ?? ''
         patchNotebookMeta({ desc: nextDesc })
@@ -597,9 +609,6 @@ export function NotebookWorkspacePage() {
     mutationFn: ({ notebookId, name }: { notebookId: string; name: string }) =>
       updateNotebookName(notebookId, { name }),
   })
-  const deleteNotebookMutation = useMutation({
-    mutationFn: (notebookId: string) => deleteNotebook(notebookId),
-  })
 
   const isBusy = useMemo(
     () =>
@@ -615,11 +624,11 @@ export function NotebookWorkspacePage() {
     ],
   )
 
-  const sourceListItemCacheRef = useRef<Map<string, SourceListItem>>(new Map())
-  const sourceListItems = useMemo<SourceListItem[]>(() => {
-    const nextCache = new Map<string, SourceListItem>()
-    const items = sources.map((source) => {
-      const nextItem: SourceListItem = {
+  // 引用相等由 store 保证：setSources 在内容等价时复用旧卡片对象，[sources] 不变这里就不重算；
+  // 单个来源变化时新对象只影响对应行，由 SourceListRow 的 memo 比较器兜住。
+  const sourceListItems = useMemo<SourceListItem[]>(
+    () =>
+      sources.map((source) => ({
         id: source.id,
         kind: source.kind,
         title: source.title ?? '',
@@ -631,28 +640,9 @@ export function NotebookWorkspacePage() {
         fileFormat: source.fileFormat,
         fileUrl: source.fileUrl,
         parsedContentUrl: source.parsedContentUrl,
-      }
-      const prevItem = sourceListItemCacheRef.current.get(source.id)
-      const stableItem =
-        prevItem
-        && prevItem.kind === nextItem.kind
-        && prevItem.title === nextItem.title
-        && prevItem.name === nextItem.name
-        && prevItem.iconType === nextItem.iconType
-        && prevItem.status === nextItem.status
-        && prevItem.textContent === nextItem.textContent
-        && prevItem.urlContent === nextItem.urlContent
-        && prevItem.fileFormat === nextItem.fileFormat
-        && prevItem.fileUrl === nextItem.fileUrl
-        && prevItem.parsedContentUrl === nextItem.parsedContentUrl
-          ? prevItem
-          : nextItem
-      nextCache.set(source.id, stableItem)
-      return stableItem
-    })
-    sourceListItemCacheRef.current = nextCache
-    return items
-  }, [sources])
+      })),
+    [sources],
+  )
 
   const selectableSourceItems = useMemo(
     () =>
@@ -680,24 +670,25 @@ export function NotebookWorkspacePage() {
         .map((item) => item.id),
     [sourceListItems],
   )
-  // Keep referential equality when polling refreshes sources but id sets are unchanged.
-  const selectedSourceIdListRef = useRef(selectedSourceIdListRaw)
-  if (
-    selectedSourceIdListRaw.length !== selectedSourceIdListRef.current.length
-    || selectedSourceIdListRaw.some((id, index) => id !== selectedSourceIdListRef.current[index])
-  ) {
-    selectedSourceIdListRef.current = selectedSourceIdListRaw
-  }
-  const selectedSourceIdList = selectedSourceIdListRef.current
+  // 轮询 / 重复勾选会让 state 换新对象但 id 集合不变：序列化成 key 再 memo，
+  // 保持数组引用相等（原先用 render 期读写 ref 守卫，现在不需要了）。
+  const selectedSourceIdListKey = useMemo(
+    () => selectedSourceIdListRaw.join(sourceIdListSeparator),
+    [selectedSourceIdListRaw],
+  )
+  const selectedSourceIdList = useMemo(
+    () => (selectedSourceIdListKey ? selectedSourceIdListKey.split(sourceIdListSeparator) : []),
+    [selectedSourceIdListKey],
+  )
 
-  const readySourceIdListRef = useRef(readySourceIdListRaw)
-  if (
-    readySourceIdListRaw.length !== readySourceIdListRef.current.length
-    || readySourceIdListRaw.some((id, index) => id !== readySourceIdListRef.current[index])
-  ) {
-    readySourceIdListRef.current = readySourceIdListRaw
-  }
-  const readySourceIdList = readySourceIdListRef.current
+  const readySourceIdListKey = useMemo(
+    () => readySourceIdListRaw.join(sourceIdListSeparator),
+    [readySourceIdListRaw],
+  )
+  const readySourceIdList = useMemo(
+    () => (readySourceIdListKey ? readySourceIdListKey.split(sourceIdListSeparator) : []),
+    [readySourceIdListKey],
+  )
   // Chat/Studio only need selection for submit/generate — defer so Sources checkbox stays snappy.
   const deferredSelectedSourceIdList = useDeferredValue(selectedSourceIdList)
 
@@ -974,21 +965,37 @@ export function NotebookWorkspacePage() {
     updateNotebookNameMutation,
   ])
 
-  const handleDeleteNotebook = async () => {
-    if (!id || deleteNotebookMutation.isPending) {
-      return
-    }
+  // 对话面板把菜单需要的状态回报上来；字段一致时保持原引用，避免无谓重渲染。
+  const handleChatPanelActionStateChange = useCallback((next: ChatPanelActionState) => {
+    setChatPanelActionState((prev) =>
+      prev.hasChatId === next.hasChatId
+      && prev.isClearingContext === next.isClearingContext
+      && prev.isStreaming === next.isStreaming
+        ? prev
+        : next,
+    )
+  }, [])
 
-    try {
-      await deleteNotebookMutation.mutateAsync(id)
-      resetWorkspace()
-      await queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
-      navigate('/')
-    } catch (error) {
-      console.warn('delete notebook failed', id, error)
-      throw error
-    }
-  }
+  const handleConfigureChat = useCallback(() => {
+    chatPanelActionsRef.current?.openSettings()
+  }, [])
+
+  const handleRefreshChat = useCallback(() => {
+    chatPanelActionsRef.current?.refreshConversation()
+  }, [])
+
+  const chatMenu = useMemo<WorkspaceHeaderChatMenu>(
+    () => ({
+      refreshDisabled:
+        !chatPanelActionState.hasChatId
+        || chatPanelActionState.isClearingContext
+        || chatPanelActionState.isStreaming,
+      isRefreshing: chatPanelActionState.isClearingContext,
+      onConfigureChat: handleConfigureChat,
+      onRefreshChat: handleRefreshChat,
+    }),
+    [chatPanelActionState, handleConfigureChat, handleRefreshChat],
+  )
 
   const getLeftPanelWidthBounds = useCallback(
     (containerWidth: number, rightPanelWidth: number, rightPanelCollapsed: boolean) => {
@@ -1438,9 +1445,8 @@ export function NotebookWorkspacePage() {
         notebookName={displayNotebookName}
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
-        isDeletingNotebook={deleteNotebookMutation.isPending}
         onNotebookNameCommit={handleNotebookNameCommit}
-        onDeleteNotebook={handleDeleteNotebook}
+        chatMenu={chatMenu}
       />
 
       <Box
@@ -1573,6 +1579,8 @@ export function NotebookWorkspacePage() {
               onExpandInsightsPanel={handleExpandInsightsPanel}
               onOpenCitationJump={handleOpenCitationJump}
               onSaveMessageAsNote={handleSaveMessageAsNote}
+              actionsRef={chatPanelActionsRef}
+              onActionStateChange={handleChatPanelActionStateChange}
             />
           </Box>
 

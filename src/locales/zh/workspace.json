@@ -3,10 +3,9 @@
     "backAria": "返回",
     "namePlaceholder": "未命名笔记本",
     "nameAria": "笔记名称",
-    "deleteAria": "删除笔记本",
-    "deleteTitle": "删除笔记本",
-    "deleteBody": "删除后将移除该笔记本及其相关聊天与来源数据，此操作不可恢复。",
-    "confirmDelete": "确认删除"
+    "moreOptionsAria": "更多选项",
+    "configureChat": "配置对话",
+    "refreshChat": "刷新对话"
   },
   "mobile": {
     "tab": {

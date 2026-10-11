@@ -3,10 +3,9 @@
     "backAria": "Back",
     "namePlaceholder": "Untitled notebook",
     "nameAria": "Notebook name",
-    "deleteAria": "Delete notebook",
-    "deleteTitle": "Delete notebook",
-    "deleteBody": "This will permanently remove the notebook and its related chat and source data.",
-    "confirmDelete": "Confirm delete"
+    "moreOptionsAria": "More options",
+    "configureChat": "Configure chat",
+    "refreshChat": "Refresh chat"
   },
   "mobile": {
     "tab": {

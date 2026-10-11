@@ -1,47 +1,40 @@
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
-import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
-import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { IconButton, Stack, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleVariant } from '../../shared/ui/panelStyles'
-import { workspaceAnimation } from '../../shared/ui/motionTokens'
-import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
 const chatHeaderStackSpacing = workspaceSpace.xxs
+/**
+ * 面板内的刷新 / 设置按钮移到顶栏后，标题行仍保持原来 `size="small"` IconButton 的 30px 高，
+ * 三栏面板的正文起点不下移。
+ */
+const chatHeaderRowMinHeight = 30
 const sidePanelToggleButtonTokens = {
   horizontalOffset: -18,
   topOffset: 18,
   zIndex: 1,
 }
 
+/**
+ * 对话面板头部只留标题 + 两侧面板收展手柄。
+ * “刷新对话 / 配置对话”已上移到顶栏的“更多选项”菜单，面板内不再重复放按钮。
+ */
 interface ChatPanelHeaderProps {
   sourcesPanelCollapsed: boolean
   insightsPanelCollapsed: boolean
-  hasChatId: boolean
-  isClearingContext: boolean
-  isStreaming: boolean
   onExpandSourcesPanel: () => void
   onExpandInsightsPanel: () => void
-  onClearCurrentContext: () => void
-  onOpenSettingsDialog: () => void
-  rightContentPadding: number
 }
 
 export function ChatPanelHeader({
   sourcesPanelCollapsed,
   insightsPanelCollapsed,
-  hasChatId,
-  isClearingContext,
-  isStreaming,
   onExpandSourcesPanel,
   onExpandInsightsPanel,
-  onClearCurrentContext,
-  onOpenSettingsDialog,
-  rightContentPadding,
 }: ChatPanelHeaderProps) {
-  const { t } = useTranslation(['chat', 'common'])
+  const { t } = useTranslation('chat')
 
   return (
     <>
@@ -92,7 +85,7 @@ export function ChatPanelHeader({
         direction="row"
         spacing={chatHeaderStackSpacing}
         sx={{
-          pr: rightContentPadding,
+          minHeight: chatHeaderRowMinHeight,
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
@@ -100,58 +93,6 @@ export function ChatPanelHeader({
         <Typography variant={panelTitleVariant} sx={panelTitleSx}>
           {t('chat:panel.title')}
         </Typography>
-        <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
-          <Tooltip title={t('chat:panel.refreshTooltip')}>
-            <span>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={
-                  <RefreshRoundedIcon
-                    className="chat-refresh-icon"
-                    sx={{ fontSize: workspaceIconSize.sm }}
-                  />
-                }
-                onClick={onClearCurrentContext}
-                disabled={!hasChatId || isClearingContext || isStreaming}
-                sx={{
-                  minWidth: 0,
-                  height: 28,
-                  px: workspaceSpace.sm,
-                  py: 0,
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  fontSize: workspaceType.xs,
-                  lineHeight: 1.2,
-                  whiteSpace: 'nowrap',
-                  '& .MuiButton-startIcon': {
-                    marginRight: workspaceSpace.xxs,
-                    marginLeft: 0,
-                  },
-                  '& .chat-refresh-icon': {
-                    transformOrigin: 'center',
-                    animation: isClearingContext
-                      ? `chat-refresh-spin ${workspaceAnimation.refreshSpinDurationMs}ms linear infinite`
-                      : 'none',
-                  },
-                  '@keyframes chat-refresh-spin': {
-                    from: { transform: 'rotate(0deg)' },
-                    to: { transform: 'rotate(360deg)' },
-                  },
-                }}
-              >
-                {t('chat:panel.refresh')}
-              </Button>
-            </span>
-          </Tooltip>
-          <IconButton
-            size="small"
-            aria-label={t('chat:panel.settingsAria')}
-            onClick={onOpenSettingsDialog}
-          >
-            <TuneRoundedIcon fontSize="small" />
-          </IconButton>
-        </Stack>
       </Stack>
     </>
   )

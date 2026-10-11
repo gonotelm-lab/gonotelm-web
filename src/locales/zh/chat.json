@@ -3,9 +3,6 @@
     "title": "对话",
     "expandSourcesAria": "展开来源面板",
     "expandStudioAria": "展开右侧面板",
-    "refreshTooltip": "刷新会话上下文",
-    "refresh": "刷新",
-    "settingsAria": "打开对话设置",
     "scrollBottomAria": "回到底部"
   },
   "input": {

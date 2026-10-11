@@ -1,4 +1,4 @@
-export { WorkspaceHeader } from './WorkspaceHeader'
+export { WorkspaceHeader, type WorkspaceHeaderChatMenu } from './WorkspaceHeader'
 export { WorkspaceMobileTabBar } from './WorkspaceMobileTabBar'
 export {
   workspaceMobilePanelDefault,

@@ -4,6 +4,16 @@ import { describe, expect, it, vi } from 'vitest'
 import { SourceListRow } from './SourceListRow'
 import type { SourceListItem } from '../types/sourceTypes'
 
+// text 类型来源渲染的就是这个图标；用它当重渲染探针。
+const notesIconRenders = vi.hoisted(() => ({ count: 0 }))
+
+vi.mock('@mui/icons-material/NotesOutlined', () => ({
+  default: () => {
+    notesIconRenders.count += 1
+    return null
+  },
+}))
+
 vi.mock('./FlowLoadingOverlay', () => ({
   FlowLoadingOverlay: () => null,
 }))
@@ -65,5 +75,37 @@ describe('SourceListRow', () => {
     })
 
     expect(onToggleItem).toHaveBeenCalledWith('source-1', true)
+  })
+
+  it('等价的新 item 对象不重渲染整行，字段真正变化才重渲染', () => {
+    const rowProps = {
+      checked: false,
+      removing: false,
+      isBusy: false,
+      onToggleItem: vi.fn(),
+      onDeleteItem: async () => undefined,
+      onRetryItem: async () => undefined,
+      onRenameItem: async () => undefined,
+      onPreviewItem: () => undefined,
+      previewLoading: false,
+    }
+    let renderer = null as unknown as ReactTestRenderer
+    act(() => {
+      renderer = create(<SourceListRow item={sourceItem} {...rowProps} />)
+    })
+    const afterMount = notesIconRenders.count
+    expect(afterMount).toBeGreaterThan(0)
+
+    // 父层每次 sources 变化都会重建 item 对象：内容一致时不应重渲染
+    act(() => {
+      renderer.update(<SourceListRow item={{ ...sourceItem }} {...rowProps} />)
+    })
+    expect(notesIconRenders.count).toBe(afterMount)
+
+    // 内容字段变化必须放行
+    act(() => {
+      renderer.update(<SourceListRow item={{ ...sourceItem, title: '改过的标题' }} {...rowProps} />)
+    })
+    expect(notesIconRenders.count).toBeGreaterThan(afterMount)
   })
 })

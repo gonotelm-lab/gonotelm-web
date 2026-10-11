@@ -38,6 +38,7 @@ import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
 import { downloadSourceItemParsedContent } from './sourceItemDownload'
 import type { SourceListItem } from '../types/sourceTypes'
+import { isSameSourceListItem } from '../sourceListItemEquality'
 import {
   workspaceLayout,
   workspaceRadius,
@@ -83,6 +84,22 @@ interface SourceListRowProps {
   onPreviewItem: (item: SourceListItem) => Promise<void> | void
   previewLoading: boolean
 }
+
+/**
+ * 行内容由 item 的字段决定（见 isSameSourceListItem）；item 按字段比较，其余 props 仍是浅比较。
+ */
+const areSourceListRowPropsEqual = (prev: SourceListRowProps, next: SourceListRowProps) =>
+  prev.checked === next.checked
+  && prev.removing === next.removing
+  && prev.isBusy === next.isBusy
+  && prev.previewLoading === next.previewLoading
+  && prev.selectionColumnWidth === next.selectionColumnWidth
+  && prev.onToggleItem === next.onToggleItem
+  && prev.onDeleteItem === next.onDeleteItem
+  && prev.onRetryItem === next.onRetryItem
+  && prev.onRenameItem === next.onRenameItem
+  && prev.onPreviewItem === next.onPreviewItem
+  && (prev.item === next.item || isSameSourceListItem(prev.item, next.item))
 
 export const SourceListRow = memo(function SourceListRow({
   item,
@@ -494,4 +511,4 @@ export const SourceListRow = memo(function SourceListRow({
       </Dialog>
     </Box>
   )
-})
+}, areSourceListRowPropsEqual)
