@@ -3,11 +3,17 @@ import { execFileSync } from 'node:child_process'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import '@/i18n'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
-import { installBrowserShims, resetCookieJar } from './browserShim'
+import {
+  assignedUrls,
+  installBrowserShims,
+  resetCookieJar,
+  resetWindowLocation,
+  windowLocation,
+} from './browserShim'
 
 /**
  * 真机 UI 流程：登录页「创建账号」→ 前端注册页 → 真实注册。
@@ -25,6 +31,18 @@ const sha = (raw: string) => createHash('sha256').update(raw).digest('hex')
 function LocationProbe() {
   const location = useLocation()
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+}
+
+/**
+ * 把 router 的当前位置同步给 window.location，这样 redirectToLogin() 之类的
+ * 「整页跳转」代码在测试里走的是真实分支（否则 window 不存在，副作用被静默吞掉）。
+ */
+function LocationSync() {
+  const location = useLocation()
+  windowLocation.pathname = location.pathname
+  windowLocation.search = location.search
+  windowLocation.hash = location.hash
+  return null
 }
 
 const flush = async () => {
@@ -51,6 +69,7 @@ const renderAt = async (entry: string) => {
     renderer = create(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[entry]}>
+          <LocationSync />
           <LocationProbe />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -86,6 +105,10 @@ describe.skipIf(!live)('live UI · 创建账号 → 注册页 → 执行注册',
   beforeAll(async () => {
     installBrowserShims()
     await import('@/i18n')
+  })
+
+  beforeEach(() => {
+    resetWindowLocation()
   })
 
   afterAll(() => {
@@ -134,6 +157,10 @@ describe.skipIf(!live)('live UI · 创建账号 → 注册页 → 执行注册',
     // 注册页要等 /user/me 返回 2002 之后才渲染表单（未登录态）。
     await waitFor(() => renderer.root.findAllByProps({ 'data-testid': 'signup-email-input' }).length > 0)
     expect(renderer.root.findByProps({ 'data-testid': 'signup-email-input' })).toBeTruthy()
+
+    // 关键回归：注册页探 /user/me 得到的 2002 不能触发整页跳回登录页。
+    expect(assignedUrls).toEqual([])
+    expect(windowLocation.pathname).toBe('/signup')
   })
 
   it('注册页提交后真实注册成功，并跳到验证页', async () => {

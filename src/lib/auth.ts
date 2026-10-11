@@ -211,12 +211,21 @@ export function extractVerifyToken(hash: string, search?: string): string {
 
 let redirecting = false
 
+/**
+ * 这些页面自己处理「未登录」，不能因为一次 2002 就把用户弹走：
+ * - `/login` 本身就是登录入口；
+ * - `/signup`、`/verify-email` 在未登录态下才是正常入口，而且它们都会主动探一次
+ *   `/user/me` 来判断「已登录就短路回 return_to」——若把这次 2002 当成会话失效，
+ *   用户点「创建账号」会被立刻弹回登录页（真实 bug）。
+ */
+const AUTH_PAGES_HANDLING_NOT_LOGIN = ['/login', '/signup', '/verify-email']
+
 export function redirectToLogin(): void {
   if (redirecting || typeof window === 'undefined') {
     return
   }
   const { pathname, search } = window.location
-  if (pathname === '/login') {
+  if (AUTH_PAGES_HANDLING_NOT_LOGIN.includes(pathname)) {
     return
   }
   redirecting = true

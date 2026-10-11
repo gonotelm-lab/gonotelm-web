@@ -9,6 +9,7 @@ import {
   createNoContentResponse,
 } from '@/test/mocks/handlers/httpResponse'
 import { SignupPage } from './SignupPage'
+import { resetAuthRedirectForTest } from '@/lib/auth'
 
 const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
 const registerUrl = 'http://127.0.0.1:4173/api/v1/auth/email/register'
@@ -85,8 +86,7 @@ describe('SignupPage', () => {
     expect(submitDisabled(renderer)).toBe(true)
   })
 
-  it('注册成功：POST 归一化邮箱与口令，并跳到验证页', async () => {
-    let received: unknown = null
+  it('注册成功：POST 归一化邮箱与口令，并跳到验证页', async () => {    let received: unknown = null
     mockServer.use(
       http.post(registerUrl, async ({ request }) => {
         received = await request.json()
@@ -117,5 +117,20 @@ describe('SignupPage', () => {
 
     renderer.root.findByProps({ 'data-testid': 'signup-error' })
     expect(JSON.stringify(renderer.toJSON())).toContain('该邮箱已注册')
+  })
+
+  it('未登录访问注册页不会被弹回登录页', async () => {
+    // 回归：注册页要探一次 /user/me 判断「已登录就短路」，这次 2002 不能被当成会话失效，
+    // 否则点「创建账号」会立刻跳回 /login。
+    resetAuthRedirectForTest()
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/signup', search: '', assign, origin: 'http://localhost' },
+    })
+
+    const renderer = await renderSignup()
+
+    expect(assign).not.toHaveBeenCalled()
+    expect(renderer.root.findByProps({ 'data-testid': 'signup-email-input' })).toBeTruthy()
   })
 })

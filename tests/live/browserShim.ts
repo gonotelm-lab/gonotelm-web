@@ -9,6 +9,30 @@ const jar = new Map<string, string>()
 
 export const cookieJar = jar
 
+/**
+ * 真机 UI 用例要能观察到「整页跳转」这类副作用：`redirectToLogin()` 会调
+ * `window.location.assign`。这里给一个可变 location + 记录被 assign 的 URL。
+ * 用例需要自己把 router 的当前位置同步进来（见 signupFlow 的 LocationSync）。
+ */
+export const windowLocation = {
+  pathname: '/',
+  search: '',
+  hash: '',
+  origin: 'http://127.0.0.1:5173',
+  assign(url: string) {
+    assignedUrls.push(url)
+  },
+}
+
+export const assignedUrls: string[] = []
+
+export const resetWindowLocation = () => {
+  windowLocation.pathname = '/'
+  windowLocation.search = ''
+  windowLocation.hash = ''
+  assignedUrls.length = 0
+}
+
 export const cookieHeader = () =>
   [...jar.entries()].map(([name, value]) => `${name}=${value}`).join('; ')
 
@@ -42,6 +66,12 @@ export function installBrowserShims() {
         applySetCookie(raw)
       },
     },
+  })
+
+  // 让 redirectToLogin / absoluteReturnTo 这些读 window.location 的代码走真实分支。
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { location: windowLocation },
   })
 
   const realFetch = globalThis.fetch

@@ -228,6 +228,33 @@ describe('redirectToLogin', () => {
     expect(assign).not.toHaveBeenCalled()
   })
 
+  it.each(['/signup', '/verify-email'])(
+    '注册/验证页自己处理未登录，%s 上不跳转（否则会被弹回登录页）',
+    (pathname) => {
+      const assign = vi.fn()
+      vi.stubGlobal('window', {
+        location: { pathname, search: '', assign, origin: 'http://localhost' },
+      })
+
+      redirectToLogin()
+
+      expect(assign).not.toHaveBeenCalled()
+    },
+  )
+
+  it('受保护页面仍然会跳登录页', () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/set-password', search: '', assign, origin: 'http://localhost' },
+    })
+
+    redirectToLogin()
+
+    expect(assign).toHaveBeenCalledWith(
+      '/login?return_to=http%3A%2F%2Flocalhost%2Fset-password',
+    )
+  })
+
   it('重复调用只跳转一次', () => {
     const assign = vi.fn()
     vi.stubGlobal('window', {
