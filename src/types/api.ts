@@ -37,6 +37,11 @@ export interface AuthSessionResponse {
 export interface MeResponse {
   user_id: string
   nickname: string
+  /**
+   * 账号邮箱（users_v2 里是账号的唯一权威标识）。
+   * 后端较新的构建才返回；旧构建缺失时相关只读行整体不渲染。
+   */
+  email?: string
   /** 头像公开地址；用户未设置头像时后端返回空串。 */
   avatar_url: string
   /**

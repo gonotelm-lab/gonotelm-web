@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import KeyOutlinedIcon from '@mui/icons-material/KeyOutlined'
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined'
 import {
   Box,
   Button,
@@ -80,6 +81,8 @@ export function PasswordSettingsSection() {
   const { t } = useTranslation(['settings', 'auth'])
   const meQuery = useMeQuery()
   const hasPassword = meQuery.data?.has_password === true
+  // 账号邮箱只读展示；后端旧构建不返回该字段时该行不渲染。
+  const email = meQuery.data?.email?.trim() || undefined
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
@@ -112,6 +115,17 @@ export function PasswordSettingsSection() {
           overflow: 'hidden',
         }}
       >
+        {email ? (
+          <>
+            <SecurityRow
+              icon={<MailOutlineOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />}
+              label={t('settings:security.emailLabel')}
+              value={email}
+              testId="security-email"
+            />
+            <Divider />
+          </>
+        ) : null}
         <SecurityRow
           icon={<KeyOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />}
           label={t('settings:security.loginSourceLabel')}

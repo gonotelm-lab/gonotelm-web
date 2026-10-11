@@ -38,6 +38,8 @@ export function ProfileSettingsSection({ createCanvas, createImage }: ProfileSet
 
   const savedNickname = meQuery.data?.nickname ?? ''
   const avatarUrl = meQuery.data?.avatar_url?.trim() || undefined
+  // 账号邮箱只读展示；后端旧构建不返回该字段时整块不渲染。
+  const email = meQuery.data?.email?.trim() || undefined
 
   // null 表示「未编辑」：始终显示服务端值，避免用 effect 反向同步草稿。
   const [draftNickname, setDraftNickname] = useState<string | null>(null)
@@ -314,6 +316,21 @@ export function ProfileSettingsSection({ createCanvas, createImage }: ProfileSet
           <span data-testid="profile-user-id">{meQuery.data?.user_id ?? '—'}</span>
         </Typography>
       </Box>
+
+      {email ? (
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            {t('settings:profile.emailLabel')}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: workspaceDialogLayout.helperTextMt, wordBreak: 'break-all' }}
+          >
+            <span data-testid="profile-email">{email}</span>
+          </Typography>
+        </Box>
+      ) : null}
 
       {updateMutation.isError ? (
         <Alert data-testid="profile-save-error" severity="error">

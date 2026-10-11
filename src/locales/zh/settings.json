@@ -15,6 +15,7 @@
     "nicknameRequired": "昵称不能为空。",
     "nicknameTooLong": "昵称最多 {{max}} 个字符。",
     "userIdLabel": "用户 ID",
+    "emailLabel": "邮箱",
     "saved": "已保存",
     "saveFailed": "保存失败，请重试。",
     "avatarConstraints": "选择图片上传：支持 PNG / JPEG 格式，大小不超过 1MB"
@@ -46,6 +47,7 @@
     "title": "登录口令",
     "subtitle": "设置口令后，也可以用邮箱与口令登录。",
     "changeSubtitle": "修改后请使用新口令登录。",
+    "emailLabel": "邮箱",
     "loginSourceLabel": "登录方式",
     "loginSourcePassword": "邮箱与口令",
     "loginSourceEmail": "邮箱验证",

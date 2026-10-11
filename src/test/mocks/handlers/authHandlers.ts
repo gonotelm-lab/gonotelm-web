@@ -20,6 +20,7 @@ export const authHandlers = [
     createSuccessResponse({
       user_id: 'user-1',
       nickname: '测试用户',
+      email: 'user@example.com',
       avatar_url: 'https://cdn.example.com/avatars/user-1.png',
     }),
   ),

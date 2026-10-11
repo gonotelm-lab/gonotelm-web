@@ -329,7 +329,7 @@ describe('SettingsDialog', () => {
     stubDecodedSize({ width: 512, height: 512 })
   })
 
-  it('默认选中个人资料并展示昵称与用户 ID', async () => {
+  it('默认选中个人资料并展示昵称、用户 ID 与邮箱', async () => {
     const { renderer } = await renderDialog()
 
     expect(
@@ -338,9 +338,24 @@ describe('SettingsDialog', () => {
     expect(
       renderer.root.findByProps({ 'data-testid': 'profile-user-id' }).children.join(''),
     ).toBe('user-1')
+    expect(textOf(renderer, 'profile-email')).toBe('user@example.com')
     expect(
       renderer.root.findByProps({ 'data-testid': 'settings-nav-profile' }).props['aria-current'],
     ).toBe('page')
+  })
+
+  it('后端旧构建不返回 email 时，邮箱只读块/行整体不渲染', async () => {
+    mockServer.use(
+      http.get(meUrl, () =>
+        createSuccessResponse({ user_id: 'user-1', nickname: '测试用户', avatar_url: '' }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    expect(renderer.root.findAllByProps({ 'data-testid': 'profile-email' })).toHaveLength(0)
+
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    expect(renderer.root.findAllByProps({ 'data-testid': 'security-email' })).toHaveLength(0)
   })
 
   it('未修改时保存按钮不可用，修改后可用', async () => {
@@ -481,12 +496,13 @@ describe('SettingsDialog', () => {
     ).toHaveLength(0)
   })
 
-  it('账号安全区展示登录方式与口令状态（读 /user/me 的 login_source 与 has_password）', async () => {
+  it('账号安全区展示邮箱、登录方式与口令状态（读 /user/me 的 login_source 与 has_password）', async () => {
     mockServer.use(
       http.get(meUrl, () =>
         createSuccessResponse({
           user_id: 'user-1',
           nickname: '测试用户',
+          email: 'user@example.com',
           avatar_url: 'https://cdn.example.com/avatars/user-1.png',
           login_source: 'github',
           has_password: true,
@@ -497,6 +513,7 @@ describe('SettingsDialog', () => {
     const { renderer } = await renderDialog()
     act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
 
+    expect(textOf(renderer, 'security-email')).toBe('user@example.com')
     expect(textOf(renderer, 'security-login-source')).toBe('GitHub')
     expect(textOf(renderer, 'security-password-state')).toBe('已设置')
     expect(JSON.stringify(renderer.toJSON())).toContain('修改口令')

@@ -12,10 +12,11 @@ const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
 const avatarUrl = 'http://127.0.0.1:4173/api/v1/user/me/avatar'
 
 describe('getMe', () => {
-  it('解析 user_id、nickname 与 avatar_url', async () => {
+  it('解析 user_id、nickname、email 与 avatar_url', async () => {
     await expect(getMe()).resolves.toEqual({
       user_id: 'user-1',
       nickname: '测试用户',
+      email: 'user@example.com',
       avatar_url: 'https://cdn.example.com/avatars/user-1.png',
     })
   })

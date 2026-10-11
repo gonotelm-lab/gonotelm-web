@@ -15,6 +15,7 @@
     "nicknameRequired": "Nickname cannot be empty.",
     "nicknameTooLong": "Nickname can be at most {{max}} characters.",
     "userIdLabel": "User ID",
+    "emailLabel": "Email",
     "saved": "Saved",
     "saveFailed": "Save failed. Please retry.",
     "avatarConstraints": "Upload an image: PNG / JPEG, up to 1MB"
@@ -46,6 +47,7 @@
     "title": "Sign-in password",
     "subtitle": "Set a password so you can also sign in with your email.",
     "changeSubtitle": "Use the new password the next time you sign in.",
+    "emailLabel": "Email",
     "loginSourceLabel": "Sign-in method",
     "loginSourcePassword": "Email and password",
     "loginSourceEmail": "Email verification",
