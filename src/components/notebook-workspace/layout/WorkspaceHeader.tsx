@@ -1,9 +1,19 @@
 import { memo, useEffect, useState, type MouseEvent } from 'react'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined'
+import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
-import { Box, CircularProgress, IconButton, InputBase, Menu, MenuItem } from '@mui/material'
+import {
+  Box,
+  Button,
+  CircularProgress,
+  IconButton,
+  InputBase,
+  Menu,
+  MenuItem,
+} from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AccountMenu } from '../../auth/AccountMenu'
@@ -27,6 +37,9 @@ import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
  * Notebook deletion lives on the home list card only; the workspace header stays a
  * navigation + rename + account row so the destructive action never sits next to
  * everyday chrome.
+ *
+ * 「创建笔记本 / 分享」目前只是占位：按设计稿先把这两个入口放进尾部控件组，
+ * 不接任何逻辑（无 onClick、无请求），等接口确定后再补行为。
  */
 const headerChrome = {
   rowMinHeight: 48,
@@ -35,6 +48,29 @@ const headerChrome = {
   accountAvatarSize: 32,
   statusSpinnerSize: workspaceIconSize.sm,
   titleFontSize: workspaceTypeRem.xl,
+} as const
+
+/**
+ * 尾部文字按钮（占位）与 36px 图标控件同高，和标题输入框共用一行基线。
+ * 字号 / 字重 / 圆角都交给 theme 的 MuiButton（14px / 600 / 8px），这里只定
+ * 占位需要的盒子与图标间距。
+ * 颜色走 `color="inherit"`（body ink），不用 theme 默认的 primary 绿：
+ * 顶栏占位入口不抢强调色，等接了行为再决定是否需要 forest fill。
+ * xs 下隐藏：375px 宽的顶栏放不下「返回 + 标题 + 两个文字按钮 + 更多 + 头像」，
+ * 标题会被压成一条缝；sm（≥600px）起按设计稿显示。
+ */
+const headerActionButtonSx = {
+  display: { xs: 'none', sm: 'inline-flex' },
+  flexShrink: 0,
+  height: headerChrome.controlHeight,
+  // MUI 文本按钮默认 min-width: 64px，会把「分享」撑得比图标 + 文字更宽。
+  minWidth: 0,
+  px: workspaceSpace.sm,
+  whiteSpace: 'nowrap',
+  '& .MuiButton-startIcon': {
+    marginRight: workspaceSpace.sm,
+    marginLeft: 0,
+  },
 } as const
 
 /**
@@ -206,6 +242,25 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             flexShrink: 0,
           }}
         >
+          {/* 占位入口：先只出视觉，行为待接口确定后接。 */}
+          <Button
+            data-testid="workspace-create-notebook"
+            variant="text"
+            color="inherit"
+            startIcon={<AddOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />}
+            sx={headerActionButtonSx}
+          >
+            {t('workspace:header.createNotebook')}
+          </Button>
+          <Button
+            data-testid="workspace-share-notebook"
+            variant="text"
+            color="inherit"
+            startIcon={<IosShareOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />}
+            sx={headerActionButtonSx}
+          >
+            {t('workspace:header.share')}
+          </Button>
           {chatMenu ? (
             <IconButton
               data-testid="workspace-more-options"

@@ -3,6 +3,8 @@
     "backAria": "返回",
     "namePlaceholder": "未命名笔记本",
     "nameAria": "笔记名称",
+    "createNotebook": "创建笔记本",
+    "share": "分享",
     "moreOptionsAria": "更多选项",
     "configureChat": "配置对话",
     "refreshChat": "刷新对话"

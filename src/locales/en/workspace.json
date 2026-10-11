@@ -3,6 +3,8 @@
     "backAria": "Back",
     "namePlaceholder": "Untitled notebook",
     "nameAria": "Notebook name",
+    "createNotebook": "Create notebook",
+    "share": "Share",
     "moreOptionsAria": "More options",
     "configureChat": "Configure chat",
     "refreshChat": "Refresh chat"

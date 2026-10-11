@@ -7,6 +7,16 @@ vi.mock('@mui/material', () => ({
   Box: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
     <div {...props}>{children}</div>
   ),
+  Button: ({
+    children,
+    startIcon,
+    ...props
+  }: { children?: ReactNode; startIcon?: ReactNode } & Record<string, unknown>) => (
+    <button type="button" {...props}>
+      {startIcon}
+      {children}
+    </button>
+  ),
   IconButton: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => (
     <button type="button" {...props}>
       {children}
@@ -29,7 +39,9 @@ vi.mock('@mui/material', () => ({
   CircularProgress: () => <span data-testid="workspace-status-spinner" />,
 }))
 
+vi.mock('@mui/icons-material/AddOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/ArrowBackOutlined', () => ({ default: () => null }))
+vi.mock('@mui/icons-material/IosShareOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/MoreVertRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/RefreshRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/TuneRounded', () => ({ default: () => null }))
@@ -144,6 +156,34 @@ describe('WorkspaceHeader', () => {
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'workspace-more-options' }),
     ).toHaveLength(0)
+  })
+
+  it('尾部“创建笔记本 / 分享”是占位：出中文文案，但不接任何行为', () => {
+    const renderer = renderHeader(buildChatMenu())
+
+    const createButton = renderer.root.findByProps({
+      'data-testid': 'workspace-create-notebook',
+    })
+    const shareButton = renderer.root.findByProps({
+      'data-testid': 'workspace-share-notebook',
+    })
+
+    expect(createButton.props.children).toBe('创建笔记本')
+    expect(shareButton.props.children).toBe('分享')
+    // 占位阶段不接逻辑：没有 onClick，也就不会误触发请求 / 弹窗。
+    expect(createButton.props.onClick).toBeUndefined()
+    expect(shareButton.props.onClick).toBeUndefined()
+  })
+
+  it('占位入口与“更多选项”解耦，无会话时也照样显示', () => {
+    const renderer = renderHeader()
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'workspace-create-notebook' }),
+    ).toBeTruthy()
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'workspace-share-notebook' }),
+    ).toBeTruthy()
   })
 
   it('标题放大到 20px，但控件盒与内边距不变（header 仍 48px）', () => {
