@@ -66,7 +66,14 @@
       "bindFailed": "Could not start linking. Please retry.",
       "bindNeedsAuthorizeUrl": "Could not get the third-party authorization URL. Please try again.",
       "bindAria": "Link {{provider}}",
-      "alreadyBound": "{{provider}} is already linked — no action needed."
+      "alreadyBound": "{{provider}} is already linked — no action needed.",
+      "unbind": "Unlink",
+      "unbinding": "Unlinking…",
+      "unbindTitle": "Unlink {{provider}}?",
+      "unbindBody": "You will no longer be able to sign in with that account. You can link it again later.",
+      "unbindDone": "{{provider}} has been unlinked.",
+      "unbindFailed": "Could not unlink. Please try again.",
+      "unbindLastMethod": "This is your only sign-in method. Set a password before unlinking."
     }
   }
 }

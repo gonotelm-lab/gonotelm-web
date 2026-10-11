@@ -595,17 +595,17 @@ describe('SettingsDialog', () => {
     await flush()
 
     expect(JSON.stringify(renderer.toJSON())).toContain('第三方账号')
-    expect(textOf(renderer, 'identity-status-github')).toBe('已绑定')
+    expect(textOf(renderer, 'identity-unbind-github')).toBe('解绑')
     expect(textOf(renderer, 'identity-email-github')).toBe('octocat@github.com')
     // 未绑定行不并排显示「未绑定」+「绑定」：状态与动作合成同一个按钮。
     expect(textOf(renderer, 'identity-bind-google')).toBe('绑定')
-    // 「已绑定」与「绑定」同款同尺寸（只是不可点），两行右侧才对得齐。
-    const boundStatus = renderer.root.findByProps({ 'data-testid': 'identity-status-github' })
+    // 每行一个按钮，两种状态同款同尺寸、只有文案与样式不同 → 两行右侧天然对齐。
+    const unbindButton = renderer.root.findByProps({ 'data-testid': 'identity-unbind-github' })
     const bindButton = renderer.root.findByProps({ 'data-testid': 'identity-bind-google' })
-    expect(boundStatus.props.component).toBe('span')
-    expect(boundStatus.props.variant).toBe(bindButton.props.variant)
-    expect(boundStatus.props.size).toBe(bindButton.props.size)
-    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-status-google' })).toHaveLength(0)
+    expect(unbindButton.props.variant).toBe(bindButton.props.variant)
+    expect(unbindButton.props.size).toBe(bindButton.props.size)
+    expect(typeof unbindButton.props.onClick).toBe('function')
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-unbind-google' })).toHaveLength(0)
     // 未绑定就没有 provider 邮箱快照。
     expect(renderer.root.findAllByProps({ 'data-testid': 'identity-email-google' })).toHaveLength(0)
   })
@@ -625,7 +625,7 @@ describe('SettingsDialog', () => {
     await flush()
 
     // 查不到 ≠ 未绑定：整块隐藏，避免误导。
-    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-status-github' })).toHaveLength(0)
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-unbind-github' })).toHaveLength(0)
     expect(JSON.stringify(renderer.toJSON())).not.toContain('第三方账号')
   })
 
@@ -744,10 +744,93 @@ describe('SettingsDialog', () => {
     // 不跳转；列表重新拉过一次，google 变成「已绑定」；并给出提示。
     expect(assign).not.toHaveBeenCalled()
     expect(boundCalls).toBeGreaterThan(1)
-    expect(renderer.root.findByProps({ 'data-testid': 'identity-status-google' })).toBeTruthy()
+    expect(renderer.root.findByProps({ 'data-testid': 'identity-unbind-google' })).toBeTruthy()
     renderer.root.findByProps({ 'data-testid': 'identity-bind-already-bound' })
 
     vi.stubGlobal('window', undefined)
+  })
+
+  it('解绑：确认后 POST {bind_id, provider} 并刷新列表', async () => {
+    let received: unknown = null
+    let unbound = false
+    mockServer.use(
+      // 账号有口令：不属于「唯一登录方式」的拦截场景。
+      http.get(meUrl, () =>
+        createSuccessResponse({
+          user_id: 'user-1',
+          nickname: '测试用户',
+          email: 'user@example.com',
+          avatar_url: '',
+          has_password: true,
+        }),
+      ),
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/unbind', async ({ request }) => {
+        received = await request.json()
+        unbound = true
+        return createNoContentResponse()
+      }),
+      http.get('http://127.0.0.1:4173/api/v1/auth/identities', () =>
+        createSuccessResponse({
+          identities: unbound
+            ? []
+            : [{ bind_id: 'bind-1', provider: 'github', provider_email: 'octocat@github.com' }],
+        }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-unbind-github' }).props.onClick()
+    })
+    // 先确认再发请求
+    expect(received).toBeNull()
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-unbind-confirm' }).props.onClick()
+    })
+    await flush()
+    await flush()
+
+    expect(received).toEqual({ bind_id: 'bind-1', provider: 'github' })
+    renderer.root.findByProps({ 'data-testid': 'identity-unbind-done' })
+  })
+
+  it('解绑是唯一登录方式且没有口令时：挡下来并提示先设口令', async () => {
+    let unbindCalls = 0
+    mockServer.use(
+      http.get(meUrl, () =>
+        createSuccessResponse({
+          user_id: 'user-1',
+          nickname: '测试用户',
+          email: 'user@example.com',
+          avatar_url: '',
+          has_password: false,
+        }),
+      ),
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/unbind', () => {
+        unbindCalls += 1
+        return createNoContentResponse()
+      }),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-unbind-github' }).props.onClick()
+    })
+    await flush()
+
+    expect(unbindCalls).toBe(0)
+    renderer.root.findByProps({ 'data-testid': 'identity-unbind-blocked' })
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'identity-unbind-confirm' }),
+    ).toHaveLength(0)
   })
 
   it('后端仍以 302 跳 IdP 时，绑定给出明确提示而不是静默失败', async () => {

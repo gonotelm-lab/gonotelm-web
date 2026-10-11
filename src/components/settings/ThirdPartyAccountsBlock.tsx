@@ -1,5 +1,16 @@
-import { Fragment } from 'react'
-import { Alert, Box, Button, Divider, Stack, Typography } from '@mui/material'
+import { Fragment, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Stack,
+  Typography,
+} from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -9,9 +20,11 @@ import {
   getAuthSupportedIdentities,
   IdentityBindRedirectError,
   startIdentityBind,
+  unbindIdentity,
 } from '../../api/auth'
 import type { AuthIdentity } from '../../types/api'
 import { ProviderIcon } from '../auth/ProviderIcon'
+import { useMeQuery } from '../auth/useMeQuery'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
 import { workspaceRadius, workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 import { workspaceIconSize } from '../notebook-workspace/shared/ui/typeTokens'
@@ -37,12 +50,16 @@ function IdentityRow({
   provider,
   identity,
   isBinding,
+  isUnbinding,
   onBind,
+  onUnbind,
 }: {
   provider: string
   identity?: AuthIdentity
   isBinding: boolean
+  isUnbinding: boolean
   onBind: (provider: string) => void
+  onUnbind: (identity: AuthIdentity) => void
 }) {
   const { t } = useTranslation(['settings', 'auth'])
   const isBound = Boolean(identity)
@@ -72,24 +89,23 @@ function IdentityRow({
       </Box>
 
       {isBound ? (
-        // 与相邻的「绑定」按钮同款同尺寸（只是不可点、无交互）：两行右侧才对得齐。
-        // 用 `component="span"` 是为了不落成一个真按钮（它是状态，不是动作）。
+        // 每行只有一个按钮：未绑定是「绑定」，已绑定是「解绑」，靠样式区分
+        // （同款同尺寸，已绑定弱化成中性色、悬停转危险色）。两行右侧天然对齐。
         <Button
-          component="span"
-          tabIndex={-1}
-          disableRipple
+          data-testid={`identity-unbind-${provider}`}
           size="small"
           variant="outlined"
-          data-testid={`identity-status-${provider}`}
+          disabled={isUnbinding}
+          onClick={() => onUnbind(identity!)}
           sx={{
-            cursor: 'default',
-            pointerEvents: 'none',
-            color: 'primary.main',
+            color: 'text.secondary',
             borderColor: 'divider',
-            fontWeight: 500,
+            '&:hover': { color: 'error.main', borderColor: 'error.main' },
           }}
         >
-          {t('settings:security.identities.bound')}
+          {isUnbinding
+            ? t('settings:security.identities.unbinding')
+            : t('settings:security.identities.unbind')}
         </Button>
       ) : (
         // 未绑定行只留一个动作按钮：状态与动作合成同一个控件，不再并排显示
@@ -138,6 +154,29 @@ export function ThirdPartyAccountsBlock() {
     queryKey: AUTH_SUPPORTED_IDENTITIES_QUERY_KEY,
     queryFn: getAuthSupportedIdentities,
     retry: false,
+  })
+
+  // 解绑要确认；另外挡住「解绑掉唯一登录方式」这种会把用户锁在门外的操作。
+  const meQuery = useMeQuery()
+  const [pendingUnbind, setPendingUnbind] = useState<AuthIdentity | null>(null)
+  const [unbindBlocked, setUnbindBlocked] = useState(false)
+
+  const boundCount = boundQuery.data?.identities.length ?? 0
+  const requestUnbind = (identity: AuthIdentity) => {
+    if (boundCount <= 1 && meQuery.data?.has_password !== true) {
+      setUnbindBlocked(true)
+      return
+    }
+    setUnbindBlocked(false)
+    setPendingUnbind(identity)
+  }
+
+  const unbindMutation = useMutation({
+    mutationFn: unbindIdentity,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: AUTH_IDENTITIES_QUERY_KEY })
+      setPendingUnbind(null)
+    },
   })
 
   const bindMutation = useMutation({
@@ -203,7 +242,11 @@ export function ThirdPartyAccountsBlock() {
               provider={item.provider}
               identity={boundByProvider.get(item.provider)}
               isBinding={bindMutation.isPending && bindMutation.variables === item.provider}
+              isUnbinding={
+                unbindMutation.isPending && unbindMutation.variables?.provider === item.provider
+              }
               onBind={(provider) => bindMutation.mutate(provider)}
+              onUnbind={requestUnbind}
             />
           </Fragment>
         ))}
@@ -214,6 +257,74 @@ export function ThirdPartyAccountsBlock() {
           {describeBindError(bindMutation.error, t)}
         </Alert>
       ) : null}
+
+      {unbindBlocked ? (
+        <Alert data-testid="identity-unbind-blocked" severity="warning">
+          {t('settings:security.identities.unbindLastMethod')}
+        </Alert>
+      ) : null}
+
+      {unbindMutation.isSuccess && !pendingUnbind ? (
+        <Typography
+          data-testid="identity-unbind-done"
+          role="status"
+          variant="caption"
+          color="success.main"
+        >
+          {t('settings:security.identities.unbindDone', {
+            provider: providerLabel(unbindMutation.variables?.provider ?? '', t),
+          })}
+        </Typography>
+      ) : null}
+
+      {unbindMutation.isError ? (
+        <Alert data-testid="identity-unbind-error" severity="error">
+          {t('settings:security.identities.unbindFailed')}
+        </Alert>
+      ) : null}
+
+      <Dialog
+        open={Boolean(pendingUnbind)}
+        onClose={() => setPendingUnbind(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('settings:security.identities.unbindTitle', {
+            provider: providerLabel(pendingUnbind?.provider ?? '', t),
+          })}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('settings:security.identities.unbindBody')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            data-testid="identity-unbind-cancel"
+            color="inherit"
+            onClick={() => setPendingUnbind(null)}
+          >
+            {t('common:action.cancel')}
+          </Button>
+          <Button
+            data-testid="identity-unbind-confirm"
+            color="error"
+            variant="contained"
+            disabled={unbindMutation.isPending}
+            onClick={() => {
+              if (pendingUnbind?.bind_id) {
+                unbindMutation.mutate({
+                  bind_id: pendingUnbind.bind_id,
+                  provider: pendingUnbind.provider,
+                })
+              }
+            }}
+          >
+            {t('settings:security.identities.unbind')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {bindMutation.data?.already_bound ? (
         <Alert data-testid="identity-bind-already-bound" severity="info">

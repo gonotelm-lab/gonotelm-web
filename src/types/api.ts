@@ -142,6 +142,16 @@ export interface BindIdentityRequest {
   return_to?: string
 }
 
+/**
+ * POST /api/v1/auth/identities/unbind 请求体（authed + CSRF）。
+ *
+ * `bind_id` 取自 `/auth/identities` 的对应记录；`provider` 是交叉校验，必须与之一致。
+ */
+export interface UnbindIdentityRequest {
+  bind_id: string
+  provider: string
+}
+
 /** PATCH /api/v1/user/me 请求体；当前后端仅接受昵称。 */
 export interface UpdateMeRequest {
   nickname: string

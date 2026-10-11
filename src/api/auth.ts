@@ -14,6 +14,7 @@ import type {
   PasswordLoginRequest,
   SetPasswordRequest,
   SetPasswordResponse,
+  UnbindIdentityRequest,
 } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -177,6 +178,14 @@ export interface BindIdentityResult {
    * 此时只需刷新身份列表，让状态立刻变「已绑定」，不要跳 IdP。
    */
   already_bound: boolean
+}
+
+/** 解绑三方身份（authed + CSRF）。成功是 204；`bind_id` 必须属于当前账号。 */
+export function unbindIdentity(body: UnbindIdentityRequest) {
+  return request<null>('/api/v1/auth/identities/unbind', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
 }
 
 /**

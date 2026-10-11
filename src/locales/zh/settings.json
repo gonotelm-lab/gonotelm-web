@@ -66,7 +66,14 @@
       "bindFailed": "绑定失败，请重试。",
       "bindNeedsAuthorizeUrl": "绑定失败：没有拿到第三方授权地址，请稍后重试。",
       "bindAria": "绑定 {{provider}}",
-      "alreadyBound": "已绑定 {{provider}} 账号，无需重复操作。"
+      "alreadyBound": "已绑定 {{provider}} 账号，无需重复操作。",
+      "unbind": "解绑",
+      "unbinding": "解绑中…",
+      "unbindTitle": "解绑 {{provider}}？",
+      "unbindBody": "解绑后将无法再用该账号登录，之后可以重新绑定。",
+      "unbindDone": "已解绑 {{provider}}。",
+      "unbindFailed": "解绑失败，请重试。",
+      "unbindLastMethod": "这是当前唯一的登录方式，请先设置口令再解绑。"
     }
   }
 }
