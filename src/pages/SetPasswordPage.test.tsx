@@ -1,0 +1,138 @@
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { http } from 'msw'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { mockServer } from '@/test/mocks'
+import {
+  createErrorResponse,
+  createNoContentResponse,
+  createSuccessResponse,
+} from '@/test/mocks/handlers/httpResponse'
+import { SetPasswordPage } from './SetPasswordPage'
+
+const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
+const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
+
+const useMe = (hasPassword: boolean) =>
+  mockServer.use(
+    http.get(meUrl, () =>
+      createSuccessResponse({
+        user_id: 'user-1',
+        nickname: '测试用户',
+        avatar_url: '',
+        has_password: hasPassword,
+      }),
+    ),
+  )
+
+const renderPage = async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  let renderer!: ReactTestRenderer
+  await act(async () => {
+    renderer = create(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/set-password?return_to=%2Fnotebook%2Fn-1']}>
+          <Routes>
+            <Route path="/set-password" element={<SetPasswordPage />} />
+            <Route path="/notebook/:id" element={<div data-testid="notebook-landed" />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+  return renderer
+}
+
+const fillInput = (renderer: ReactTestRenderer, testId: string, value: string) => {
+  act(() => {
+    renderer.root.findByProps({ 'data-testid': testId }).props.onChange({ target: { value } })
+  })
+}
+
+const submitForm = async (renderer: ReactTestRenderer) => {
+  await act(async () => {
+    renderer.root.findByType('form').props.onSubmit({ preventDefault: () => {} })
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+
+describe('SetPasswordPage', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('无口令时只要求新口令与确认，且不发 old_password', async () => {
+    useMe(false)
+    let received: unknown = null
+    mockServer.use(
+      http.put(passwordUrl, async ({ request }) => {
+        received = await request.json()
+        return createNoContentResponse()
+      }),
+    )
+
+    const renderer = await renderPage()
+    expect(() => renderer.root.findByProps({ 'data-testid': 'set-password-current-input' })).toThrow()
+
+    fillInput(renderer, 'set-password-new-input', 'secret-123')
+    fillInput(renderer, 'set-password-confirm-input', 'secret-123')
+    await submitForm(renderer)
+
+    expect(received).toEqual({ new_password: 'secret-123' })
+    expect(renderer.root.findByProps({ 'data-testid': 'notebook-landed' })).toBeTruthy()
+  })
+
+  it('已有口令时要求当前口令并随请求发送', async () => {
+    useMe(true)
+    let received: unknown = null
+    mockServer.use(
+      http.put(passwordUrl, async ({ request }) => {
+        received = await request.json()
+        return createNoContentResponse()
+      }),
+    )
+
+    const renderer = await renderPage()
+    expect(renderer.root.findByProps({ 'data-testid': 'set-password-current-input' })).toBeTruthy()
+    expect(JSON.stringify(renderer.toJSON())).toContain('修改口令')
+
+    fillInput(renderer, 'set-password-current-input', 'old-12345')
+    fillInput(renderer, 'set-password-new-input', 'secret-123')
+    fillInput(renderer, 'set-password-confirm-input', 'secret-123')
+    await submitForm(renderer)
+
+    expect(received).toEqual({ old_password: 'old-12345', new_password: 'secret-123' })
+  })
+
+  it('未填当前口令时不可提交', async () => {
+    useMe(true)
+
+    const renderer = await renderPage()
+    fillInput(renderer, 'set-password-new-input', 'secret-123')
+    fillInput(renderer, 'set-password-confirm-input', 'secret-123')
+
+    expect(renderer.root.findByProps({ 'data-testid': 'set-password-submit' }).props.disabled).toBe(
+      true,
+    )
+  })
+
+  it('106011 映射为「当前口令不正确」', async () => {
+    useMe(true)
+    mockServer.use(
+      http.put(passwordUrl, () => createErrorResponse(200, 'INVALID_CREDENTIALS', 106011)),
+    )
+
+    const renderer = await renderPage()
+    fillInput(renderer, 'set-password-current-input', 'wrong-123')
+    fillInput(renderer, 'set-password-new-input', 'secret-123')
+    fillInput(renderer, 'set-password-confirm-input', 'secret-123')
+    await submitForm(renderer)
+
+    renderer.root.findByProps({ 'data-testid': 'set-password-error' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('当前口令不正确')
+  })
+})

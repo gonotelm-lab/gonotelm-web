@@ -408,6 +408,42 @@ describe('SettingsDialog', () => {
     expect(i18n.resolvedLanguage).toBe('en')
   })
 
+  it('切换到账号安全分区可以设置口令（无口令时只发 new_password）', async () => {
+    const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
+    const putBodies: unknown[] = []
+    mockServer.use(
+      http.put(passwordUrl, async ({ request }) => {
+        putBodies.push(await request.json())
+        return createNoContentResponse()
+      }),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+
+    // 默认 /user/me 没有 has_password，保守按「无口令」处理：不要求当前口令。
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'settings-password-current-input' }),
+    ).toHaveLength(0)
+
+    const setValue = (testId: string, value: string) =>
+      act(() =>
+        renderer.root
+          .findByProps({ 'data-testid': testId })
+          .props.onChange({ target: { value } }),
+      )
+    setValue('settings-password-new-input', 'secret-123')
+    setValue('settings-password-confirm-input', 'secret-123')
+
+    await act(async () => {
+      renderer.root.findByType('form').props.onSubmit({ preventDefault: () => {} })
+    })
+    await flush()
+
+    expect(putBodies).toEqual([{ new_password: 'secret-123' }])
+    expect(renderer.root.findByProps({ 'data-testid': 'settings-password-saved' })).toBeTruthy()
+  })
+
   it('按钮与头像本身都能触发文件选择', async () => {
     const { renderer } = await renderDialog()
 

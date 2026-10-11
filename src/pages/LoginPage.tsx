@@ -1,68 +1,33 @@
-import type { MouseEvent, ReactElement } from 'react'
-import { Box, Button, CircularProgress, Stack, Typography } from '@mui/material'
-import type { SxProps, Theme } from '@mui/material/styles'
+import { useState, type FormEvent, type ReactElement } from 'react'
+import { Alert, Box, Button, CircularProgress, Divider, Stack, TextField, Typography } from '@mui/material'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AppleIcon from '@mui/icons-material/Apple'
 import GitHubIcon from '@mui/icons-material/GitHub'
-import { useQuery } from '@tanstack/react-query'
-import { Trans, useTranslation } from 'react-i18next'
-import { Navigate, useSearchParams } from 'react-router-dom'
-import { getAuthProviders, goToAuthLogin } from '../api/auth'
-import { sanitizeReturnTo } from '../lib/auth'
-import { useMeQuery } from '../components/auth/useMeQuery'
-import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
+import { getAuthProviders, goToAuthLogin, passwordLogin } from '../api/auth'
+import { AUTH_ERROR_CODE, buildSignupPath, isAuthErrorCode, sanitizeReturnTo } from '../lib/auth'
+import { isValidEmail, normalizeEmail } from '../lib/authValidation'
+import { ME_QUERY_KEY, useMeQuery } from '../components/auth/useMeQuery'
+import { AuthShell } from '../components/auth/AuthShell'
+import { authSubmitButtonSx, providerButtonSx, textLinkSx } from '../components/auth/authStyles'
 import { workspaceIconSize } from '../components/notebook-workspace/shared/ui/typeTokens'
+import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
 
-/**
- * Card-less auth column (reference: brand mark → title → provider stack → sign-up row).
- * No panel background: the buttons themselves are the only raised surfaces.
- */
-const authColumnMaxWidth = 400
 const providerGap = 1.5
 
-const authFocusRing = {
-  '&:focus-visible': {
-    outline: '2px solid',
-    outlineColor: 'primary.main',
-    outlineOffset: 2,
-  },
-} satisfies SxProps<Theme>
-
-/** Third-party buttons share one spec: 44px tall, hairline outline, centered icon + label. */
-const providerButtonSx: SxProps<Theme> = {
-  minHeight: 44,
-  whiteSpace: 'nowrap',
-  // Paper fill so the button reads as a surface now that the card is gone.
-  bgcolor: 'background.paper',
-  // MUI default is 8px; the reference sits the mark a touch further from the label.
-  '& .MuiButton-startIcon': { mr: '10px' },
-  ...authFocusRing,
-}
-
-/** Inline text links stay quiet until hovered — underline is the only affordance. */
-const textLinkSx: SxProps<Theme> = {
-  color: 'inherit',
-  textDecoration: 'underline',
-  textDecorationColor: 'var(--color-rule-2)',
-  textUnderlineOffset: '3px',
-  transition: [
-    `color var(--dur-short) var(--ease-out)`,
-    `text-decoration-color var(--dur-short) var(--ease-out)`,
-  ].join(', '),
-  '&:hover': {
-    color: 'primary.main',
-    textDecorationColor: 'currentColor',
-  },
-  ...authFocusRing,
-}
-
-/** Terms / Privacy pages do not exist yet — keep the links from bouncing off the catch-all route. */
-function preventPlaceholderNavigation(event: MouseEvent<HTMLAnchorElement>) {
-  event.preventDefault()
-}
-
-function providerLabel(name: string, t: (key: string) => string): string {
-  const known = t(`provider.${name}`)
-  return known === `provider.${name}` ? name : known
+/** Backend decides which providers exist; unknown names fall back to no mark. */
+function providerIcon(name: string): ReactElement | null {
+  if (name === 'github') {
+    return <GitHubIcon sx={{ fontSize: workspaceIconSize.md }} />
+  }
+  if (name === 'apple') {
+    return <AppleIcon sx={{ fontSize: workspaceIconSize.md }} />
+  }
+  if (name === 'google') {
+    return <GoogleGlyph size={workspaceIconSize.md} />
+  }
+  return null
 }
 
 function GoogleGlyph({ size }: { size: number }) {
@@ -95,18 +60,104 @@ function GoogleGlyph({ size }: { size: number }) {
   )
 }
 
-/** Backend decides which providers exist; unknown names fall back to no mark. */
-function providerIcon(name: string): ReactElement | null {
-  if (name === 'github') {
-    return <GitHubIcon sx={{ fontSize: workspaceIconSize.md }} />
+function providerLabel(name: string, t: (key: string) => string): string {
+  const known = t(`provider.${name}`)
+  return known === `provider.${name}` ? name : known
+}
+
+/** 登录失败文案：账号不存在与口令错误共用统一文案，避免登录变成账号枚举器。 */
+function describePasswordLoginError(error: unknown, t: (key: string) => string): string {
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.invalidCredentials)) {
+    return t('login.invalidCredentials')
   }
-  if (name === 'apple') {
-    return <AppleIcon sx={{ fontSize: workspaceIconSize.md }} />
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.tooManyRequests)) {
+    return t('login.tooManyRequests')
   }
-  if (name === 'google') {
-    return <GoogleGlyph size={workspaceIconSize.md} />
+  return t('login.failed')
+}
+
+/** 邮箱 + 口令登录（POST /auth/login）；仅在后端开启口令登录时渲染。 */
+function PasswordLoginForm({ returnTo }: { returnTo: string }) {
+  const { t } = useTranslation('auth')
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [touched, setTouched] = useState(false)
+
+  const loginMutation = useMutation({
+    mutationFn: passwordLogin,
+    onSuccess: async () => {
+      // 口令登录成功即签发会话；让 me 查询失效，AuthGate 会在跳转后重新校验。
+      await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
+      navigate(returnTo, { replace: true })
+    },
+  })
+
+  const normalizedEmail = normalizeEmail(email)
+  const emailInvalid = touched && !isValidEmail(email)
+  const passwordEmpty = touched && password.length === 0
+  const canSubmit = isValidEmail(email) && password.length > 0 && !loginMutation.isPending
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setTouched(true)
+    if (!isValidEmail(email) || password.length === 0) {
+      return
+    }
+    loginMutation.mutate({ email: normalizedEmail, password, login_from: 'web' })
   }
-  return null
+
+  return (
+    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
+      <Stack spacing={workspaceSpace.md}>
+        <TextField
+          fullWidth
+          size="small"
+          type="email"
+          name="email"
+          autoComplete="email"
+          label={t('login.emailLabel')}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={loginMutation.isPending}
+          error={emailInvalid}
+          helperText={emailInvalid ? t('signup.emailInvalid') : undefined}
+          slotProps={{ htmlInput: { 'data-testid': 'login-email-input' } }}
+        />
+        <TextField
+          fullWidth
+          size="small"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          label={t('login.passwordLabel')}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={loginMutation.isPending}
+          error={passwordEmpty}
+          slotProps={{ htmlInput: { 'data-testid': 'login-password-input' } }}
+        />
+
+        {loginMutation.isError ? (
+          <Alert data-testid="login-password-error" severity="error" sx={{ textAlign: 'left' }}>
+            {describePasswordLoginError(loginMutation.error, t)}
+          </Alert>
+        ) : null}
+
+        <Button
+          data-testid="login-password-submit"
+          type="submit"
+          variant="contained"
+          fullWidth
+          disabled={!canSubmit}
+          sx={authSubmitButtonSx}
+        >
+          {loginMutation.isPending ? t('login.submitting') : t('login.submit')}
+        </Button>
+      </Stack>
+    </Box>
+  )
 }
 
 export function LoginPage() {
@@ -134,156 +185,90 @@ export function LoginPage() {
   }
 
   const providers = providersQuery.data?.providers ?? []
+  // 字段缺失（旧后端）按未开启处理：绝不渲染一个后端还没实现的表单。
+  const passwordEnabled = providersQuery.data?.password_enabled === true
 
   return (
-    <Box
-      component="main"
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        px: workspaceSpace.lg,
-        py: { xs: 6, md: 8 },
-      }}
-    >
-      {/* Brand — mark stacked above the wordmark so both share one center line. */}
-      <Stack
-        className="login-rise"
-        spacing={1.5}
-        sx={{ alignItems: 'center', mb: { xs: 4, md: 5 } }}
-      >
-        <Box
-          component="img"
-          src="/favicon.svg"
-          alt=""
-          aria-hidden
-          sx={{ width: 48, height: 'auto', display: 'block' }}
-        />
-        <Typography
-          sx={{
-            fontWeight: 600,
-            fontSize: '1.625rem',
-            lineHeight: 1.1,
-            letterSpacing: 0,
-            color: 'text.primary',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {t('login.brand')}
-        </Typography>
-      </Stack>
+    <AuthShell title={t('login.title')} subtitle={t('login.subtitle')} busy={providersQuery.isPending}>
+      {passwordEnabled ? <PasswordLoginForm returnTo={returnTo} /> : null}
 
-      {/* Form stack — no panel behind it. */}
-      <Stack
-        className="login-rise login-rise-delayed"
-        component="section"
-        aria-labelledby="auth-title"
-        aria-busy={providersQuery.isPending}
-        spacing={3}
-        sx={{ width: '100%', maxWidth: authColumnMaxWidth, alignItems: 'center', textAlign: 'center' }}
-      >
-        <Stack spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
-          <Typography id="auth-title" variant="h5">
-            {t('login.title')}
+      {passwordEnabled ? (
+        <Stack direction="row" spacing={workspaceSpace.md} sx={{ width: '100%', alignItems: 'center' }}>
+          <Divider sx={{ flex: 1 }} />
+          <Typography variant="caption" color="text.secondary">
+            {t('login.divider')}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-            {t('login.subtitle')}
+          <Divider sx={{ flex: 1 }} />
+        </Stack>
+      ) : null}
+
+      {providersQuery.isPending ? (
+        <Stack
+          direction="row"
+          spacing={workspaceSpace.sm}
+          aria-live="polite"
+          sx={{ minHeight: 44, alignItems: 'center' }}
+        >
+          <CircularProgress size={16} />
+          <Typography variant="body2" color="text.secondary">
+            {t('login.loading')}
           </Typography>
         </Stack>
-
-        {providersQuery.isPending ? (
-          <Stack
-            direction="row"
-            spacing={workspaceSpace.sm}
-            aria-live="polite"
-            sx={{ minHeight: 44, alignItems: 'center' }}
-          >
-            <CircularProgress size={16} />
-            <Typography variant="body2" color="text.secondary">
-              {t('login.loading')}
-            </Typography>
-          </Stack>
-        ) : providersQuery.isError ? (
-          <Stack
-            data-testid="login-error"
-            spacing={workspaceSpace.md}
-            sx={{ width: '100%', alignItems: 'center' }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              {t('login.error')}
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={() => void providersQuery.refetch()}
-              sx={providerButtonSx}
-            >
-              {t('login.retry')}
-            </Button>
-          </Stack>
-        ) : providers.length === 0 ? (
-          <Typography data-testid="login-empty" variant="body2" color="text.secondary">
-            {t('login.empty')}
+      ) : providersQuery.isError ? (
+        <Stack
+          data-testid="login-error"
+          spacing={workspaceSpace.md}
+          sx={{ width: '100%', alignItems: 'center' }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {t('login.error')}
           </Typography>
-        ) : (
-          <Stack spacing={providerGap} sx={{ width: '100%' }}>
-            {providers.map((provider) => {
-              const label = providerLabel(provider.name, t)
-              return (
-                <Button
-                  key={provider.name}
-                  data-provider={provider.name}
-                  variant="outlined"
-                  fullWidth
-                  startIcon={providerIcon(provider.name) ?? undefined}
-                  onClick={() => goToAuthLogin({ provider: provider.name, from: 'web', returnTo })}
-                  sx={providerButtonSx}
-                >
-                  {t('login.continueWith', { provider: label })}
-                </Button>
-              )
-            })}
-          </Stack>
-        )}
+          <Button
+            variant="outlined"
+            onClick={() => void providersQuery.refetch()}
+            sx={providerButtonSx}
+          >
+            {t('login.retry')}
+          </Button>
+        </Stack>
+      ) : providers.length === 0 ? (
+        <Typography data-testid="login-empty" variant="body2" color="text.secondary">
+          {t('login.empty')}
+        </Typography>
+      ) : (
+        <Stack spacing={providerGap} sx={{ width: '100%' }}>
+          {providers.map((provider) => {
+            const label = providerLabel(provider.name, t)
+            return (
+              <Button
+                key={provider.name}
+                data-provider={provider.name}
+                variant="outlined"
+                fullWidth
+                startIcon={providerIcon(provider.name) ?? undefined}
+                onClick={() => goToAuthLogin({ provider: provider.name, from: 'web', returnTo })}
+                sx={providerButtonSx}
+              >
+                {t('login.continueWith', { provider: label })}
+              </Button>
+            )
+          })}
+        </Stack>
+      )}
 
-      </Stack>
-
-      {/* Legal — narrower than the column so it wraps into two quiet lines. */}
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{
-          mt: { xs: 4, md: 5 },
-          maxWidth: 380,
-          textAlign: 'center',
-          lineHeight: 1.6,
-        }}
-      >
-        <Trans
-          t={t}
-          i18nKey="login.legal"
-          components={{
-            terms: (
-              <Box
-                component="a"
-                href="#"
-                onClick={preventPlaceholderNavigation}
-                sx={textLinkSx}
-              />
-            ),
-            privacy: (
-              <Box
-                component="a"
-                href="#"
-                onClick={preventPlaceholderNavigation}
-                sx={textLinkSx}
-              />
-            ),
-          }}
-        />
-      </Typography>
-    </Box>
+      {passwordEnabled ? (
+        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: '6px' }}>
+          {t('login.noAccount')}
+          <Box
+            component={Link}
+            to={buildSignupPath(returnTo)}
+            data-testid="login-signup-link"
+            sx={textLinkSx}
+          >
+            {t('login.signupLink')}
+          </Box>
+        </Typography>
+      ) : null}
+    </AuthShell>
   )
 }

@@ -6,8 +6,13 @@ const apiBaseUrl = 'http://127.0.0.1:4173'
 /** 头像上传成功后返回的直链；带时间戳以便断言旧地址被替换。 */
 export const MOCK_UPLOADED_AVATAR_URL = 'https://cdn.example.com/avatars/user-1-uploaded.png'
 
+/**
+ * 邮箱注册与验证成功都是「无响应体」语义（后端用 204），
+ * 口令登录成功只体现在 Set-Cookie 上，因此同样按 204 处理。
+ */
 export const authHandlers = [
-  // 与后端一致：当前启用的第三方登录方式为 github + google。
+  // 默认保持与「users_v2 改造前」的后端一致：providers 里没有 password_enabled，
+  // 因此默认不渲染口令表单。需要口令表单的用例自己覆盖该 handler。
   http.get(`${apiBaseUrl}/api/v1/auth/providers`, () =>
     createSuccessResponse({ providers: [{ name: 'github' }, { name: 'google' }] }),
   ),
@@ -25,4 +30,13 @@ export const authHandlers = [
     createSuccessResponse({ avatar_url: MOCK_UPLOADED_AVATAR_URL }),
   ),
   http.post(`${apiBaseUrl}/api/v1/auth/logout`, () => createNoContentResponse()),
+
+  // ── users_v2 登录改造新增（P0）─────────────────────────────────────────────
+  // POST /auth/login 是邮箱口令登录，与 GET 同路径不同方法。
+  http.post(`${apiBaseUrl}/api/v1/auth/login`, () => createNoContentResponse()),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () => createNoContentResponse()),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, () => createNoContentResponse()),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () => createNoContentResponse()),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
+  http.put(`${apiBaseUrl}/api/v1/auth/password`, () => createNoContentResponse()),
 ]

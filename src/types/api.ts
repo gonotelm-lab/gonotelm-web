@@ -22,6 +22,11 @@ export interface AuthProvider {
 
 export interface AuthProvidersResponse {
   providers: AuthProvider[]
+  /**
+   * 后端是否启用「邮箱 + 口令」登录（users_v2 改造新增）。
+   * 字段缺失（旧后端）时前端不渲染口令表单，保持只走三方登录。
+   */
+  password_enabled?: boolean
 }
 
 export interface MeResponse {
@@ -29,6 +34,48 @@ export interface MeResponse {
   nickname: string
   /** 头像公开地址；用户未设置头像时后端返回空串。 */
   avatar_url: string
+  /**
+   * 账号是否已有口令（users_v2 改造新增，P0）。
+   * 字段缺失（旧后端）时按「未知」处理：不做设置口令的引导。
+   */
+  has_password?: boolean
+}
+
+/** POST /api/v1/auth/login —— 邮箱口令登录（与 GET 同路径不同方法）。 */
+export interface PasswordLoginRequest {
+  email: string
+  password: string
+  /** 与 GET 的 login_from 同义；web 端固定 web。 */
+  login_from?: AuthLoginFrom
+}
+
+/** POST /api/v1/auth/email/register —— 注册只写 pending，成功不建账号、不签发会话。 */
+export interface EmailRegisterRequest {
+  email: string
+  password: string
+}
+
+/** POST /api/v1/auth/email/verify —— 消费邮件链接里的 token，成功即建号并签发会话。 */
+export interface EmailVerifyRequest {
+  token: string
+}
+
+/** POST /api/v1/auth/email/verify/code —— 用 6 位验证码验证，语义同链接验证。 */
+export interface EmailVerifyCodeRequest {
+  email: string
+  code: string
+}
+
+/** POST /api/v1/auth/email/resend —— 只重置两条验证凭证，不动口令与注册票据。 */
+export interface EmailResendRequest {
+  email: string
+}
+
+/** PUT /api/v1/auth/password —— 已认证会话设置/修改口令。 */
+export interface SetPasswordRequest {
+  /** 账号已有口令时必填；无口令（三方首登建的号）时省略。 */
+  old_password?: string
+  new_password: string
 }
 
 /** PATCH /api/v1/user/me 请求体；当前后端仅接受昵称。 */

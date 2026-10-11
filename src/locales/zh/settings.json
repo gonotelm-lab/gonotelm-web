@@ -3,7 +3,8 @@
   "nav": {
     "aria": "设置导航",
     "profile": "个人资料",
-    "general": "通用"
+    "general": "通用",
+    "security": "账号安全"
   },
   "profile": {
     "title": "个人资料",
@@ -40,5 +41,10 @@
     "languageHelp": "切换后立即生效，并记住你的选择。",
     "languageZh": "简体中文",
     "languageEn": "English"
+  },
+  "security": {
+    "title": "登录口令",
+    "subtitle": "设置口令后，也可以用邮箱与口令登录。",
+    "changeSubtitle": "修改后请使用新口令登录。"
   }
 }

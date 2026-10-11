@@ -1,8 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './http'
 import {
+  AUTH_ERROR_CODE,
   absoluteReturnTo,
   buildLoginPath,
+  buildSetPasswordPath,
+  buildSignupPath,
+  buildVerifyEmailPath,
+  authErrorCodeOf,
+  extractVerifyToken,
+  isAuthErrorCode,
   isCsrfError,
   isNotLoginError,
   resetAuthRedirectForTest,
@@ -111,6 +118,60 @@ describe('error guards', () => {
     expect(isNotLoginError(new ApiError('x', 1000, 200))).toBe(false)
     expect(isCsrfError(new ApiError('CSRF_TOKEN_INVALID', 2003, 403))).toBe(true)
     expect(isCsrfError(new Error('boom'))).toBe(false)
+  })
+
+  it('识别 users_v2 新增的业务码', () => {
+    expect(isAuthErrorCode(new ApiError('bad creds', 106011, 200), AUTH_ERROR_CODE.invalidCredentials)).toBe(true)
+    expect(isAuthErrorCode(new ApiError('bad creds', 106011, 200), AUTH_ERROR_CODE.emailTaken)).toBe(false)
+    expect(authErrorCodeOf(new ApiError('x', 106016, 200))).toBe(106016)
+    expect(authErrorCodeOf(new Error('boom'))).toBeUndefined()
+    expect(authErrorCodeOf(null)).toBeUndefined()
+  })
+})
+
+describe('邮箱认证页路径', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('buildSignupPath 与 buildLoginPath 同规则编码 return_to', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(buildSignupPath('/notebook/a b')).toBe(
+      '/signup?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa%20b',
+    )
+    expect(buildSetPasswordPath('/notebook/a b')).toBe(
+      '/set-password?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa%20b',
+    )
+  })
+
+  it('buildVerifyEmailPath 只在有 token 时写 URL 片段', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(buildVerifyEmailPath({ email: 'a@b.com', returnTo: '/' })).toBe(
+      '/verify-email?email=a%40b.com&return_to=http%3A%2F%2F127.0.0.1%3A5173%2F',
+    )
+    expect(buildVerifyEmailPath({ returnTo: '/', token: 't 1' })).toContain('#token=t%201')
+  })
+})
+
+describe('extractVerifyToken', () => {
+  it('解析 #token= 形式', () => {
+    expect(extractVerifyToken('#token=abc123')).toBe('abc123')
+  })
+
+  it('兼容裸 #<token> 形式', () => {
+    expect(extractVerifyToken('#abc123')).toBe('abc123')
+  })
+
+  it('片段里没有 token 时回退 query', () => {
+    expect(extractVerifyToken('', '?token=xyz')).toBe('xyz')
+    expect(extractVerifyToken('#', '?token=xyz')).toBe('xyz')
+  })
+
+  it('空片段、无 token 与非法字符一律返回空串', () => {
+    expect(extractVerifyToken('')).toBe('')
+    expect(extractVerifyToken('#other=1')).toBe('')
+    expect(extractVerifyToken('#token=abc def')).toBe('')
+    expect(extractVerifyToken('#token=')).toBe('')
   })
 })
 
