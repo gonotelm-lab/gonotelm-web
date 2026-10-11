@@ -45,6 +45,12 @@
   "security": {
     "title": "Sign-in password",
     "subtitle": "Set a password so you can also sign in with your email.",
-    "changeSubtitle": "Use the new password the next time you sign in."
+    "changeSubtitle": "Use the new password the next time you sign in.",
+    "loginSourceLabel": "Sign-in method",
+    "loginSourcePassword": "Email and password",
+    "loginSourceEmail": "Email verification",
+    "passwordStateLabel": "Password",
+    "passwordSet": "Set",
+    "passwordNotSet": "Not set"
   }
 }

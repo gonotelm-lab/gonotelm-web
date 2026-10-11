@@ -40,6 +40,11 @@ export interface MeResponse {
   /** 头像公开地址；用户未设置头像时后端返回空串。 */
   avatar_url: string
   /**
+   * 本次登录方式：`password`（邮箱口令）、`email`（邮箱验证建号）或 provider 名。
+   * 旧会话缺该字段时后端会退回最早绑定的身份。
+   */
+  login_source?: string
+  /**
    * 账号是否已有口令（users_v2 改造新增，P0）。
    * 字段缺失（旧后端）时按「未知」处理：不做设置口令的引导。
    */

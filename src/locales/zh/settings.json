@@ -45,6 +45,12 @@
   "security": {
     "title": "登录口令",
     "subtitle": "设置口令后，也可以用邮箱与口令登录。",
-    "changeSubtitle": "修改后请使用新口令登录。"
+    "changeSubtitle": "修改后请使用新口令登录。",
+    "loginSourceLabel": "登录方式",
+    "loginSourcePassword": "邮箱与口令",
+    "loginSourceEmail": "邮箱验证",
+    "passwordStateLabel": "口令状态",
+    "passwordSet": "已设置",
+    "passwordNotSet": "未设置"
   }
 }

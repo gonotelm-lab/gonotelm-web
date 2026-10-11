@@ -444,6 +444,47 @@ describe('SettingsDialog', () => {
     expect(renderer.root.findByProps({ 'data-testid': 'settings-password-saved' })).toBeTruthy()
   })
 
+  it('账号安全区展示登录方式与口令状态（读 /user/me 的 login_source 与 has_password）', async () => {
+    mockServer.use(
+      http.get(meUrl, () =>
+        createSuccessResponse({
+          user_id: 'user-1',
+          nickname: '测试用户',
+          avatar_url: 'https://cdn.example.com/avatars/user-1.png',
+          login_source: 'github',
+          has_password: true,
+        }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+
+    expect(textOf(renderer, 'security-login-source')).toBe('GitHub')
+    expect(textOf(renderer, 'security-password-state')).toBe('已设置')
+    // 已有口令：必须要求当前口令。
+    expect(renderer.root.findByProps({ 'data-testid': 'settings-password-current-input' })).toBeTruthy()
+  })
+
+  it('账号安全区：口令登录的账号显示「邮箱与口令」', async () => {
+    mockServer.use(
+      http.get(meUrl, () =>
+        createSuccessResponse({
+          user_id: 'user-1',
+          nickname: '测试用户',
+          avatar_url: '',
+          login_source: 'password',
+          has_password: true,
+        }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+
+    expect(textOf(renderer, 'security-login-source')).toBe('邮箱与口令')
+  })
+
   it('按钮与头像本身都能触发文件选择', async () => {
     const { renderer } = await renderDialog()
 
