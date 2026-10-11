@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { setPassword } from '../../api/auth'
 import { AUTH_ERROR_CODE, isAuthErrorCode } from '../../lib/auth'
+import type { SetPasswordResponse } from '../../types/api'
 import {
   PASSWORD_MAX_BYTES,
   PASSWORD_MIN_LENGTH,
@@ -18,8 +19,13 @@ import { authSubmitButtonSx } from './authStyles'
 interface PasswordFormProps {
   /** 账号是否已有口令：决定要不要校验「当前口令」以及文案（设置 vs 修改）。 */
   hasPassword: boolean
-  /** 保存成功回调；引导页用来继续跳转，设置区用来收起表单。 */
-  onSaved?: () => void
+  /**
+   * 保存成功回调；引导页用来跳转，设置区用来收起表单。
+   *
+   * 入参是后端响应：`relogin_required` 为真时全部会话已作废，调用方必须把用户
+   * 送回登录页，不能留在当前界面。
+   */
+  onSaved?: (result: SetPasswordResponse) => void
   /** 次要动作（引导页的「稍后再说」）；不传则不渲染。 */
   onSkip?: () => void
   /** data-testid 前缀，同一组件在引导页与设置区各有一套断言。 */
@@ -37,6 +43,24 @@ function describePasswordError(error: unknown, t: TFunction): string {
     return t('login.tooManyRequests')
   }
   return t('password.failed')
+}
+
+/**
+ * 保存成功后的缓存收尾。
+ *
+ * `reloginRequired` 为真表示后端作废了全部会话（含当前）：必须把缓存的 me 删掉，
+ * 否则登录页会拿旧的成功数据把用户又弹回受保护页面；否则只需让 me 重新取一次
+ * （`has_password` 从 false 变成了 true）。
+ */
+async function syncMeAfterPasswordSave(
+  queryClient: QueryClient,
+  reloginRequired: boolean,
+): Promise<void> {
+  if (reloginRequired) {
+    queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
+    return
+  }
+  await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
 }
 
 /**
@@ -62,15 +86,15 @@ export function PasswordForm({
 
   const mutation = useMutation({
     mutationFn: setPassword,
-    onSuccess: async () => {
-      setSaved(true)
+    onSuccess: async (result) => {
+      const reloginRequired = result?.relogin_required === true
       setCurrent('')
       setNext('')
       setConfirm('')
       setTouched(false)
-      // has_password 会因此从 false 变 true，让 me 查询重新取一次。
-      await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
-      onSaved?.()
+      setSaved(!reloginRequired)
+      await syncMeAfterPasswordSave(queryClient, reloginRequired)
+      onSaved?.(result)
     },
   })
 

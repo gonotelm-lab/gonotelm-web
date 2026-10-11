@@ -25,7 +25,7 @@ const enablePasswordLogin = () =>
     ),
   )
 
-const renderLogin = async () => {
+const renderLogin = async (entry = '/login?return_to=%2Fnotebook%2Fn-1') => {
   // 覆盖默认 /user/me 成功 handler：未登录才能渲染 providers 表单
   mockServer.use(
     http.get(meUrl, () => createErrorResponse(401, 'NOT_LOGIN', 2002)),
@@ -35,7 +35,7 @@ const renderLogin = async () => {
   await act(async () => {
     renderer = create(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/login?return_to=%2Fnotebook%2Fn-1']}>
+        <MemoryRouter initialEntries={[entry]}>
           <LoginPage />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -49,6 +49,23 @@ const renderLogin = async () => {
 
 describe('LoginPage', () => {
   afterEach(() => vi.unstubAllGlobals())
+
+  it('带 notice=password_changed 时说明「已退出登录」，避免看起来莫名其妙被登出', async () => {
+    const renderer = await renderLogin(
+      '/login?return_to=%2Fnotebook%2Fn-1&notice=password_changed',
+    )
+
+    renderer.root.findByProps({ 'data-testid': 'login-notice-password-changed' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('口令已更新')
+  })
+
+  it('没有 notice 时不显示说明', async () => {
+    const renderer = await renderLogin()
+
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'login-notice-password-changed' }),
+    ).toHaveLength(0)
+  })
 
   it('展示 providers 并点击触发整页跳转', async () => {
     const assign = vi.fn()

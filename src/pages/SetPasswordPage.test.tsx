@@ -1,6 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
@@ -26,6 +26,18 @@ const useMe = (hasPassword: boolean) =>
     ),
   )
 
+/** 口令保存后不再回到 return_to，而是回登录页重新登录（会话已被作废）。 */
+const useSetPasswordOk = () =>
+  mockServer.use(
+    http.put(passwordUrl, () => createSuccessResponse({ relogin_required: true })),
+  )
+
+/** 记录落地路径与 query，用来断言跳转目标（MemoryRouter 不改 window.location）。 */
+function Landed({ testId }: { testId: string }) {
+  const location = useLocation()
+  return <div data-testid={testId}>{`${location.pathname}${location.search}`}</div>
+}
+
 const renderPage = async () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   let renderer!: ReactTestRenderer
@@ -35,7 +47,8 @@ const renderPage = async () => {
         <MemoryRouter initialEntries={['/set-password?return_to=%2Fnotebook%2Fn-1']}>
           <Routes>
             <Route path="/set-password" element={<SetPasswordPage />} />
-            <Route path="/notebook/:id" element={<div data-testid="notebook-landed" />} />
+            <Route path="/notebook/:id" element={<Landed testId="notebook-landed" />} />
+            <Route path="/login" element={<Landed testId="login-landed" />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -71,7 +84,7 @@ describe('SetPasswordPage', () => {
     mockServer.use(
       http.put(passwordUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ relogin_required: true })
       }),
     )
 
@@ -83,7 +96,22 @@ describe('SetPasswordPage', () => {
     await submitForm(renderer)
 
     expect(received).toEqual({ new_password: 'secret-123' })
-    expect(renderer.root.findByProps({ 'data-testid': 'notebook-landed' })).toBeTruthy()
+  })
+
+  it('保存成功后不留在原页面：回登录页并带 notice=password_changed', async () => {
+    useMe(false)
+    useSetPasswordOk()
+
+    const renderer = await renderPage()
+    fillInput(renderer, 'set-password-new-input', 'secret-123')
+    fillInput(renderer, 'set-password-confirm-input', 'secret-123')
+    await submitForm(renderer)
+
+    // 后端作废了全部会话（含当前），所以不能再回 return_to。
+    expect(() => renderer.root.findByProps({ 'data-testid': 'notebook-landed' })).toThrow()
+    const landed = renderer.root.findByProps({ 'data-testid': 'login-landed' })
+    expect(landed.children.join('')).toContain('notice=password_changed')
+    expect(landed.children.join('')).toContain('return_to=')
   })
 
   it('已有口令时要求当前口令并随请求发送', async () => {
@@ -92,7 +120,7 @@ describe('SetPasswordPage', () => {
     mockServer.use(
       http.put(passwordUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ relogin_required: true })
       }),
     )
 

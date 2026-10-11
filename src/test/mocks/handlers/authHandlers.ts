@@ -44,10 +44,13 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),
-  // 注册/重发/设置口令成功：204 无响应体（后端 OkRespNoContent）。
+  // 注册/重发成功：204 无响应体（后端 OkRespNoContent）。
   http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () => createNoContentResponse()),
   http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
-  http.put(`${apiBaseUrl}/api/v1/auth/password`, () => createNoContentResponse()),
+  // 设置/修改口令：200 + { relogin_required }（后端作废全部会话，不再是 204）。
+  http.put(`${apiBaseUrl}/api/v1/auth/password`, () =>
+    createSuccessResponse({ relogin_required: true }),
+  ),
 
   // ── 第三方账号状态（authed）───────────────────────────────────────────────
   // 默认：github 已绑定、google 未绑定；两个 provider 都支持绑定。

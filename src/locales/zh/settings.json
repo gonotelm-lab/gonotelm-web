@@ -61,11 +61,11 @@
       "title": "第三方账号",
       "subtitle": "已绑定的第三方登录方式，绑定后可直接用它登录。",
       "bound": "已绑定",
-      "unbound": "未绑定",
       "bind": "绑定",
       "binding": "绑定中…",
       "bindFailed": "绑定失败，请重试。",
-      "bindNeedsAuthorizeUrl": "绑定失败：后端未返回授权地址（当前为 302 跳转，浏览器读不到跳转目标）。"
+      "bindNeedsAuthorizeUrl": "绑定失败：没有拿到第三方授权地址，请稍后重试。",
+      "bindAria": "绑定 {{provider}}"
     }
   }
 }

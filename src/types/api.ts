@@ -118,6 +118,28 @@ export interface SetPasswordRequest {
   new_password: string
 }
 
+/**
+ * PUT /api/v1/auth/password 的响应（200，不再是 204）。
+ *
+ * 后端保存口令后会作废该账号全部会话（含当前这一个）并清掉会话 cookie，
+ * 前端据此把用户送回登录页，而不是留在一个已经失效的界面上。
+ */
+export interface SetPasswordResponse {
+  relogin_required: boolean
+}
+
+/**
+ * POST /api/v1/auth/identities/bind 请求体（authed + CSRF）。
+ *
+ * provider 走 body 而不是路径（后端 `BindProviderRequest`），取值必须落在
+ * `entity.CheckProviderType` 的白名单里，否则 4xx 参数错误。
+ */
+export interface BindIdentityRequest {
+  provider: string
+  /** 授权完成后回到哪里；不传则后端落到站点根。 */
+  return_to?: string
+}
+
 /** PATCH /api/v1/user/me 请求体；当前后端仅接受昵称。 */
 export interface UpdateMeRequest {
   nickname: string

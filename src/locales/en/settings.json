@@ -61,11 +61,11 @@
       "title": "Third-party accounts",
       "subtitle": "Third-party sign-in methods linked to this account.",
       "bound": "Linked",
-      "unbound": "Not linked",
       "bind": "Link",
       "binding": "Linking…",
       "bindFailed": "Could not start linking. Please retry.",
-      "bindNeedsAuthorizeUrl": "Could not start linking: the backend did not return an authorize URL (it still redirects, which the browser cannot read)."
+      "bindNeedsAuthorizeUrl": "Could not get the third-party authorization URL. Please try again.",
+      "bindAria": "Link {{provider}}"
     }
   }
 }

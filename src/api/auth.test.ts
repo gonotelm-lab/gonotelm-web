@@ -1,20 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http } from 'msw'
 import { mockServer } from '@/test/mocks'
+import { ApiError } from '@/lib/http'
 import {
   createNoContentResponse,
   createSuccessResponse,
 } from '@/test/mocks/handlers/httpResponse'
 import {
+  AUTH_BIND_IDENTITY_PATH,
   buildAuthLoginPath,
   buildAuthLoginUrl,
-  buildBindIdentityPath,
   getAuthProviders,
   logout,
   passwordLogin,
   registerEmail,
   resendVerificationEmail,
   setPassword,
+  startIdentityBind,
   verifyEmailCode,
   verifyEmailToken,
 } from './auth'
@@ -159,23 +161,73 @@ describe('邮箱注册与验证', () => {
 })
 
 describe('口令设置', () => {
-  it('无口令时只发 new_password', async () => {
-    const captured = await captureRequest('/api/v1/auth/password')
-    await expect(setPassword({ new_password: 'secret-123' })).resolves.toBeNull()
-    expect(captured.method).toBe('PUT')
-    expect(captured.body).toEqual({ new_password: 'secret-123' })
+  it('无口令时只发 new_password，并解析 200 + relogin_required', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.put(`${apiBaseUrl}/api/v1/auth/password`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ relogin_required: true })
+      }),
+    )
+
+    await expect(setPassword({ new_password: 'secret-123' })).resolves.toEqual({
+      relogin_required: true,
+    })
+    expect(received).toEqual({ new_password: 'secret-123' })
   })
 
   it('已有口令时带 old_password', async () => {
     const captured = await captureRequest('/api/v1/auth/password')
     await setPassword({ old_password: 'old-12345', new_password: 'secret-123' })
+    expect(captured.method).toBe('PUT')
     expect(captured.body).toEqual({ old_password: 'old-12345', new_password: 'secret-123' })
   })
 })
 
-describe('buildBindIdentityPath', () => {
-  it('把 provider 编进路径', () => {
-    expect(buildBindIdentityPath('github')).toBe('/api/v1/auth/identities/github/bind')
-    expect(buildBindIdentityPath('we ird')).toBe('/api/v1/auth/identities/we%20ird/bind')
+describe('startIdentityBind', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('POST /auth/identities/bind：provider 与 return_to 都在 JSON body 里', async () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({
+          authorize_url: 'https://github.com/login/oauth/authorize?state=s',
+        })
+      }),
+    )
+
+    await expect(startIdentityBind('github', '/notebook/n-1')).resolves.toEqual({
+      authorize_url: 'https://github.com/login/oauth/authorize?state=s',
+    })
+    expect(received).toEqual({
+      provider: 'github',
+      return_to: 'http://127.0.0.1:5173/notebook/n-1',
+    })
+  })
+
+  it('不传 return_to 时 body 里没有该字段（后端 omitempty）', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth' })
+      }),
+    )
+
+    await startIdentityBind('google')
+    expect(received).toEqual({ provider: 'google' })
+  })
+
+  it('缺 authorize_url 时报错，不静默跳一个空地址', async () => {
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, () => createSuccessResponse({})),
+    )
+
+    await expect(startIdentityBind('github')).rejects.toBeInstanceOf(ApiError)
   })
 })

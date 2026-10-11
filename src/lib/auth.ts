@@ -137,8 +137,22 @@ export function absoluteReturnTo(raw?: string | null): string {
   return origin ? `${origin}${path}` : path
 }
 
-export function buildLoginPath(returnTo?: string): string {
-  return `/login?return_to=${encodeURIComponent(absoluteReturnTo(returnTo))}`
+export function buildLoginPath(returnTo?: string, notice?: string): string {
+  const base = `/login?return_to=${encodeURIComponent(absoluteReturnTo(returnTo))}`
+  return notice ? `${base}&notice=${encodeURIComponent(notice)}` : base
+}
+
+/** 登录页的说明性提示（`?notice=`）；当前只有一个来源：改口令后全部会话被作废。 */
+export const RELOGIN_NOTICE_PASSWORD_CHANGED = 'password_changed'
+
+/**
+ * 改口令/设口令成功后回登录页。
+ *
+ * 后端保存口令会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是
+ * 「重新登录」：带上提示，用户才不会以为自己莫名其妙被登出。
+ */
+export function buildReloginPath(returnTo?: string): string {
+  return buildLoginPath(returnTo, RELOGIN_NOTICE_PASSWORD_CHANGED)
 }
 
 /** 注册页与登录页共用 return_to 语义（注册成功验证后回到原路径）。 */

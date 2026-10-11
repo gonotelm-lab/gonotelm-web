@@ -80,27 +80,22 @@ function IdentityRow({
           {t('settings:security.identities.bound')}
         </Typography>
       ) : (
-        <Stack direction="row" spacing={workspaceSpace.sm} sx={{ alignItems: 'center' }}>
-          <Typography
-            variant="caption"
-            data-testid={`identity-status-${provider}`}
-            color="text.secondary"
-            sx={{ whiteSpace: 'nowrap' }}
-          >
-            {t('settings:security.identities.unbound')}
-          </Typography>
-          <Button
-            data-testid={`identity-bind-${provider}`}
-            size="small"
-            variant="outlined"
-            disabled={isBinding}
-            onClick={() => onBind(provider)}
-          >
-            {isBinding
-              ? t('settings:security.identities.binding')
-              : t('settings:security.identities.bind')}
-          </Button>
-        </Stack>
+        // 未绑定行只留一个动作按钮：状态与动作合成同一个控件，不再并排显示
+        // 「未绑定」+「绑定」两段文案。
+        <Button
+          data-testid={`identity-bind-${provider}`}
+          size="small"
+          variant="outlined"
+          disabled={isBinding}
+          aria-label={t('settings:security.identities.bindAria', {
+            provider: providerLabel(provider, t),
+          })}
+          onClick={() => onBind(provider)}
+        >
+          {isBinding
+            ? t('settings:security.identities.binding')
+            : t('settings:security.identities.bind')}
+        </Button>
       )}
     </Stack>
   )

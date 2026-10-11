@@ -424,12 +424,17 @@ describe('SettingsDialog', () => {
   })
 
   it('账号安全区：口令表单不常驻，点「设置口令」在弹窗里提交（无口令只发 new_password）', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/notebook/n-1', search: '', origin: 'http://localhost', assign },
+    })
+
     const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
     const putBodies: unknown[] = []
     mockServer.use(
       http.put(passwordUrl, async ({ request }) => {
         putBodies.push(await request.json())
-        return createNoContentResponse()
+        return createSuccessResponse({ relogin_required: true })
       }),
     )
 
@@ -465,10 +470,44 @@ describe('SettingsDialog', () => {
     await flush()
 
     expect(putBodies).toEqual([{ new_password: 'secret-123' }])
-    // 保存后弹窗关闭，状态回到区里展示。
+    // 保存后弹窗关闭；会话已被后端作废，所以整页回登录页重新登录。
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'settings-password-new-input' }),
     ).toHaveLength(0)
+    expect(assign).toHaveBeenCalledTimes(1)
+    const target = String(assign.mock.calls[0][0])
+    expect(target).toContain('/login?return_to=')
+    expect(target).toContain('notice=password_changed')
+    expect(target).toContain(encodeURIComponent('http://localhost/notebook/n-1'))
+
+    vi.stubGlobal('window', undefined)
+  })
+
+  it('账号安全区：后端若不需要重新登录，则留在原处显示「已更新」', async () => {
+    mockServer.use(
+      http.put('http://127.0.0.1:4173/api/v1/auth/password', () =>
+        createSuccessResponse({ relogin_required: false }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
+
+    const setValue = (testId: string, value: string) =>
+      act(() =>
+        renderer.root
+          .findByProps({ 'data-testid': testId })
+          .props.onChange({ target: { value } }),
+      )
+    setValue('settings-password-new-input', 'secret-123')
+    setValue('settings-password-confirm-input', 'secret-123')
+
+    await act(async () => {
+      renderer.root.findByType('form').props.onSubmit({ preventDefault: () => {} })
+    })
+    await flush()
+
     expect(renderer.root.findByProps({ 'data-testid': 'security-password-saved' })).toBeTruthy()
   })
 
@@ -553,7 +592,9 @@ describe('SettingsDialog', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('第三方账号')
     expect(textOf(renderer, 'identity-status-github')).toBe('已绑定')
     expect(textOf(renderer, 'identity-email-github')).toBe('octocat@github.com')
-    expect(textOf(renderer, 'identity-status-google')).toBe('未绑定')
+    // 未绑定行不并排显示「未绑定」+「绑定」：状态与动作合成同一个按钮。
+    expect(textOf(renderer, 'identity-bind-google')).toBe('绑定')
+    expect(renderer.root.findAllByProps({ 'data-testid': 'identity-status-google' })).toHaveLength(0)
     // 未绑定就没有 provider 邮箱快照。
     expect(renderer.root.findAllByProps({ 'data-testid': 'identity-email-google' })).toHaveLength(0)
   })
@@ -590,7 +631,7 @@ describe('SettingsDialog', () => {
 
     let received: unknown = null
     mockServer.use(
-      http.post('http://127.0.0.1:4173/api/v1/auth/identities/google/bind', async ({ request }) => {
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/bind', async ({ request }) => {
         received = await request.json()
         return createSuccessResponse({
           authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth?state=abc',
@@ -611,7 +652,8 @@ describe('SettingsDialog', () => {
     })
     await flush()
 
-    expect(received).toEqual({ return_to: 'http://localhost/notebook/n-1' })
+    // provider 与 return_to 都在 JSON body 里（路径里不再带 provider）。
+    expect(received).toEqual({ provider: 'google', return_to: 'http://localhost/notebook/n-1' })
     expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?state=abc')
 
     // 这个文件在模块顶层 stub 了 Image，不能用 unstubAllGlobals 复原。
@@ -621,7 +663,7 @@ describe('SettingsDialog', () => {
   it('后端仍以 302 跳 IdP 时，绑定给出明确提示而不是静默失败', async () => {
     let bindCalls = 0
     mockServer.use(
-      http.post('http://127.0.0.1:4173/api/v1/auth/identities/google/bind', () => {
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/bind', () => {
         bindCalls += 1
         return new HttpResponse(null, {
           status: 302,

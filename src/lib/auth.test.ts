@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './http'
 import {
   AUTH_ERROR_CODE,
+  RELOGIN_NOTICE_PASSWORD_CHANGED,
   absoluteReturnTo,
   buildLoginPath,
+  buildReloginPath,
   buildSetPasswordPath,
   buildSignupPath,
   buildVerifyEmailPath,
@@ -109,6 +111,26 @@ describe('buildLoginPath', () => {
 
   it('无 window 时退回相对路径', () => {
     expect(buildLoginPath('/notebook/a')).toBe('/login?return_to=%2Fnotebook%2Fa')
+  })
+
+  it('带 notice 时追加说明参数，不带时保持原样', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(buildLoginPath('/notebook/a', RELOGIN_NOTICE_PASSWORD_CHANGED)).toBe(
+      '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_changed',
+    )
+  })
+})
+
+describe('buildReloginPath', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('改口令后回登录页并带 notice=password_changed', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(buildReloginPath('/notebook/a')).toBe(
+      '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_changed',
+    )
   })
 })
 

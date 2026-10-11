@@ -106,4 +106,10 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
       (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
     )
   })
+
+  it('POST /auth/identities/bind 已挂载（provider 走 body）且要求已登录（2002）', async () => {
+    await expect(auth.startIdentityBind('github')).rejects.toSatisfy(
+      (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
+    )
+  })
 })

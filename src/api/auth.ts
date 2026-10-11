@@ -6,12 +6,14 @@ import type {
   AuthProvidersResponse,
   AuthSessionResponse,
   AuthSupportedIdentitiesResponse,
+  BindIdentityRequest,
   EmailRegisterRequest,
   EmailResendRequest,
   EmailVerifyCodeRequest,
   EmailVerifyRequest,
   PasswordLoginRequest,
   SetPasswordRequest,
+  SetPasswordResponse,
 } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -123,9 +125,14 @@ export function resendVerificationEmail(body: EmailResendRequest) {
   })
 }
 
-/** 设置/修改口令（authed + CSRF）。已有口令时必须带 `old_password`。 */
+/**
+ * 设置/修改口令（authed + CSRF）。已有口令时必须带 `old_password`。
+ *
+ * 返回 200 `{relogin_required}`：后端会作废该账号全部会话（含当前）并清 cookie，
+ * 调用方必须按 `relogin_required` 把用户送回登录页，不能假设会话还在。
+ */
 export function setPassword(body: SetPasswordRequest) {
-  return request<null>('/api/v1/auth/password', {
+  return request<SetPasswordResponse>('/api/v1/auth/password', {
     method: 'PUT',
     body: JSON.stringify(body),
   })
@@ -133,7 +140,7 @@ export function setPassword(body: SetPasswordRequest) {
 
 /**
  * GET /api/v1/auth/identities —— 当前账号已绑定的三方身份（authed）。
- * 用于「第三方账号」状态展示；绑定/解绑本身见 `buildBindIdentityPath`。
+ * 用于「第三方账号」状态展示；绑定/解绑本身见 `startIdentityBind`。
  */
 export function getAuthIdentities() {
   return request<AuthIdentitiesResponse>('/api/v1/auth/identities')
@@ -147,14 +154,12 @@ export function getAuthSupportedIdentities() {
 /**
  * 发起绑定第三方身份的地址（authed + CSRF）。
  *
- * 触发方式见 `startIdentityBind`：SPA 只能走 fetch（表单 POST 带不了 CSRF 头），
- * 因此需要后端把授权地址放进响应体而不是 302。
+ * provider 走 JSON body（后端 `BindProviderRequest{provider, return_to?}`），
+ * 不再编进路径；路径里只有一个固定的 `/identities/bind`。
  */
-export function buildBindIdentityPath(provider: string): string {
-  return `/api/v1/auth/identities/${encodeURIComponent(provider)}/bind`
-}
+export const AUTH_BIND_IDENTITY_PATH = '/api/v1/auth/identities/bind'
 
-/** 后端仍以 302 跳 IdP 时抛出的信号：浏览器读不到 Location，前端无法继续。 */
+/** 后端以 302 跳 IdP 时抛出的信号（当前实现返回 200；这条是防回退的兜底）。 */
 export class IdentityBindRedirectError extends Error {
   constructor() {
     super('identity bind answered with a redirect the browser cannot follow')
@@ -168,15 +173,15 @@ export interface BindIdentityResult {
 }
 
 /**
- * 发起绑定：`POST /auth/identities/:provider/bind`（authed + CSRF）。
+ * 发起绑定：`POST /auth/identities/bind`（authed + CSRF），body `{provider, return_to?}`。
  *
- * 为什么必须由后端返回授权地址而不是 302：
+ * 后端返回 `200 {authorize_url}`（不再 302），前端拿到后整页跳 IdP 授权页。
+ * 为什么不能靠 302：
  * - 浏览器表单 POST 无法携带 `X-CSRF-Token`（后端是纯 header 双提交）→ 403；
  * - fetch 能带 CSRF 头，但 `redirect: 'manual'` 会把 302 折叠成 `opaqueredirect`
  *   （status 0、headers 为空），`Location` 在浏览器里拿不到。
- * 所以后端返回 `200 {authorize_url}` 后，这里整页 `window.location.assign` 即可。
  *
- * @throws IdentityBindRedirectError 后端仍是 302（当前实现），前端无法继续
+ * @throws IdentityBindRedirectError 万一后端又改回 302（浏览器读不到跳转目标，无法继续）
  */
 export async function startIdentityBind(
   provider: string,
@@ -185,13 +190,18 @@ export async function startIdentityBind(
   const method = 'POST'
   await ensureCsrfToken()
 
-  const response = await fetch(`${API_BASE_URL}${buildBindIdentityPath(provider)}`, {
+  const payload: BindIdentityRequest = { provider }
+  if (returnTo) {
+    payload.return_to = absoluteReturnTo(returnTo)
+  }
+
+  const response = await fetch(`${API_BASE_URL}${AUTH_BIND_IDENTITY_PATH}`, {
     method,
     credentials: 'include',
     // 不跟随跳转：跟随也只会拿到跨源的不透明响应，地址栏不会变。
     redirect: 'manual',
     headers: attachCsrfHeader({ 'Content-Type': 'application/json' }, method),
-    body: JSON.stringify(returnTo ? { return_to: absoluteReturnTo(returnTo) } : {}),
+    body: JSON.stringify(payload),
   })
 
   // 浏览器：opaqueredirect(status 0)；node/测试：原始 302。

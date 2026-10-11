@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { buildReloginPath } from '../../lib/auth'
 import { PasswordForm } from '../auth/PasswordForm'
 import { useMeQuery } from '../auth/useMeQuery'
 import { ThirdPartyAccountsBlock } from './ThirdPartyAccountsBlock'
@@ -190,8 +191,15 @@ export function SecuritySettingsSection() {
           <PasswordForm
             hasPassword={hasPassword}
             testIdPrefix="settings-password"
-            onSaved={() => {
+            onSaved={(result) => {
               setIsDialogOpen(false)
+              if (result?.relogin_required) {
+                // 会话已被后端作废：整页回登录页并带上说明。必须真导航——留在原地
+                // 只会让后续每个请求陆续 2002。
+                const back = `${window.location.pathname}${window.location.search}`
+                window.location.assign(buildReloginPath(back))
+                return
+              }
               setJustSaved(true)
             }}
           />

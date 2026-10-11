@@ -4,7 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getAuthProviders, goToAuthLogin, passwordLogin } from '../api/auth'
-import { AUTH_ERROR_CODE, buildSignupPath, isAuthErrorCode, sanitizeReturnTo } from '../lib/auth'
+import {
+  AUTH_ERROR_CODE,
+  RELOGIN_NOTICE_PASSWORD_CHANGED,
+  buildSignupPath,
+  isAuthErrorCode,
+  sanitizeReturnTo,
+} from '../lib/auth'
 import { isValidEmail, normalizeEmail } from '../lib/authValidation'
 import { ME_QUERY_KEY, useMeQuery } from '../components/auth/useMeQuery'
 import { AuthShell } from '../components/auth/AuthShell'
@@ -122,6 +128,9 @@ export function LoginPage() {
   const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
   const returnTo = sanitizeReturnTo(searchParams.get('return_to'))
+  // 改口令后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
+  const passwordChangedNotice =
+    searchParams.get('notice') === RELOGIN_NOTICE_PASSWORD_CHANGED
   const meQuery = useMeQuery()
 
   const providersQuery = useQuery({
@@ -148,6 +157,16 @@ export function LoginPage() {
 
   return (
     <AuthShell title={t('login.title')} subtitle={t('login.subtitle')} busy={providersQuery.isPending}>
+      {passwordChangedNotice ? (
+        <Alert
+          data-testid="login-notice-password-changed"
+          severity="info"
+          sx={{ width: '100%', textAlign: 'left' }}
+        >
+          {t('login.passwordChangedNotice')}
+        </Alert>
+      ) : null}
+
       {passwordEnabled ? <PasswordLoginForm returnTo={returnTo} /> : null}
 
       {passwordEnabled ? (
