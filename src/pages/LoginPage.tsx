@@ -14,7 +14,7 @@ import {
   recallAuthAttempt,
   sanitizeReturnTo,
 } from '../lib/auth'
-import { describeCallbackFailure } from '../components/auth/callbackFailureText'
+import { CallbackFailureToast } from '../components/auth/CallbackFailureToast'
 import type { CallbackFailure } from '../lib/auth'
 import { isValidEmail, normalizeEmail } from '../lib/authValidation'
 import { ME_QUERY_KEY, useMeQuery } from '../components/auth/useMeQuery'
@@ -193,20 +193,7 @@ export function LoginPage() {
 
   return (
     <AuthShell title={t('login.title')} subtitle={t('login.subtitle')} busy={providersQuery.isPending}>
-      {callback.failure ? (
-        <Alert
-          data-testid="login-callback-error"
-          severity="error"
-          sx={{ width: '100%', textAlign: 'left' }}
-        >
-          {describeCallbackFailure(
-            callback.failure.reason,
-            callback.failure.provider,
-            'login',
-            t,
-          )}
-        </Alert>
-      ) : null}
+      {callback.failure ? <CallbackFailureToast failure={callback.failure} /> : null}
 
       {passwordChangedNotice ? (
         <Alert

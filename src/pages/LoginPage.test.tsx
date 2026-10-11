@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
@@ -8,6 +9,17 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '@/test/mocks/handlers/httpResponse'
+vi.mock('@mui/material', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mui/material')>()
+  return {
+    ...actual,
+    // Snackbar 的 useSnackbar 在 effect 里直接访问 document；node 测试环境没有。
+    // 这里用普通容器承接 toast 内容，断言仍然落在真实的消息文本上。
+    Snackbar: ({ open, children }: { open?: boolean; children?: ReactNode }) =>
+      open ? <div data-testid="snackbar">{children}</div> : null,
+  }
+})
+
 import { LoginPage } from './LoginPage'
 
 const providersUrl = 'http://127.0.0.1:4173/api/v1/auth/providers'
@@ -25,6 +37,12 @@ const enablePasswordLogin = () =>
     ),
   )
 
+/** 把最终落地的 URL 打出来，用来断言「是否被转走」。 */
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+}
+
 const renderLogin = async (entry = '/login?return_to=%2Fnotebook%2Fn-1') => {
   // 覆盖默认 /user/me 成功 handler：未登录才能渲染 providers 表单
   mockServer.use(
@@ -36,7 +54,17 @@ const renderLogin = async (entry = '/login?return_to=%2Fnotebook%2Fn-1') => {
     renderer = create(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[entry]}>
-          <LoginPage />
+          <Routes>
+            <Route
+              path="*"
+              element={
+                <>
+                  <LoginPage />
+                  <LocationProbe />
+                </>
+              }
+            />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     )
@@ -46,6 +74,71 @@ const renderLogin = async (entry = '/login?return_to=%2Fnotebook%2Fn-1') => {
   })
   return renderer
 }
+
+describe('LoginPage · 回调失败落地', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  const installSessionStorage = () => {
+    const store = new Map<string, string>()
+    ;(globalThis as { window?: unknown }).window = {
+      location: { origin: 'http://127.0.0.1:5173' },
+      sessionStorage: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => void store.set(key, value),
+      },
+    }
+  }
+
+  it('带 ?reason= 时 toast 出错误（暂时原样显示 reason 文本）', async () => {
+    installSessionStorage()
+    const renderer = await renderLogin(
+      '/login?reason=login-state-not-found&provider=github',
+    )
+
+    const toast = renderer.root.findByProps({ 'data-testid': 'login-callback-toast' })
+    expect(JSON.stringify(toast.props.children)).toContain('login-state-not-found')
+  })
+
+  it('没有 reason 时不 toast', async () => {
+    installSessionStorage()
+    const renderer = await renderLogin()
+
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'login-callback-toast' }),
+    ).toHaveLength(0)
+  })
+
+  it('前端记着「这次是绑定」时转去绑定落地页，而不是在登录页 toast', async () => {
+    installSessionStorage()
+    const { rememberAuthAttempt } = await import('@/lib/auth')
+    rememberAuthAttempt('/notebook/n-1?settings=account', 'bind')
+
+    const renderer = await renderLogin('/login?reason=login-state-not-found&provider=github')
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'location' }).children.join(''),
+    ).toBe('/auth/error?reason=login-state-not-found&provider=github')
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'login-callback-toast' }),
+    ).toHaveLength(0)
+  })
+
+  it('上次是登录流程时留在登录页 toast', async () => {
+    installSessionStorage()
+    const { rememberAuthAttempt } = await import('@/lib/auth')
+    rememberAuthAttempt('/', 'login')
+
+    const renderer = await renderLogin('/login?reason=user-banned&provider=github')
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'location' }).children.join(''),
+    ).toBe('/login?reason=user-banned&provider=github')
+    renderer.root.findByProps({ 'data-testid': 'login-callback-toast' })
+  })
+})
 
 describe('LoginPage', () => {
   afterEach(() => vi.unstubAllGlobals())
