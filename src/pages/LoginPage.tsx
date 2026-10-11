@@ -15,6 +15,7 @@ import {
   sanitizeReturnTo,
 } from '../lib/auth'
 import { describeCallbackFailure } from '../components/auth/callbackFailureText'
+import type { CallbackFailure } from '../lib/auth'
 import { isValidEmail, normalizeEmail } from '../lib/authValidation'
 import { ME_QUERY_KEY, useMeQuery } from '../components/auth/useMeQuery'
 import { AuthShell } from '../components/auth/AuthShell'
@@ -128,6 +129,31 @@ function PasswordLoginForm({ returnTo }: { returnTo: string }) {
   )
 }
 
+interface CallbackLanding {
+  /** 绑定失败且前端知道这次是绑定流程时，要转去的落地页。 */
+  forwardTo: string | null
+  /** 登录语义的失败信息：就地显示提示。 */
+  failure: CallbackFailure | null
+}
+
+/**
+ * 回调失败落地的分流。
+ *
+ * 后端在 state 过期/不匹配时无从判断流程，一律送到 `/login`；前端用自己记的
+ * 「刚才那次是绑定」把它转去绑定落地页，避免用户在登录页看到文不对题的提示。
+ */
+function resolveCallbackLanding(params: URLSearchParams): CallbackLanding {
+  const failure = parseCallbackFailure(params.toString())
+  if (!failure) {
+    return { forwardTo: null, failure: null }
+  }
+  const isBindAttempt = params.get('mode') === 'bind' || recallAuthAttempt()?.mode === 'bind'
+  return {
+    forwardTo: isBindAttempt ? buildBindErrorPath(failure.reason, failure.provider) : null,
+    failure,
+  }
+}
+
 export function LoginPage() {
   const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
@@ -135,11 +161,7 @@ export function LoginPage() {
   // 改口令后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
   const passwordChangedNotice =
     searchParams.get('notice') === RELOGIN_NOTICE_PASSWORD_CHANGED
-  // 回调失败：后端分不清登录/绑定时会一律送到 /login（login state 没了，它无从判断）。
-  // 如果前端自己记着「刚才那次是绑定」，就转到绑定落地页，别让用户看文不对题的提示。
-  const callbackFailure = parseCallbackFailure(searchParams.toString())
-  const wasBindAttempt =
-    searchParams.get('mode') === 'bind' || recallAuthAttempt()?.mode === 'bind'
+  const callback = resolveCallbackLanding(searchParams)
   const meQuery = useMeQuery()
 
   const providersQuery = useQuery({
@@ -149,13 +171,8 @@ export function LoginPage() {
   })
 
   // 必须放在 me 短路之前：绑定失败时用户往往还是登录态，否则会被弹回应用、提示看不见。
-  if (callbackFailure && wasBindAttempt) {
-    return (
-      <Navigate
-        to={buildBindErrorPath(callbackFailure.reason, callbackFailure.provider)}
-        replace
-      />
-    )
+  if (callback.forwardTo) {
+    return <Navigate to={callback.forwardTo} replace />
   }
 
   if (meQuery.isPending) {
@@ -176,15 +193,15 @@ export function LoginPage() {
 
   return (
     <AuthShell title={t('login.title')} subtitle={t('login.subtitle')} busy={providersQuery.isPending}>
-      {callbackFailure ? (
+      {callback.failure ? (
         <Alert
           data-testid="login-callback-error"
           severity="error"
           sx={{ width: '100%', textAlign: 'left' }}
         >
           {describeCallbackFailure(
-            callbackFailure.reason,
-            callbackFailure.provider,
+            callback.failure.reason,
+            callback.failure.provider,
             'login',
             t,
           )}
