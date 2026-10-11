@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
 import {
   createErrorResponse,
-  createNoContentResponse,
   createSuccessResponse,
 } from '@/test/mocks/handlers/httpResponse'
 import { LoginPage } from './LoginPage'
@@ -210,7 +209,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     mockServer.use(
       http.post(passwordLoginUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ user_id: 'user-1' })
       }),
     )
 
@@ -228,7 +227,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
 
   it('登录成功后跳回 return_to', async () => {
     enablePasswordLogin()
-    mockServer.use(http.post(passwordLoginUrl, () => createNoContentResponse()))
+    mockServer.use(http.post(passwordLoginUrl, () => createSuccessResponse({ user_id: 'user-1' })))
 
     const renderer = await renderLoginWithRoutes()
     fillInput(renderer, 'login-email-input', 'foo@bar.com')
@@ -251,5 +250,19 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
 
     renderer.root.findByProps({ 'data-testid': 'login-password-error' })
     expect(JSON.stringify(renderer.toJSON())).toContain('邮箱或口令不正确')
+  })
+
+  it('106008（账号封禁）给专门文案而不是通用失败', async () => {
+    enablePasswordLogin()
+    mockServer.use(
+      http.post(passwordLoginUrl, () => createErrorResponse(200, 'USER_BANNED', 106008)),
+    )
+
+    const renderer = await renderLogin()
+    fillInput(renderer, 'login-email-input', 'foo@bar.com')
+    fillInput(renderer, 'login-password-input', 'secret-123')
+    await submitForm(renderer)
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('该账号已被封禁')
   })
 })

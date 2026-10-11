@@ -2,6 +2,7 @@ import { request } from '../lib/http'
 import { absoluteReturnTo } from '../lib/auth'
 import type {
   AuthProvidersResponse,
+  AuthSessionResponse,
   EmailRegisterRequest,
   EmailResendRequest,
   EmailVerifyCodeRequest,
@@ -64,10 +65,10 @@ export function logout() {
 
 /**
  * 邮箱口令登录：与 `GET /auth/login` 同路径、不同方法。
- * 成功即签发会话（Set-Cookie），因此只需 invalidate `me` 查询，无需处理响应体。
+ * 成功即签发会话（Set-Cookie）并返回账号标识，调用方通常只需 invalidate `me` 查询。
  */
 export function passwordLogin(body: PasswordLoginRequest) {
-  return request<null>('/api/v1/auth/login', {
+  return request<AuthSessionResponse>('/api/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify({ login_from: 'web', ...body }),
   })
@@ -84,19 +85,19 @@ export function registerEmail(body: EmailRegisterRequest) {
   })
 }
 
-/** 消费邮件链接里的 token（前端从 `location.hash` 读出后 POST 过来）。 */
+/** 消费邮件链接里的 token（前端从 `location.hash` 读出后 POST 过来）；成功即建号并签发会话。 */
 export function verifyEmailToken(body: EmailVerifyRequest) {
-  return request<null>('/api/v1/auth/email/verify', {
+  return request<AuthSessionResponse>('/api/v1/auth/email/verify', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify({ login_from: 'web', ...body }),
   })
 }
 
 /** 6 位验证码验证；成功后同样建号并签发会话。 */
 export function verifyEmailCode(body: EmailVerifyCodeRequest) {
-  return request<null>('/api/v1/auth/email/verify/code', {
+  return request<AuthSessionResponse>('/api/v1/auth/email/verify/code', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify({ login_from: 'web', ...body }),
   })
 }
 
@@ -117,10 +118,13 @@ export function setPassword(body: SetPasswordRequest) {
 }
 
 /**
- * 发起绑定第三方身份的地址。
+ * 发起绑定第三方身份的地址（authed + CSRF）。
  *
- * 后端返回 302 跳 IdP，因此这里必须由浏览器做整页导航（同 `goToAuthLogin`）；
- * 具体触发方式（表单 POST / 其它）等后端接口落地后再定，见 docs 里的开放问题。
+ * 后端确认的形态：`POST /auth/identities/:provider/bind`，body `{return_to?}`，
+ * 成功 302 跳 IdP 并下发 `_gnlm_login_state`。SPA 侧暂时无法使用：
+ * - 带 `X-CSRF-Token` 只能走 fetch，而 fetch 拿不到跨源 302 的 `Location`（opaqueredirect）；
+ * - 浏览器表单 POST 又带不了自定义头，会被 CSRF 中间件 403。
+ * 等后端改为「200 + authorize URL」或放行表单字段 CSRF 后再接设置页的绑定入口。
  */
 export function buildBindIdentityPath(provider: string): string {
   return `/api/v1/auth/identities/${encodeURIComponent(provider)}/bind`

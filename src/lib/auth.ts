@@ -8,6 +8,8 @@ export const CSRF_CODE = 2003
  * （2026-10-11 已核对到 106022）；前端只在这里登记一次，后端再调整时改这一处。
  */
 export const AUTH_ERROR_CODE = {
+  /** 账号被封禁（`CodeUserBanned`，登录与回调都会返回）。 */
+  userBanned: 106008,
   /** 账号密码不匹配 / 账号不存在（登录统一文案）。 */
   invalidCredentials: 106011,
   /** 注册邮箱已被占用。 */

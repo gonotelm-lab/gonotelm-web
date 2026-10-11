@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EMAIL_MAX_LENGTH,
   PASSWORD_MAX_BYTES,
   PASSWORD_MIN_LENGTH,
   VERIFICATION_CODE_LENGTH,
@@ -28,6 +29,13 @@ describe('isValidEmail', () => {
       expect(isValidEmail(raw)).toBe(false)
     },
   )
+
+  it('长度上限与 entity.ValidateEmail 一致（255）', () => {
+    expect(EMAIL_MAX_LENGTH).toBe(255)
+    const local = 'a'.repeat(EMAIL_MAX_LENGTH - '@b.com'.length)
+    expect(isValidEmail(`${local}@b.com`)).toBe(true)
+    expect(isValidEmail(`${local}a@b.com`)).toBe(false)
+  })
 })
 
 describe('isValidPassword', () => {

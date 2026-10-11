@@ -9,10 +9,13 @@
 /** 与 DDL `chk_users_v2_email_shape` 的 `^[^@[:space:]]+@[^@[:space:]]+$` 同形。 */
 const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+$/
 
-/** 口令最小长度；后端策略落地后如与之不一致，改这一个常量。 */
+/** 与 `entity.ValidateEmail` 的长度上限一致。 */
+export const EMAIL_MAX_LENGTH = 255
+
+/** 与 `entity.MinPasswordBytes` 一致；后端策略变了要同步这里。 */
 export const PASSWORD_MIN_LENGTH = 8
 
-/** bcrypt 只取前 72 字节，超过部分会被静默丢弃，因此在这里就拦下。 */
+/** 与 `entity.MaxPasswordBytes` 一致：bcrypt 只取前 72 字节，超长必须拒绝而不是静默截断。 */
 export const PASSWORD_MAX_BYTES = 72
 
 export const VERIFICATION_CODE_LENGTH = 6
@@ -23,7 +26,8 @@ export function normalizeEmail(raw: string): string {
 }
 
 export function isValidEmail(raw: string): boolean {
-  return EMAIL_SHAPE.test(normalizeEmail(raw))
+  const email = normalizeEmail(raw)
+  return email.length <= EMAIL_MAX_LENGTH && EMAIL_SHAPE.test(email)
 }
 
 const encoder = new TextEncoder()

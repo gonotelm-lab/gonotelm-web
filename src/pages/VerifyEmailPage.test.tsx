@@ -75,7 +75,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     mockServer.use(
       http.post(verifyUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ user_id: 'user-1' })
       }),
     )
     meWith(true)
@@ -83,7 +83,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     const renderer = await renderVerify()
     await submit(renderer, 'verify-link-submit')
 
-    expect(received).toEqual({ token: 'tok-1' })
+    expect(received).toEqual({ token: 'tok-1', login_from: 'web' })
     expect(renderer.root.findByProps({ 'data-testid': 'home-landed' })).toBeTruthy()
   })
 
@@ -91,7 +91,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     vi.stubGlobal('window', {
       location: { hash: '#tok-1', search: '', origin: 'http://localhost' },
     })
-    mockServer.use(http.post(verifyUrl, () => createNoContentResponse()))
+    mockServer.use(http.post(verifyUrl, () => createSuccessResponse({ user_id: 'user-1' })))
     meWith(false)
 
     const renderer = await renderVerify()
@@ -121,7 +121,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     mockServer.use(
       http.post(verifyUrl, () => {
         calls += 1
-        return createNoContentResponse()
+        return createSuccessResponse({ user_id: 'user-1' })
       }),
     )
 
@@ -140,7 +140,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     mockServer.use(
       http.post(verifyUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ user_id: 'user-1' })
       }),
     )
     meWith(true)
@@ -148,7 +148,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     const renderer = await renderVerify()
     await submit(renderer, 'verify-link-submit')
 
-    expect(received).toEqual({ token: 'tok-9' })
+    expect(received).toEqual({ token: 'tok-9', login_from: 'web' })
   })
 
   it('在链接模式与验证码模式之间切换', async () => {
@@ -184,7 +184,7 @@ describe('VerifyEmailPage · 验证码模式', () => {
     mockServer.use(
       http.post(verifyCodeUrl, async ({ request }) => {
         received = await request.json()
-        return createNoContentResponse()
+        return createSuccessResponse({ user_id: 'user-1' })
       }),
     )
     meWith(true)
@@ -197,7 +197,7 @@ describe('VerifyEmailPage · 验证码模式', () => {
     })
     await submit(renderer)
 
-    expect(received).toEqual({ email: 'a@b.com', code: '123456' })
+    expect(received).toEqual({ email: 'a@b.com', code: '123456', login_from: 'web' })
     expect(renderer.root.findByProps({ 'data-testid': 'home-landed' })).toBeTruthy()
   })
 

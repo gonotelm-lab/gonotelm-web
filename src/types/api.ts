@@ -29,6 +29,11 @@ export interface AuthProvidersResponse {
   password_enabled?: boolean
 }
 
+/** 登录 / 验证成功后后端返回的账号标识（`data.user_id`）。 */
+export interface AuthSessionResponse {
+  user_id: string
+}
+
 export interface MeResponse {
   user_id: string
   nickname: string

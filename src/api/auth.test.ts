@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http } from 'msw'
 import { mockServer } from '@/test/mocks'
-import { createNoContentResponse } from '@/test/mocks/handlers/httpResponse'
+import {
+  createNoContentResponse,
+  createSuccessResponse,
+} from '@/test/mocks/handlers/httpResponse'
 import {
   buildAuthLoginPath,
   buildAuthLoginUrl,
@@ -93,11 +96,18 @@ async function captureRequest(path: string) {
 }
 
 describe('邮箱口令登录', () => {
-  it('POST /auth/login，body 带 email/password 且固定 login_from=web', async () => {
-    const captured = await captureRequest('/api/v1/auth/login')
-    await expect(passwordLogin({ email: 'a@b.com', password: 'secret-123' })).resolves.toBeNull()
-    expect(captured.method).toBe('POST')
-    expect(captured.body).toEqual({ email: 'a@b.com', password: 'secret-123', login_from: 'web' })
+  it('POST /auth/login，body 带 email/password 且固定 login_from=web，成功返回 user_id', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/login`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ user_id: 'user-1' })
+      }),
+    )
+    await expect(passwordLogin({ email: 'a@b.com', password: 'secret-123' })).resolves.toEqual({
+      user_id: 'user-1',
+    })
+    expect(received).toEqual({ email: 'a@b.com', password: 'secret-123', login_from: 'web' })
   })
 
   it('调用方显式给出的 login_from 优先', async () => {
@@ -108,26 +118,40 @@ describe('邮箱口令登录', () => {
 })
 
 describe('邮箱注册与验证', () => {
-  it('registerEmail POST /auth/email/register', async () => {
+  it('registerEmail POST /auth/email/register（204）', async () => {
     const captured = await captureRequest('/api/v1/auth/email/register')
     await expect(registerEmail({ email: 'a@b.com', password: 'secret-123' })).resolves.toBeNull()
     expect(captured.method).toBe('POST')
     expect(captured.body).toEqual({ email: 'a@b.com', password: 'secret-123' })
   })
 
-  it('verifyEmailToken POST /auth/email/verify，只带 token', async () => {
-    const captured = await captureRequest('/api/v1/auth/email/verify')
-    await expect(verifyEmailToken({ token: 'tok-1' })).resolves.toBeNull()
-    expect(captured.body).toEqual({ token: 'tok-1' })
+  it('verifyEmailToken POST /auth/email/verify，带 token 与 login_from', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ user_id: 'user-1' })
+      }),
+    )
+    await expect(verifyEmailToken({ token: 'tok-1' })).resolves.toEqual({ user_id: 'user-1' })
+    expect(received).toEqual({ token: 'tok-1', login_from: 'web' })
   })
 
   it('verifyEmailCode POST /auth/email/verify/code', async () => {
-    const captured = await captureRequest('/api/v1/auth/email/verify/code')
-    await expect(verifyEmailCode({ email: 'a@b.com', code: '123456' })).resolves.toBeNull()
-    expect(captured.body).toEqual({ email: 'a@b.com', code: '123456' })
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ user_id: 'user-1' })
+      }),
+    )
+    await expect(verifyEmailCode({ email: 'a@b.com', code: '123456' })).resolves.toEqual({
+      user_id: 'user-1',
+    })
+    expect(received).toEqual({ email: 'a@b.com', code: '123456', login_from: 'web' })
   })
 
-  it('resendVerificationEmail POST /auth/email/resend', async () => {
+  it('resendVerificationEmail POST /auth/email/resend（204）', async () => {
     const captured = await captureRequest('/api/v1/auth/email/resend')
     await expect(resendVerificationEmail({ email: 'a@b.com' })).resolves.toBeNull()
     expect(captured.body).toEqual({ email: 'a@b.com' })

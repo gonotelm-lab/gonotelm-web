@@ -133,6 +133,7 @@ describe('AUTH_ERROR_CODE 契约', () => {
   it('与后端 internal/domain/identity/errors 的常量逐条一致', () => {
     // 这条断言是前后端错误码的硬契约：后端改了码而前端没跟，测试先红。
     expect(AUTH_ERROR_CODE).toEqual({
+      userBanned: 106008,
       invalidCredentials: 106011,
       emailTaken: 106012,
       emailInvalid: 106013,

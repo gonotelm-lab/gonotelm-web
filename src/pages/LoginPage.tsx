@@ -70,6 +70,9 @@ function describePasswordLoginError(error: unknown, t: (key: string) => string):
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.invalidCredentials)) {
     return t('login.invalidCredentials')
   }
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.userBanned)) {
+    return t('login.banned')
+  }
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.tooManyRequests)) {
     return t('login.tooManyRequests')
   }

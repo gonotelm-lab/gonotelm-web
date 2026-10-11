@@ -32,11 +32,16 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/logout`, () => createNoContentResponse()),
 
   // ── users_v2 登录改造新增（P0）─────────────────────────────────────────────
-  // POST /auth/login 是邮箱口令登录，与 GET 同路径不同方法。
-  http.post(`${apiBaseUrl}/api/v1/auth/login`, () => createNoContentResponse()),
+  // 登录/验证成功：200 + { user_id }（后端 finishSession → AuthSessionResponse）。
+  http.post(`${apiBaseUrl}/api/v1/auth/login`, () => createSuccessResponse({ user_id: 'user-1' })),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, () =>
+    createSuccessResponse({ user_id: 'user-1' }),
+  ),
+  http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () =>
+    createSuccessResponse({ user_id: 'user-1' }),
+  ),
+  // 注册/重发/设置口令成功：204 无响应体（后端 OkRespNoContent）。
   http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () => createNoContentResponse()),
-  http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, () => createNoContentResponse()),
-  http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () => createNoContentResponse()),
   http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
   http.put(`${apiBaseUrl}/api/v1/auth/password`, () => createNoContentResponse()),
 ]
