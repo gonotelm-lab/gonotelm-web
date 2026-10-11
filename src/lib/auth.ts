@@ -158,6 +158,42 @@ export function buildLoginPath(returnTo?: string, notice?: string): string {
 export const RELOGIN_NOTICE_PASSWORD_CHANGED = 'password_changed'
 
 /**
+ * 跳 IdP 之前记住「我在哪」，供回调失败时回到原处。
+ *
+ * 为什么需要它：回调失败的落地页是后端 302 过来的**全新顶层导航**，前端内存状态全没了；
+ * 而后端在「state cookie 不匹配 / login state 已过期」这类最常见的失败下**根本读不到
+ * return_to**（state 都没了）。sessionStorage 同源跨导航仍在，正好补这个空档。
+ *
+ * 只是 UX 提示，不是安全边界：读回来照样过 `sanitizeReturnTo`。
+ */
+const PENDING_AUTH_RETURN_KEY = 'gnlm:pending-auth-return'
+
+/** 跳 IdP 前记录当前位置（绝对 URL）。 */
+export function rememberAuthReturn(returnTo: string): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  try {
+    window.sessionStorage?.setItem(PENDING_AUTH_RETURN_KEY, absoluteReturnTo(returnTo))
+  } catch {
+    // 隐私模式/配额限制：记不住就退回站点根，不影响主流程。
+  }
+}
+
+/** 取回上次记录的落地位置；没有或非法时返回 null。 */
+export function recallAuthReturn(): string | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  try {
+    const raw = window.sessionStorage?.getItem(PENDING_AUTH_RETURN_KEY)
+    return raw ? sanitizeReturnTo(raw) : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * 改口令/设口令成功后回登录页。
  *
  * 后端保存口令会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是

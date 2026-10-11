@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import { Alert, Box, Button, Divider, Stack, Typography } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import type { TFunction } from 'i18next'
 import {
   getAuthIdentities,
@@ -113,6 +114,9 @@ function IdentityRow({
  */
 export function ThirdPartyAccountsBlock() {
   const { t } = useTranslation(['settings', 'auth'])
+  // 用 router 的 location 而不是 window.location：前者是唯一真相，
+  // 而且带上 `?settings=security` 后，绑完回来设置会自动开在账号安全那一页。
+  const location = useLocation()
 
   const boundQuery = useQuery({
     queryKey: AUTH_IDENTITIES_QUERY_KEY,
@@ -127,12 +131,7 @@ export function ThirdPartyAccountsBlock() {
 
   const bindMutation = useMutation({
     mutationFn: (provider: string) =>
-      startIdentityBind(
-        provider,
-        typeof window === 'undefined'
-          ? '/'
-          : `${window.location.pathname}${window.location.search}`,
-      ),
+      startIdentityBind(provider, `${location.pathname}${location.search}`),
     onSuccess: (data) => {
       // 整页跳 IdP：fetch 跟随跳转不会改变地址栏，只有导航才行。
       if (typeof window !== 'undefined') {

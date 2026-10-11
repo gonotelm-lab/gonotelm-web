@@ -2,6 +2,7 @@ import { StrictMode, type ReactNode } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToggleButtonGroup } from '@mui/material'
+import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
@@ -186,7 +187,7 @@ const createNodeMock = (element: { props?: unknown }) => {
   return { naturalWidth: 512, naturalHeight: 512 }
 }
 
-const renderDialog = async (options: { strict?: boolean } = {}) => {
+const renderDialog = async (options: { strict?: boolean; entry?: string } = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -194,12 +195,16 @@ const renderDialog = async (options: { strict?: boolean } = {}) => {
   filePickerClicks.count = 0
   const tree = (
     <QueryClientProvider client={queryClient}>
-      <SettingsDialog
-        open
-        onClose={onClose}
-        createCanvas={createMockCanvas}
-        createImage={createMockImage}
-      />
+      {/* 绑定用的 return_to 取自 router 的 location（`ThirdPartyAccountsBlock`），
+          所以这里必须有 Router；entry 用来验证 `?settings=` 会不会被带上。 */}
+      <MemoryRouter initialEntries={[options.entry ?? '/notebook/n-1']}>
+        <SettingsDialog
+          open
+          onClose={onClose}
+          createCanvas={createMockCanvas}
+          createImage={createMockImage}
+        />
+      </MemoryRouter>
     </QueryClientProvider>
   )
   let renderer!: ReactTestRenderer
@@ -657,6 +662,39 @@ describe('SettingsDialog', () => {
     expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?state=abc')
 
     // 这个文件在模块顶层 stub 了 Image，不能用 unstubAllGlobals 复原。
+    vi.stubGlobal('window', undefined)
+  })
+
+  it('绑定带上当前 URL：设置已打开时 return_to 会包含 ?settings=security', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/notebook/n-1', search: '', origin: 'http://localhost', assign },
+    })
+
+    let received: unknown = null
+    mockServer.use(
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/bind', async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth' })
+      }),
+    )
+
+    const { renderer } = await renderDialog({ entry: '/notebook/n-1?settings=security' })
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-bind-google' }).props.onClick()
+    })
+    await flush()
+
+    // 绑完（或失败回来）时设置会自动开在账号安全这一页。
+    expect(received).toEqual({
+      provider: 'google',
+      return_to: 'http://localhost/notebook/n-1?settings=security',
+    })
+
     vi.stubGlobal('window', undefined)
   })
 

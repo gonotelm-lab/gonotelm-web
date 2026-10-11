@@ -1,7 +1,21 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { rememberAuthReturn } from '@/lib/auth'
 import { AuthErrorPage } from './AuthErrorPage'
+
+/** node 测试环境没有 sessionStorage：给一个最小实现，用来验证「回到原处」的兜底。 */
+function installSessionStorage() {
+  const store = new Map<string, string>()
+  return {
+    store,
+    storage: {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+    },
+  }
+}
 
 const renderPage = async (entry: string) => {
   let renderer!: ReactTestRenderer
@@ -18,6 +32,46 @@ const renderPage = async (entry: string) => {
 }
 
 describe('AuthErrorPage', () => {
+  let session: ReturnType<typeof installSessionStorage>
+
+  beforeEach(() => {
+    session = installSessionStorage()
+    // 只补 sessionStorage，window.location.origin 仍由 absoluteReturnTo 的守卫处理。
+    ;(globalThis as { window?: unknown }).window = {
+      sessionStorage: session.storage,
+      location: { origin: 'http://127.0.0.1:5173' },
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  it('后端带不了 return_to 时，用跳 IdP 前记住的位置回到原处', async () => {
+    rememberAuthReturn('/notebook/n-1?settings=security')
+
+    const renderer = await renderPage('/auth/error?error=106019&mode=bind')
+
+    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
+    expect(back.props.href ?? back.props.to).toBe('/notebook/n-1?settings=security')
+  })
+
+  it('后端给了 return_to 时优先用它，忽略记住的位置', async () => {
+    rememberAuthReturn('/notebook/old')
+
+    const renderer = await renderPage('/auth/error?error=106019&mode=bind&return_to=%2Fnotebook%2Fn-2')
+
+    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
+    expect(back.props.href ?? back.props.to).toBe('/notebook/n-2')
+  })
+
+  it('没记住任何位置时退回站点根', async () => {
+    const renderer = await renderPage('/auth/error?error=106019&mode=bind')
+
+    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
+    expect(back.props.href ?? back.props.to).toBe('/')
+  })
+
   it('登录流程的封禁码：说清原因并给出「重新登录」出口', async () => {
     const renderer = await renderPage('/auth/error?error=106008&mode=login&return_to=%2Fnotebook%2Fn-1')
 

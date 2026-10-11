@@ -17,6 +17,14 @@ import { SETTINGS_SECTIONS, type SettingsSectionId } from './settingsSections'
 interface SettingsDialogProps {
   open: boolean
   onClose: () => void
+  /**
+   * 受控的当前分区；不传则内部自管。
+   *
+   * 生产里由 `useSettingsDialogRoute` 把它绑到 URL 的 `?settings=`，
+   * 这样第三方回调的 `return_to` 才能精确回到「设置已打开 + 原分区」。
+   */
+  activeSection?: SettingsSectionId
+  onActiveSectionChange?: (section: SettingsSectionId) => void
   /** 画布工厂接缝，仅用于在没有 DOM 的测试环境注入替身。 */
   createCanvas?: AvatarCanvasFactory
   createImage?: AvatarImageFactory
@@ -26,9 +34,22 @@ interface SettingsDialogProps {
  * App settings dialog: a fixed left navigation rail and a scrollable right pane.
  * Add a section by extending `SETTINGS_SECTIONS` and the content switch below.
  */
-export function SettingsDialog({ open, onClose, createCanvas, createImage }: SettingsDialogProps) {
+export function SettingsDialog({
+  open,
+  onClose,
+  activeSection: controlledSection,
+  onActiveSectionChange,
+  createCanvas,
+  createImage,
+}: SettingsDialogProps) {
   const { t } = useTranslation(['settings', 'common'])
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>('profile')
+  const [internalSection, setInternalSection] = useState<SettingsSectionId>('profile')
+  const activeSection = controlledSection ?? internalSection
+
+  const handleSelectSection = (section: SettingsSectionId) => {
+    setInternalSection(section)
+    onActiveSectionChange?.(section)
+  }
 
   return (
     <Dialog
@@ -86,7 +107,7 @@ export function SettingsDialog({ open, onClose, createCanvas, createImage }: Set
                   <ButtonBase
                     data-testid={`settings-nav-${id}`}
                     aria-current={selected ? 'page' : undefined}
-                    onClick={() => setActiveSection(id)}
+                    onClick={() => handleSelectSection(id)}
                     sx={(theme) => ({
                       display: 'flex',
                       width: '100%',

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http } from 'msw'
 import { mockServer } from '@/test/mocks'
 import { ApiError } from '@/lib/http'
+import { recallAuthReturn } from '@/lib/auth'
 import {
   createNoContentResponse,
   createSuccessResponse,
@@ -221,6 +222,26 @@ describe('startIdentityBind', () => {
 
     await startIdentityBind('google')
     expect(received).toEqual({ provider: 'google' })
+  })
+
+  it('发起绑定前记住当前位置（回调失败时靠它回到原处）', async () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('window', {
+      location: { origin: 'http://127.0.0.1:5173' },
+      sessionStorage: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => void store.set(key, value),
+      },
+    })
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, () =>
+        createSuccessResponse({ authorize_url: 'https://github.com/login/oauth/authorize' }),
+      ),
+    )
+
+    await startIdentityBind('github', '/notebook/n-1?settings=security')
+
+    expect(recallAuthReturn()).toBe('/notebook/n-1?settings=security')
   })
 
   it('缺 authorize_url 时报错，不静默跳一个空地址', async () => {

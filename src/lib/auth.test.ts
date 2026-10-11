@@ -4,6 +4,8 @@ import {
   AUTH_ERROR_CODE,
   RELOGIN_NOTICE_PASSWORD_CHANGED,
   parseAuthCallbackError,
+  recallAuthReturn,
+  rememberAuthReturn,
   absoluteReturnTo,
   buildLoginPath,
   buildReloginPath,
@@ -119,6 +121,52 @@ describe('buildLoginPath', () => {
     expect(buildLoginPath('/notebook/a', RELOGIN_NOTICE_PASSWORD_CHANGED)).toBe(
       '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_changed',
     )
+  })
+})
+
+describe('rememberAuthReturn / recallAuthReturn', () => {
+  const installWindow = (options: { storage?: boolean } = {}) => {
+    const store = new Map<string, string>()
+    const sessionStorage = options.storage
+      ? {
+          getItem: (key: string) => store.get(key) ?? null,
+          setItem: (key: string, value: string) => void store.set(key, value),
+        }
+      : undefined
+    vi.stubGlobal('window', {
+      location: { origin: 'http://127.0.0.1:5173' },
+      sessionStorage,
+    })
+    return store
+  }
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('记下当前位置，读回来是站内相对路径', () => {
+    installWindow({ storage: true })
+    rememberAuthReturn('/notebook/n-1?settings=security')
+
+    expect(recallAuthReturn()).toBe('/notebook/n-1?settings=security')
+  })
+
+  it('读回时照样过 sanitize：被塞进站外 URL 也只会落到 /', () => {
+    const store = installWindow({ storage: true })
+    store.set('gnlm:pending-auth-return', 'https://evil.com/steal')
+
+    expect(recallAuthReturn()).toBe('/')
+  })
+
+  it('没有 window（SSR/测试）时安静返回 null', () => {
+    vi.stubGlobal('window', undefined)
+    rememberAuthReturn('/notebook/n-1')
+
+    expect(recallAuthReturn()).toBeNull()
+  })
+
+  it('sessionStorage 不可用（隐私模式）时不抛异常', () => {
+    installWindow()
+    expect(() => rememberAuthReturn('/notebook/n-1')).not.toThrow()
+    expect(recallAuthReturn()).toBeNull()
   })
 })
 

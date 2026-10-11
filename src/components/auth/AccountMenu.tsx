@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { logout } from '../../api/auth'
 import { SettingsDialog } from '../settings/SettingsDialog'
+import { useSettingsDialogRoute } from '../settings/useSettingsDialogRoute'
 import {
   headerMenuIconSx,
   headerMenuItemSx,
@@ -30,7 +31,9 @@ export function AccountMenu({ triggerSize, avatarSize = 28 }: AccountMenuProps) 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [logoutFailed, setLogoutFailed] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  // 对话框的开/关与分区放在 URL（`?settings=<分区>`）里：第三方绑定的 return_to
+  // 能带上它，绑完就能回到「这一页 + 设置已打开 + 原分区」。
+  const settings = useSettingsDialogRoute()
 
   const nickname = data?.nickname ?? data?.user_id ?? ''
   // 后端在用户未设置头像时返回空串；空串不交给 <img>，避免向当前页发起无效请求。
@@ -48,7 +51,7 @@ export function AccountMenu({ triggerSize, avatarSize = 28 }: AccountMenuProps) 
 
   const handleOpenSettings = () => {
     setAnchorEl(null)
-    setIsSettingsOpen(true)
+    settings.openSettings()
   }
 
   const handleLogout = async () => {
@@ -125,8 +128,13 @@ export function AccountMenu({ triggerSize, avatarSize = 28 }: AccountMenuProps) 
           </MenuItem>
         ) : null}
       </Menu>
-      {isSettingsOpen ? (
-        <SettingsDialog open onClose={() => setIsSettingsOpen(false)} />
+      {settings.isOpen ? (
+        <SettingsDialog
+          open
+          onClose={settings.closeSettings}
+          activeSection={settings.activeSection}
+          onActiveSectionChange={settings.selectSection}
+        />
       ) : null}
     </>
   )

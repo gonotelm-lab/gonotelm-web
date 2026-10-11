@@ -8,6 +8,7 @@ import {
   UNAUTHORIZED_CODE,
   buildLoginPath,
   parseAuthCallbackError,
+  recallAuthReturn,
   type AuthCallbackMode,
 } from '../lib/auth'
 import { AuthShell } from '../components/auth/AuthShell'
@@ -63,6 +64,9 @@ export function AuthErrorPage() {
   const [searchParams] = useSearchParams()
   const { code, mode, returnTo } = parseAuthCallbackError(searchParams.toString())
   const isBind = mode === 'bind'
+  // 后端能带 return_to 就用它的；带不了（state 已过期/换浏览器，最常见的那类）
+  // 就退回「跳 IdP 之前前端自己记下的位置」。
+  const backTo = searchParams.get('return_to') ? returnTo : (recallAuthReturn() ?? returnTo)
 
   const title = isBind ? t('callbackError.bindTitle') : t('callbackError.loginTitle')
   const message = describeCallbackError(code, mode, t)
@@ -81,7 +85,7 @@ export function AuthErrorPage() {
         >
           <Button
             component={Link}
-            to={returnTo}
+            to={backTo}
             data-testid="auth-error-back"
             variant="outlined"
             sx={{ minHeight: 44, ...authFocusRing }}
@@ -91,7 +95,7 @@ export function AuthErrorPage() {
           {isBind ? null : (
             <Button
               component={Link}
-              to={buildLoginPath(returnTo)}
+              to={buildLoginPath(backTo)}
               data-testid="auth-error-retry-login"
               variant="contained"
               sx={authSubmitButtonSx}

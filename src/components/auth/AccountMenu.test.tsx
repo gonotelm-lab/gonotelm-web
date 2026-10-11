@@ -1,6 +1,7 @@
 import type { ReactNode, MouseEvent } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom'
 import { http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mockServer } from '@/test/mocks'
@@ -36,21 +37,52 @@ vi.mock('@mui/material', () => ({
 
 vi.mock('@mui/icons-material/AccountCircleOutlined', () => ({ default: () => null }))
 
-// 设置对话框有自己的测试；这里只验证账号菜单的开关接线。
+// 设置对话框有自己的测试；这里只验证账号菜单的开关接线，以及「开关是否落在 URL 上」。
 vi.mock('../settings/SettingsDialog', () => ({
-  SettingsDialog: ({ open }: { open?: boolean; onClose?: () => void }) =>
-    open ? <div data-testid="settings-dialog" /> : null,
+  SettingsDialog: ({
+    open,
+    onClose,
+    activeSection,
+  }: {
+    open?: boolean
+    onClose?: () => void
+    activeSection?: string
+  }) =>
+    open ? (
+      <div data-testid="settings-dialog" data-section={activeSection}>
+        <button type="button" data-testid="settings-dialog-close" onClick={onClose} />
+      </div>
+    ) : null,
 }))
+
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+}
 
 import { AccountMenu } from './AccountMenu'
 
-const renderMenu = async () => {
+const renderMenu = async (entry = '/notebook/n-1') => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <>
+            <AccountMenu />
+            <LocationProbe />
+          </>
+        ),
+      },
+    ],
+    { initialEntries: [entry] },
+  )
   let renderer!: ReactTestRenderer
   await act(async () => {
     renderer = create(
       <QueryClientProvider client={queryClient}>
-        <AccountMenu />
+        <RouterProvider router={router} />
       </QueryClientProvider>,
     )
   })
@@ -64,6 +96,13 @@ const openMenu = (renderer: ReactTestRenderer) => {
   const trigger = renderer.root.findByProps({ 'data-testid': 'account-trigger' })
   act(() => trigger.props.onClick({ currentTarget: {} } as MouseEvent<HTMLElement>))
 }
+
+const clickSettingsItem = (renderer: ReactTestRenderer) => {
+  act(() => renderer.root.findByProps({ 'data-testid': 'account-settings' }).props.onClick())
+}
+
+const locationOf = (renderer: ReactTestRenderer) =>
+  renderer.root.findByProps({ 'data-testid': 'location' }).children.join('')
 
 describe('AccountMenu', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -100,9 +139,37 @@ describe('AccountMenu', () => {
     expect(renderer.root.findAllByProps({ 'data-testid': 'settings-dialog' })).toHaveLength(0)
 
     openMenu(renderer)
-    act(() => renderer.root.findByProps({ 'data-testid': 'account-settings' }).props.onClick())
+    clickSettingsItem(renderer)
 
     expect(renderer.root.findByProps({ 'data-testid': 'settings-dialog' })).toBeTruthy()
+  })
+
+  it('设置对话框的开/关与分区写在 URL 上（绑定 return_to 才能精确回到这里）', async () => {
+    const renderer = await renderMenu('/notebook/n-1?tab=chat')
+    expect(locationOf(renderer)).toBe('/notebook/n-1?tab=chat')
+
+    openMenu(renderer)
+    clickSettingsItem(renderer)
+
+    expect(locationOf(renderer)).toBe('/notebook/n-1?tab=chat&settings=profile')
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'settings-dialog' }).props['data-section'],
+    ).toBe('profile')
+
+    act(() =>
+      renderer.root.findByProps({ 'data-testid': 'settings-dialog-close' }).props.onClick(),
+    )
+
+    expect(locationOf(renderer)).toBe('/notebook/n-1?tab=chat')
+    expect(renderer.root.findAllByProps({ 'data-testid': 'settings-dialog' })).toHaveLength(0)
+  })
+
+  it('带 ?settings=security 的 URL 直接打开在「账号安全」分区', async () => {
+    const renderer = await renderMenu('/notebook/n-1?settings=security')
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'settings-dialog' }).props['data-section'],
+    ).toBe('security')
   })
 
   it('点击退出登录调用接口并回登录页', async () => {
