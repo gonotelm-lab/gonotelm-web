@@ -130,6 +130,109 @@ function IdentityRow({
 }
 
 /**
+ * 解绑的确认、保护与请求。
+ *
+ * 单独抽出来既是为了让组件本体只做接线，也是为了让「锁门」这条规则只有一个入口：
+ * 解绑掉唯一登录方式且账号还没有口令，用户就再也进不来了——先挡住并提示设口令。
+ */
+function useIdentityUnbind(boundCount: number, hasPassword: boolean) {
+  const queryClient = useQueryClient()
+  const [pending, setPending] = useState<AuthIdentity | null>(null)
+  const [blocked, setBlocked] = useState(false)
+
+  const mutation = useMutation({
+    mutationFn: unbindIdentity,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: AUTH_IDENTITIES_QUERY_KEY })
+      setPending(null)
+    },
+  })
+
+  const request = (identity: AuthIdentity) => {
+    if (boundCount <= 1 && !hasPassword) {
+      setBlocked(true)
+      return
+    }
+    setBlocked(false)
+    setPending(identity)
+  }
+
+  return { pending, blocked, request, mutation, cancel: () => setPending(null) }
+}
+
+/**
+ * 解绑的反馈与确认框。抽出来是为了让主组件只做接线（也把分支集中在一处）。
+ */
+function UnbindUi({
+  unbind,
+  t,
+}: {
+  unbind: ReturnType<typeof useIdentityUnbind>
+  t: TFunction
+}) {
+  const provider = providerLabel(unbind.pending?.provider ?? unbind.mutation.variables?.provider ?? '', t)
+
+  return (
+    <>
+      {unbind.blocked ? (
+        <Alert data-testid="identity-unbind-blocked" severity="warning">
+          {t('settings:security.identities.unbindLastMethod')}
+        </Alert>
+      ) : null}
+
+      {unbind.mutation.isSuccess && !unbind.pending ? (
+        <Typography
+          data-testid="identity-unbind-done"
+          role="status"
+          variant="caption"
+          color="success.main"
+        >
+          {t('settings:security.identities.unbindDone', { provider })}
+        </Typography>
+      ) : null}
+
+      {unbind.mutation.isError ? (
+        <Alert data-testid="identity-unbind-error" severity="error">
+          {t('settings:security.identities.unbindFailed')}
+        </Alert>
+      ) : null}
+
+      <Dialog open={Boolean(unbind.pending)} onClose={unbind.cancel} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {t('settings:security.identities.unbindTitle', { provider })}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('settings:security.identities.unbindBody')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button data-testid="identity-unbind-cancel" color="inherit" onClick={unbind.cancel}>
+            {t('common:action.cancel')}
+          </Button>
+          <Button
+            data-testid="identity-unbind-confirm"
+            color="error"
+            variant="contained"
+            disabled={unbind.mutation.isPending}
+            onClick={() => {
+              if (unbind.pending?.bind_id) {
+                unbind.mutation.mutate({
+                  bind_id: unbind.pending.bind_id,
+                  provider: unbind.pending.provider,
+                })
+              }
+            }}
+          >
+            {t('settings:security.identities.unbind')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  )
+}
+
+/**
  * 「第三方账号」状态块：列出可绑定的 provider、绑定状态，并可发起绑定。
  *
  * 数据来自 `GET /auth/identities`（已绑定）与 `GET /auth/supported-identities`（可绑定）。
@@ -158,26 +261,10 @@ export function ThirdPartyAccountsBlock() {
 
   // 解绑要确认；另外挡住「解绑掉唯一登录方式」这种会把用户锁在门外的操作。
   const meQuery = useMeQuery()
-  const [pendingUnbind, setPendingUnbind] = useState<AuthIdentity | null>(null)
-  const [unbindBlocked, setUnbindBlocked] = useState(false)
-
-  const boundCount = boundQuery.data?.identities.length ?? 0
-  const requestUnbind = (identity: AuthIdentity) => {
-    if (boundCount <= 1 && meQuery.data?.has_password !== true) {
-      setUnbindBlocked(true)
-      return
-    }
-    setUnbindBlocked(false)
-    setPendingUnbind(identity)
-  }
-
-  const unbindMutation = useMutation({
-    mutationFn: unbindIdentity,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: AUTH_IDENTITIES_QUERY_KEY })
-      setPendingUnbind(null)
-    },
-  })
+  const unbind = useIdentityUnbind(
+    boundQuery.data?.identities.length ?? 0,
+    meQuery.data?.has_password === true,
+  )
 
   const bindMutation = useMutation({
     mutationFn: (provider: string) =>
@@ -243,10 +330,10 @@ export function ThirdPartyAccountsBlock() {
               identity={boundByProvider.get(item.provider)}
               isBinding={bindMutation.isPending && bindMutation.variables === item.provider}
               isUnbinding={
-                unbindMutation.isPending && unbindMutation.variables?.provider === item.provider
+                unbind.mutation.isPending && unbind.mutation.variables?.provider === item.provider
               }
               onBind={(provider) => bindMutation.mutate(provider)}
-              onUnbind={requestUnbind}
+              onUnbind={unbind.request}
             />
           </Fragment>
         ))}
@@ -258,73 +345,7 @@ export function ThirdPartyAccountsBlock() {
         </Alert>
       ) : null}
 
-      {unbindBlocked ? (
-        <Alert data-testid="identity-unbind-blocked" severity="warning">
-          {t('settings:security.identities.unbindLastMethod')}
-        </Alert>
-      ) : null}
-
-      {unbindMutation.isSuccess && !pendingUnbind ? (
-        <Typography
-          data-testid="identity-unbind-done"
-          role="status"
-          variant="caption"
-          color="success.main"
-        >
-          {t('settings:security.identities.unbindDone', {
-            provider: providerLabel(unbindMutation.variables?.provider ?? '', t),
-          })}
-        </Typography>
-      ) : null}
-
-      {unbindMutation.isError ? (
-        <Alert data-testid="identity-unbind-error" severity="error">
-          {t('settings:security.identities.unbindFailed')}
-        </Alert>
-      ) : null}
-
-      <Dialog
-        open={Boolean(pendingUnbind)}
-        onClose={() => setPendingUnbind(null)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('settings:security.identities.unbindTitle', {
-            provider: providerLabel(pendingUnbind?.provider ?? '', t),
-          })}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            {t('settings:security.identities.unbindBody')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            data-testid="identity-unbind-cancel"
-            color="inherit"
-            onClick={() => setPendingUnbind(null)}
-          >
-            {t('common:action.cancel')}
-          </Button>
-          <Button
-            data-testid="identity-unbind-confirm"
-            color="error"
-            variant="contained"
-            disabled={unbindMutation.isPending}
-            onClick={() => {
-              if (pendingUnbind?.bind_id) {
-                unbindMutation.mutate({
-                  bind_id: pendingUnbind.bind_id,
-                  provider: pendingUnbind.provider,
-                })
-              }
-            }}
-          >
-            {t('settings:security.identities.unbind')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <UnbindUi unbind={unbind} t={t} />
 
       {bindMutation.data?.already_bound ? (
         <Alert data-testid="identity-bind-already-bound" severity="info">
