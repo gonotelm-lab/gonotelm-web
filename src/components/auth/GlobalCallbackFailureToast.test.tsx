@@ -38,7 +38,7 @@ describe('GlobalCallbackFailureToast', () => {
     const renderer = await renderAt('/login?reason=login-state-not-found&provider=github')
 
     renderer.root.findByProps({ 'data-testid': 'callback-failure-toast' })
-    expect(text(renderer)).toContain('这次登录已经过期')
+    expect(text(renderer)).toContain('登录状态已过期')
     // 不再把 kebab 串直接甩给用户
     expect(text(renderer)).not.toContain('login-state-not-found')
   })
@@ -49,7 +49,7 @@ describe('GlobalCallbackFailureToast', () => {
     )
 
     expect(text(renderer)).toContain('GitHub')
-    expect(text(renderer)).toContain('已经绑定到其它账号')
+    expect(text(renderer)).toContain('已绑定其它账号')
     expect(text(renderer)).not.toContain('identity-already-linked')
   })
 
@@ -57,19 +57,19 @@ describe('GlobalCallbackFailureToast', () => {
     const renderer = await renderAt('/login?reason=idp-access-denied&provider=google')
 
     expect(text(renderer)).toContain('Google')
-    expect(text(renderer)).toContain('取消了')
+    expect(text(renderer)).toContain('已取消')
   })
 
   it('每个已登记的 reason 都有专属文案，不会退化成通用提示', async () => {
     const cases: Array<[string, string]> = [
-      ['provider-not-found', '不支持这种第三方登录方式'],
-      ['idp-error', '授权没有完成'],
-      ['idp-exchange-error', '授权没有完成'],
+      ['provider-not-found', '不支持该三方登录方式'],
+      ['idp-error', '授权未完成'],
+      ['idp-exchange-error', '授权未完成'],
       ['user-banned', '该账号已被封禁'],
-      ['idp-email-unavailable', '没有提供已验证的邮箱'],
+      ['idp-email-unavailable', '未提供已验证邮箱'],
       ['email-not-verified', '先验证账号邮箱'],
       ['identity-not-found', '不存在'],
-      ['provider-already-bound', '已经绑定过同类型'],
+      ['provider-already-bound', '已绑定同类型'],
       ['user-not-found', '账号状态异常'],
       ['user-session-not-found', '账号状态异常'],
     ]
@@ -86,7 +86,7 @@ describe('GlobalCallbackFailureToast', () => {
     const renderer = await renderAt('/login?reason=brand-new-thing&provider=github')
 
     renderer.root.findByProps({ 'data-testid': 'callback-failure-toast' })
-    expect(text(renderer)).toContain('第三方登录失败')
+    expect(text(renderer)).toContain('三方登录失败')
   })
 
   it('/auth/error 自己就是错误落地页，不再重复弹 toast', async () => {
@@ -95,6 +95,24 @@ describe('GlobalCallbackFailureToast', () => {
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'callback-failure-toast' }),
     ).toHaveLength(0)
+  })
+
+  it('5 秒后自动消失（自己管计时器，不受 hover/blur 暂停影响）', async () => {
+    vi.useFakeTimers()
+    try {
+      const renderer = await renderAt('/login?reason=user-banned&provider=github')
+      expect(renderer.root.findByProps({ 'data-testid': 'callback-failure-toast' })).toBeTruthy()
+
+      await act(async () => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      expect(
+        renderer.root.findAllByProps({ 'data-testid': 'callback-failure-toast' }),
+      ).toHaveLength(0)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('没有 reason 时不弹', async () => {

@@ -55,7 +55,7 @@ describe('AuthErrorPage（绑定失败落地页）', () => {
 
     expect(text(renderer)).toContain('绑定未完成')
     expect(text(renderer)).toContain('GitHub')
-    expect(text(renderer)).toContain('已经绑定到其它账号')
+    expect(text(renderer)).toContain('已绑定其它账号')
   })
 
   it('同 provider 已绑定过：给专门的文案', async () => {
@@ -63,26 +63,26 @@ describe('AuthErrorPage（绑定失败落地页）', () => {
       '/auth/error?reason=provider-already-bound&provider=google',
     )
 
-    expect(text(renderer)).toContain('已经绑定过同类型的第三方账号')
+    expect(text(renderer)).toContain('已绑定同类型的三方账号')
   })
 
   it('state 过期：绑定语义（回到设置重新发起），而不是登录语义', async () => {
     const renderer = await renderPage('/auth/error?reason=login-state-not-found&provider=github')
 
-    expect(text(renderer)).toContain('这次绑定已经过期')
+    expect(text(renderer)).toContain('绑定会话已过期')
     expect(text(renderer)).not.toContain('重新发起登录')
   })
 
   it('用户取消授权：有单独的说法', async () => {
     const renderer = await renderPage('/auth/error?reason=idp-access-denied&provider=github')
 
-    expect(text(renderer)).toContain('取消了')
+    expect(text(renderer)).toContain('已取消')
   })
 
   it('后端新增的未知 reason 退回通用文案，并把原值展示出来便于排查', async () => {
     const renderer = await renderPage('/auth/error?reason=brand-new-thing&provider=github')
 
-    expect(text(renderer)).toContain('绑定第三方账号失败')
+    expect(text(renderer)).toContain('三方账号绑定失败')
     expect(renderer.root.findByProps({ 'data-testid': 'auth-error-reason' })).toBeTruthy()
     expect(text(renderer)).toContain('brand-new-thing')
   })
