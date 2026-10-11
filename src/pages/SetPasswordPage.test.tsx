@@ -9,6 +9,7 @@ import {
   createNoContentResponse,
   createSuccessResponse,
 } from '@/test/mocks/handlers/httpResponse'
+import { ME_QUERY_KEY } from '@/components/auth/useMeQuery'
 import { SetPasswordPage } from './SetPasswordPage'
 
 const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
@@ -38,8 +39,12 @@ function Landed({ testId }: { testId: string }) {
   return <div data-testid={testId}>{`${location.pathname}${location.search}`}</div>
 }
 
+/** 最后一次渲染用的 client：用来断言「会话失效后 me 缓存被清掉」。 */
+let queryClientRef: QueryClient | null = null
+
 const renderPage = async () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClientRef = queryClient
   let renderer!: ReactTestRenderer
   await act(async () => {
     renderer = create(
@@ -112,6 +117,8 @@ describe('SetPasswordPage', () => {
     const landed = renderer.root.findByProps({ 'data-testid': 'login-landed' })
     expect(landed.children.join('')).toContain('notice=password_changed')
     expect(landed.children.join('')).toContain('return_to=')
+    // 关键：缓存的 me 必须被清掉。否则登录页会拿旧的成功数据把用户又弹回受保护页面。
+    expect(queryClientRef?.getQueryData(ME_QUERY_KEY)).toBeUndefined()
   })
 
   it('已有口令时要求当前口令并随请求发送', async () => {
