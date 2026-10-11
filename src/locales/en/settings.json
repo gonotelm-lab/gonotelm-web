@@ -17,8 +17,9 @@
     "userIdLabel": "User ID",
     "emailLabel": "Email",
     "saved": "Saved",
-    "saveFailed": "Save failed. Please retry.",
-    "avatarConstraints": "Upload an image: PNG / JPEG, up to 1MB"
+    "saveFailed": "Could not save your profile. Please try again.",
+    "avatarConstraints": "Upload an image: PNG / JPEG, up to 1MB",
+    "nicknameInvalid": "That nickname is not allowed. Please change it and retry."
   },
   "avatar": {
     "tooLarge": "The image exceeds 1MB. Please compress it and retry.",
@@ -63,7 +64,7 @@
       "bound": "Linked",
       "bind": "Link",
       "binding": "Linking…",
-      "bindFailed": "Could not start linking. Please retry.",
+      "bindFailed": "Could not start linking. Please try again.",
       "bindNeedsAuthorizeUrl": "Could not get the third-party authorization URL. Please try again.",
       "bindAria": "Link {{provider}}",
       "alreadyBound": "{{provider}} is already linked — no action needed.",
@@ -73,7 +74,8 @@
       "unbindBody": "You will no longer be able to sign in with that account. You can link it again later.",
       "unbindDone": "{{provider}} has been unlinked.",
       "unbindFailed": "Could not unlink. Please try again.",
-      "unbindLastMethod": "This is your only sign-in method. Set a password before unlinking."
+      "unbindLastMethod": "This is your only sign-in method. Set a password before unlinking.",
+      "unbindIdentityGone": "That third-party identity does not exist or has been unlinked."
     }
   }
 }

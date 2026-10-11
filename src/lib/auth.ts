@@ -10,6 +10,8 @@ export const UNAUTHORIZED_CODE = 2000
  * （2026-10-11 已核对到 106023）；前端只在这里登记一次，后端再调整时改这一处。
  */
 export const AUTH_ERROR_CODE = {
+  /** 路由里的 provider 不在支持列表。 */
+  providerNotFound: 106001,
   /** IdP 侧失败（回调 `?error=`，例如用户取消授权）。 */
   idpError: 106002,
   /** 回调的 oauth state 不存在/已过期（超过 10 分钟、或换了浏览器）。 */
@@ -18,8 +20,16 @@ export const AUTH_ERROR_CODE = {
   oauthStateMismatch: 106004,
   /** 用 code 换 token 失败。 */
   idpExchangeError: 106005,
+  /** 账号不存在（内部语义；登录对外统一用 invalidCredentials）。 */
+  userNotFound: 106006,
+  /** 会话不存在/已失效。 */
+  userSessionNotFound: 106007,
   /** 账号被封禁（`CodeUserBanned`，登录与回调都会返回）。 */
   userBanned: 106008,
+  /** 昵称不合法（PATCH /user/me）。 */
+  invalidNickname: 106009,
+  /** 头像不合法（POST /user/me/avatar）。 */
+  invalidAvatar: 106010,
   /** 账号密码不匹配 / 账号不存在（登录统一文案）。 */
   invalidCredentials: 106011,
   /** 注册邮箱已被占用。 */
@@ -46,6 +56,10 @@ export const AUTH_ERROR_CODE = {
   identityNotFound: 106022,
   /** 该账号已经绑定过同 provider 的另一个身份。 */
   providerAlreadyBound: 106023,
+  /** 解绑会把账号唯一的登录方式删掉（后端要求先设口令）。 */
+  lastLoginMethod: 106024,
+  /** 新口令与当前口令相同。 */
+  passwordUnchanged: 106025,
 } as const
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODE)[keyof typeof AUTH_ERROR_CODE]

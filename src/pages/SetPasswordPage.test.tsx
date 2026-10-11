@@ -171,6 +171,22 @@ describe('SetPasswordPage', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('当前口令不正确')
   })
 
+  it('106025（新口令与当前相同）映射为专门文案', async () => {
+    useMe(true)
+    mockServer.use(
+      http.put(passwordUrl, () => createErrorResponse(200, 'PASSWORD_UNCHANGED', 106025)),
+    )
+
+    const renderer = await renderPage()
+    fillInput(renderer, 'set-password-current-input', 'same-1234')
+    fillInput(renderer, 'set-password-new-input', 'same-1234')
+    fillInput(renderer, 'set-password-confirm-input', 'same-1234')
+    await submitForm(renderer)
+
+    renderer.root.findByProps({ 'data-testid': 'set-password-error' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('新口令不能与当前口令相同')
+  })
+
   it('「稍后再说」不写口令直接回到 return_to', async () => {
     useMe(false)
     let putCalls = 0

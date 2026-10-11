@@ -4,6 +4,7 @@ import { Alert, Avatar, Box, Button, ButtonBase, Stack, TextField, Typography } 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { updateMe, uploadAvatar } from '../../api/user'
+import { AUTH_ERROR_CODE, isAuthErrorCode } from '../../lib/auth'
 import {
   AVATAR_ACCEPT,
   AVATAR_MAX_BYTES,
@@ -334,7 +335,9 @@ export function ProfileSettingsSection({ createCanvas, createImage }: ProfileSet
 
       {updateMutation.isError ? (
         <Alert data-testid="profile-save-error" severity="error">
-          {t('settings:profile.saveFailed')}
+          {isAuthErrorCode(updateMutation.error, AUTH_ERROR_CODE.invalidNickname)
+            ? t('settings:profile.nicknameInvalid')
+            : t('settings:profile.saveFailed')}
         </Alert>
       ) : null}
 

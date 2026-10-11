@@ -798,6 +798,42 @@ describe('SettingsDialog', () => {
     renderer.root.findByProps({ 'data-testid': 'identity-unbind-done' })
   })
 
+  it('后端用 code=106024 拒绝解绑时：显示「唯一的登录方式」而不是通用失败', async () => {
+    mockServer.use(
+      http.get(meUrl, () =>
+        createSuccessResponse({
+          user_id: 'user-1',
+          nickname: '测试用户',
+          email: 'user@example.com',
+          avatar_url: '',
+          has_password: true,
+        }),
+      ),
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/unbind', () =>
+        createErrorResponse(200, 'LAST_LOGIN_METHOD', 106024),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-unbind-github' }).props.onClick()
+    })
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-unbind-confirm' }).props.onClick()
+    })
+    await flush()
+    await flush()
+
+    expect(
+      JSON.stringify(renderer.root.findByProps({ 'data-testid': 'identity-unbind-error' }).props),
+    ).toBeDefined()
+    expect(JSON.stringify(renderer.toJSON())).toContain('唯一的登录方式')
+  })
+
   it('解绑是唯一登录方式且没有口令时：挡下来并提示先设口令', async () => {
     let unbindCalls = 0
     mockServer.use(

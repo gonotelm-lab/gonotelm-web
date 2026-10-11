@@ -42,6 +42,9 @@ function describePasswordError(error: unknown, t: TFunction): string {
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.tooManyRequests)) {
     return t('login.tooManyRequests')
   }
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.passwordUnchanged)) {
+    return t('password.unchanged')
+  }
   return t('password.failed')
 }
 

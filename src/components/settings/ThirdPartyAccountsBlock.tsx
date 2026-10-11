@@ -22,6 +22,7 @@ import {
   startIdentityBind,
   unbindIdentity,
 } from '../../api/auth'
+import { AUTH_ERROR_CODE, isAuthErrorCode } from '../../lib/auth'
 import type { AuthIdentity } from '../../types/api'
 import { ProviderIcon } from '../auth/ProviderIcon'
 import { useMeQuery } from '../auth/useMeQuery'
@@ -160,6 +161,17 @@ function useIdentityUnbind(boundCount: number, hasPassword: boolean) {
   return { pending, blocked, request, mutation, cancel: () => setPending(null) }
 }
 
+/** 解绑失败文案：后端也会自己拦「最后一个登录方式」和「身份已不存在」。 */
+function describeUnbindError(error: unknown, t: TFunction): string {
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.lastLoginMethod)) {
+    return t('settings:security.identities.unbindLastMethod')
+  }
+  if (isAuthErrorCode(error, AUTH_ERROR_CODE.identityNotFound)) {
+    return t('settings:security.identities.unbindIdentityGone')
+  }
+  return t('settings:security.identities.unbindFailed')
+}
+
 /**
  * 解绑的反馈与确认框。抽出来是为了让主组件只做接线（也把分支集中在一处）。
  */
@@ -193,7 +205,7 @@ function UnbindUi({
 
       {unbind.mutation.isError ? (
         <Alert data-testid="identity-unbind-error" severity="error">
-          {t('settings:security.identities.unbindFailed')}
+          {describeUnbindError(unbind.mutation.error, t)}
         </Alert>
       ) : null}
 

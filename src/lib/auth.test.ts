@@ -260,11 +260,16 @@ describe('AUTH_ERROR_CODE 契约', () => {
   it('与后端 internal/domain/identity/errors 的常量逐条一致', () => {
     // 这条断言是前后端错误码的硬契约：后端改了码而前端没跟，测试先红。
     expect(AUTH_ERROR_CODE).toEqual({
+      providerNotFound: 106001,
       idpError: 106002,
       oauthStateNotFound: 106003,
       oauthStateMismatch: 106004,
       idpExchangeError: 106005,
+      userNotFound: 106006,
+      userSessionNotFound: 106007,
       userBanned: 106008,
+      invalidNickname: 106009,
+      invalidAvatar: 106010,
       invalidCredentials: 106011,
       emailTaken: 106012,
       emailInvalid: 106013,
@@ -278,6 +283,8 @@ describe('AUTH_ERROR_CODE 契约', () => {
       tooManyRequests: 106021,
       identityNotFound: 106022,
       providerAlreadyBound: 106023,
+      lastLoginMethod: 106024,
+      passwordUnchanged: 106025,
     })
   })
 })

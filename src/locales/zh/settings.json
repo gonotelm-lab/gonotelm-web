@@ -17,8 +17,9 @@
     "userIdLabel": "用户 ID",
     "emailLabel": "邮箱",
     "saved": "已保存",
-    "saveFailed": "保存失败，请重试。",
-    "avatarConstraints": "选择图片上传：支持 PNG / JPEG 格式，大小不超过 1MB"
+    "saveFailed": "资料保存失败，请重试。",
+    "avatarConstraints": "选择图片上传：支持 PNG / JPEG 格式，大小不超过 1MB",
+    "nicknameInvalid": "昵称不合法，请修改后重试。"
   },
   "avatar": {
     "tooLarge": "图片超过 1MB，请压缩后重试。",
@@ -63,7 +64,7 @@
       "bound": "已绑定",
       "bind": "绑定",
       "binding": "绑定中…",
-      "bindFailed": "绑定失败，请重试。",
+      "bindFailed": "发起绑定失败，请重试。",
       "bindNeedsAuthorizeUrl": "绑定失败：没有拿到第三方授权地址，请稍后重试。",
       "bindAria": "绑定 {{provider}}",
       "alreadyBound": "已绑定 {{provider}} 账号，无需重复操作。",
@@ -73,7 +74,8 @@
       "unbindBody": "解绑后将无法再用该账号登录，之后可以重新绑定。",
       "unbindDone": "已解绑 {{provider}}。",
       "unbindFailed": "解绑失败，请重试。",
-      "unbindLastMethod": "这是当前唯一的登录方式，请先设置口令再解绑。"
+      "unbindLastMethod": "这是当前唯一的登录方式，请先设置口令再解绑。",
+      "unbindIdentityGone": "该三方身份不存在或已解绑。"
     }
   }
 }
