@@ -58,6 +58,7 @@ export const authHandlers = [
     createSuccessResponse({
       identities: [
         {
+          bind_id: 'bind-1',
           provider: 'github',
           provider_email: 'octocat@github.com',
           provider_email_verified: true,

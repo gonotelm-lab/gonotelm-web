@@ -36,6 +36,8 @@ export interface AuthSessionResponse {
 
 /** GET /api/v1/auth/identities —— 当前账号已绑定的三方身份。 */
 export interface AuthIdentity {
+  /** 绑定记录 id（后端较新构建才有）；后续解绑/审计会用到。 */
+  bind_id?: string
   provider: string
   /** provider 侧邮箱快照（仅审计，不参与判定）。 */
   provider_email: string

@@ -65,7 +65,8 @@
       "binding": "Linking…",
       "bindFailed": "Could not start linking. Please retry.",
       "bindNeedsAuthorizeUrl": "Could not get the third-party authorization URL. Please try again.",
-      "bindAria": "Link {{provider}}"
+      "bindAria": "Link {{provider}}",
+      "alreadyBound": "{{provider}} is already linked — no action needed."
     }
   }
 }

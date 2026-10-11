@@ -204,6 +204,7 @@ describe('startIdentityBind', () => {
 
     await expect(startIdentityBind('github', '/notebook/n-1')).resolves.toEqual({
       authorize_url: 'https://github.com/login/oauth/authorize?state=s',
+      already_bound: false,
     })
     expect(received).toEqual({
       provider: 'github',
@@ -244,6 +245,32 @@ describe('startIdentityBind', () => {
     expect(recallAuthAttempt()).toEqual({
       returnTo: '/notebook/n-1?settings=account',
       mode: 'bind',
+    })
+  })
+
+  it('already_bound：后端短路没走 OAuth，不因缺 authorize_url 报错', async () => {
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, () =>
+        createSuccessResponse({ authorize_url: '', already_bound: true }),
+      ),
+    )
+
+    await expect(startIdentityBind('github')).resolves.toEqual({
+      authorize_url: '',
+      already_bound: true,
+    })
+  })
+
+  it('already_bound 缺省（旧后端）时仍要求 authorize_url', async () => {
+    mockServer.use(
+      http.post(`${apiBaseUrl}${AUTH_BIND_IDENTITY_PATH}`, () =>
+        createSuccessResponse({ authorize_url: 'https://github.com/login/oauth/authorize' }),
+      ),
+    )
+
+    await expect(startIdentityBind('github')).resolves.toEqual({
+      authorize_url: 'https://github.com/login/oauth/authorize',
+      already_bound: false,
     })
   })
 

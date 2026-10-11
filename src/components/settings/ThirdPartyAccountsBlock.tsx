@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Alert, Box, Button, Divider, Stack, Typography } from '@mui/material'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import type { TFunction } from 'i18next'
@@ -72,14 +72,25 @@ function IdentityRow({
       </Box>
 
       {isBound ? (
-        <Typography
-          variant="caption"
+        // 与相邻的「绑定」按钮同款同尺寸（只是不可点、无交互）：两行右侧才对得齐。
+        // 用 `component="span"` 是为了不落成一个真按钮（它是状态，不是动作）。
+        <Button
+          component="span"
+          tabIndex={-1}
+          disableRipple
+          size="small"
+          variant="outlined"
           data-testid={`identity-status-${provider}`}
-          color="primary.main"
-          sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}
+          sx={{
+            cursor: 'default',
+            pointerEvents: 'none',
+            color: 'primary.main',
+            borderColor: 'divider',
+            fontWeight: 500,
+          }}
         >
           {t('settings:security.identities.bound')}
-        </Typography>
+        </Button>
       ) : (
         // 未绑定行只留一个动作按钮：状态与动作合成同一个控件，不再并排显示
         // 「未绑定」+「绑定」两段文案。
@@ -114,6 +125,7 @@ function IdentityRow({
  */
 export function ThirdPartyAccountsBlock() {
   const { t } = useTranslation(['settings', 'auth'])
+  const queryClient = useQueryClient()
   // 用 router 的 location 而不是 window.location：前者是唯一真相，
   // 而且带上 `?settings=account` 后，绑完回来设置会自动开在账号安全那一页。
   const location = useLocation()
@@ -132,6 +144,12 @@ export function ThirdPartyAccountsBlock() {
     mutationFn: (provider: string) =>
       startIdentityBind(provider, `${location.pathname}${location.search}`),
     onSuccess: (data) => {
+      // 后端说这个 provider 已经绑在当前账号上（没走 OAuth，也没有授权地址）：
+      // 不跳转，只重新拉一次身份列表，让这一行立刻变「已绑定」。
+      if (data.already_bound) {
+        void queryClient.invalidateQueries({ queryKey: AUTH_IDENTITIES_QUERY_KEY })
+        return
+      }
       // 整页跳 IdP：fetch 跟随跳转不会改变地址栏，只有导航才行。
       if (typeof window !== 'undefined') {
         window.location.assign(data.authorize_url)
@@ -194,6 +212,14 @@ export function ThirdPartyAccountsBlock() {
       {bindMutation.isError ? (
         <Alert data-testid="identity-bind-error" severity="error">
           {describeBindError(bindMutation.error, t)}
+        </Alert>
+      ) : null}
+
+      {bindMutation.data?.already_bound ? (
+        <Alert data-testid="identity-bind-already-bound" severity="info">
+          {t('settings:security.identities.alreadyBound', {
+            provider: providerLabel(bindMutation.variables ?? '', t),
+          })}
         </Alert>
       ) : null}
     </Stack>

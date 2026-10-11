@@ -599,6 +599,12 @@ describe('SettingsDialog', () => {
     expect(textOf(renderer, 'identity-email-github')).toBe('octocat@github.com')
     // 未绑定行不并排显示「未绑定」+「绑定」：状态与动作合成同一个按钮。
     expect(textOf(renderer, 'identity-bind-google')).toBe('绑定')
+    // 「已绑定」与「绑定」同款同尺寸（只是不可点），两行右侧才对得齐。
+    const boundStatus = renderer.root.findByProps({ 'data-testid': 'identity-status-github' })
+    const bindButton = renderer.root.findByProps({ 'data-testid': 'identity-bind-google' })
+    expect(boundStatus.props.component).toBe('span')
+    expect(boundStatus.props.variant).toBe(bindButton.props.variant)
+    expect(boundStatus.props.size).toBe(bindButton.props.size)
     expect(renderer.root.findAllByProps({ 'data-testid': 'identity-status-google' })).toHaveLength(0)
     // 未绑定就没有 provider 邮箱快照。
     expect(renderer.root.findAllByProps({ 'data-testid': 'identity-email-google' })).toHaveLength(0)
@@ -694,6 +700,52 @@ describe('SettingsDialog', () => {
       provider: 'google',
       return_to: 'http://localhost/notebook/n-1?settings=account',
     })
+
+    vi.stubGlobal('window', undefined)
+  })
+
+  it('后端说 already_bound：不跳 IdP，刷新列表并提示无需重复绑定', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/notebook/n-1', search: '', origin: 'http://localhost', assign },
+    })
+
+    // 第一次查：google 未绑定；绑定接口返回 already_bound 后，第二次查变成已绑定。
+    let boundCalls = 0
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/auth/identities', () => {
+        boundCalls += 1
+        return createSuccessResponse({
+          identities:
+            boundCalls > 1
+              ? [
+                  { provider: 'github', provider_email: 'octocat@github.com', bind_id: 'b-1' },
+                  { provider: 'google', provider_email: 'me@google.com', bind_id: 'b-2' },
+                ]
+              : [{ provider: 'github', provider_email: 'octocat@github.com', bind_id: 'b-1' }],
+        })
+      }),
+      http.post('http://127.0.0.1:4173/api/v1/auth/identities/bind', () =>
+        createSuccessResponse({ authorize_url: '', already_bound: true }),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
+    await flush()
+    await flush()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'identity-bind-google' }).props.onClick()
+    })
+    await flush()
+    await flush()
+
+    // 不跳转；列表重新拉过一次，google 变成「已绑定」；并给出提示。
+    expect(assign).not.toHaveBeenCalled()
+    expect(boundCalls).toBeGreaterThan(1)
+    expect(renderer.root.findByProps({ 'data-testid': 'identity-status-google' })).toBeTruthy()
+    renderer.root.findByProps({ 'data-testid': 'identity-bind-already-bound' })
 
     vi.stubGlobal('window', undefined)
   })

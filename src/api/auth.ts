@@ -170,14 +170,20 @@ export class IdentityBindRedirectError extends Error {
 }
 
 export interface BindIdentityResult {
-  /** IdP 授权地址；由前端整页跳转过去。 */
+  /** IdP 授权地址；`already_bound` 为真时为空串，前端不该跳转。 */
   authorize_url: string
+  /**
+   * 该 provider 已经绑在当前账号上（后端直接短路，没有走 OAuth）。
+   * 此时只需刷新身份列表，让状态立刻变「已绑定」，不要跳 IdP。
+   */
+  already_bound: boolean
 }
 
 /**
  * 发起绑定：`POST /auth/identities/bind`（authed + CSRF），body `{provider, return_to?}`。
  *
- * 后端返回 `200 {authorize_url}`（不再 302），前端拿到后整页跳 IdP 授权页。
+ * 后端返回 `200 {authorize_url, already_bound}`（不再 302）：正常拿到地址后整页跳 IdP；
+ * `already_bound` 为真表示该 provider 已绑在当前账号上，后端没走 OAuth，前端只刷新列表。
  * 为什么不能靠 302：
  * - 浏览器表单 POST 无法携带 `X-CSRF-Token`（后端是纯 header 双提交）→ 403；
  * - fetch 能带 CSRF 头，但 `redirect: 'manual'` 会把 302 折叠成 `opaqueredirect`
@@ -215,10 +221,13 @@ export async function startIdentityBind(
   }
 
   const body = (await response.json().catch(() => null)) as
-    | { code?: number; msg?: string; data?: BindIdentityResult }
+    | { code?: number; msg?: string; data?: Partial<BindIdentityResult> }
     | null
 
-  if (!response.ok || body?.code !== 0 || !body.data?.authorize_url) {
+  const data = body?.data
+  // 已经绑过时 authorize_url 是空串（后端短路），不能按「缺地址」报错。
+  const usable = data?.already_bound === true || Boolean(data?.authorize_url)
+  if (!response.ok || body?.code !== 0 || !data || !usable) {
     throw new ApiError(
       body?.msg ?? `HTTP request failed: ${response.status}`,
       body?.code ?? -1,
@@ -226,5 +235,5 @@ export async function startIdentityBind(
     )
   }
 
-  return body.data
+  return { authorize_url: data.authorize_url ?? '', already_bound: data.already_bound === true }
 }

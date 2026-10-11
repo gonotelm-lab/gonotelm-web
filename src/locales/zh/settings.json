@@ -65,7 +65,8 @@
       "binding": "绑定中…",
       "bindFailed": "绑定失败，请重试。",
       "bindNeedsAuthorizeUrl": "绑定失败：没有拿到第三方授权地址，请稍后重试。",
-      "bindAria": "绑定 {{provider}}"
+      "bindAria": "绑定 {{provider}}",
+      "alreadyBound": "已绑定 {{provider}} 账号，无需重复操作。"
     }
   }
 }
