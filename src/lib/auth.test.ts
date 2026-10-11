@@ -3,6 +3,7 @@ import { ApiError } from './http'
 import {
   AUTH_ERROR_CODE,
   RELOGIN_NOTICE_PASSWORD_CHANGED,
+  parseAuthCallbackError,
   absoluteReturnTo,
   buildLoginPath,
   buildReloginPath,
@@ -121,6 +122,33 @@ describe('buildLoginPath', () => {
   })
 })
 
+describe('parseAuthCallbackError', () => {
+  it('解析 error / mode / return_to', () => {
+    expect(
+      parseAuthCallbackError('?error=106019&mode=bind&return_to=%2Fnotebook%2Fn-1'),
+    ).toEqual({ code: 106019, mode: 'bind', returnTo: '/notebook/n-1' })
+  })
+
+  it('mode 缺失时按绑定专属码推断', () => {
+    expect(parseAuthCallbackError('?error=106019').mode).toBe('bind')
+    expect(parseAuthCallbackError('?error=106023').mode).toBe('bind')
+    // 登录侧的错误码不会被误判成绑定
+    expect(parseAuthCallbackError('?error=106008').mode).toBe('login')
+    expect(parseAuthCallbackError('?error=2000').mode).toBe('login')
+  })
+
+  it('缺参数/非数字码都不炸', () => {
+    expect(parseAuthCallbackError('')).toEqual({ code: undefined, mode: 'login', returnTo: '/' })
+    expect(parseAuthCallbackError('?error=abc').code).toBeUndefined()
+    expect(parseAuthCallbackError('?error=106019&mode=weird').mode).toBe('bind')
+  })
+
+  it('return_to 走与其它入口相同的 sanitize（站外一律落 /）', () => {
+    expect(parseAuthCallbackError('?return_to=https%3A%2F%2Fevil.com').returnTo).toBe('/')
+    expect(parseAuthCallbackError('?return_to=%2F%2Fevil.com').returnTo).toBe('/')
+  })
+})
+
 describe('buildReloginPath', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -155,6 +183,10 @@ describe('AUTH_ERROR_CODE 契约', () => {
   it('与后端 internal/domain/identity/errors 的常量逐条一致', () => {
     // 这条断言是前后端错误码的硬契约：后端改了码而前端没跟，测试先红。
     expect(AUTH_ERROR_CODE).toEqual({
+      idpError: 106002,
+      loginStateNotFound: 106003,
+      loginStateMismatch: 106004,
+      idpExchangeError: 106005,
       userBanned: 106008,
       invalidCredentials: 106011,
       emailTaken: 106012,
@@ -168,6 +200,7 @@ describe('AUTH_ERROR_CODE 契约', () => {
       emailNotVerified: 106020,
       tooManyRequests: 106021,
       identityNotFound: 106022,
+      providerAlreadyBound: 106023,
     })
   })
 })

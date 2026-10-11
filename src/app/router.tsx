@@ -1,5 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AuthGate } from '../components/auth/AuthGate'
+import { AUTH_ERROR_PATH } from '../lib/auth'
+import { AuthErrorPage } from '../pages/AuthErrorPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotebookWorkspacePage } from '../pages/NotebookWorkspacePage'
@@ -20,6 +22,11 @@ export const router = createBrowserRouter([
   {
     path: '/verify-email',
     element: <VerifyEmailPage />,
+  },
+  // 第三方回调失败的落地页（后端 302 过来）。公开：可能来自未登录的浏览器。
+  {
+    path: AUTH_ERROR_PATH,
+    element: <AuthErrorPage />,
   },
   // 设置口令需要已认证会话（注册票据不匹配时的补救路径）。
   {

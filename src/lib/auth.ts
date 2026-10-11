@@ -1,13 +1,23 @@
 export const NOT_LOGIN_CODE = 2002
 export const CSRF_CODE = 2003
+/** 通用未授权（`CodeUnauthorized`）：回调里 state cookie 缺失/不匹配就是它。 */
+export const UNAUTHORIZED_CODE = 2000
 
 /**
  * 认证域新增业务错误码。
  *
  * 与后端 `internal/domain/identity/errors/errors.go` 的 `CodeXxx` 常量一一对应
- * （2026-10-11 已核对到 106022）；前端只在这里登记一次，后端再调整时改这一处。
+ * （2026-10-11 已核对到 106023）；前端只在这里登记一次，后端再调整时改这一处。
  */
 export const AUTH_ERROR_CODE = {
+  /** IdP 侧失败（回调 `?error=`，例如用户取消授权）。 */
+  idpError: 106002,
+  /** 回调的 login state 不存在/已过期（超过 10 分钟、或换了浏览器）。 */
+  loginStateNotFound: 106003,
+  /** login state 不匹配（CSRF 防护命中）。 */
+  loginStateMismatch: 106004,
+  /** 用 code 换 token 失败。 */
+  idpExchangeError: 106005,
   /** 账号被封禁（`CodeUserBanned`，登录与回调都会返回）。 */
   userBanned: 106008,
   /** 账号密码不匹配 / 账号不存在（登录统一文案）。 */
@@ -34,6 +44,8 @@ export const AUTH_ERROR_CODE = {
   tooManyRequests: 106021,
   /** 三方身份不存在（身份列表/解绑，P1）。 */
   identityNotFound: 106022,
+  /** 该账号已经绑定过同 provider 的另一个身份。 */
+  providerAlreadyBound: 106023,
 } as const
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODE)[keyof typeof AUTH_ERROR_CODE]
@@ -158,6 +170,56 @@ export function buildReloginPath(returnTo?: string): string {
 /** 注册页与登录页共用 return_to 语义（注册成功验证后回到原路径）。 */
 export function buildSignupPath(returnTo?: string): string {
   return `/signup?return_to=${encodeURIComponent(absoluteReturnTo(returnTo))}`
+}
+
+/**
+ * 第三方回调失败的落地页（公开路由，不需要会话）。
+ *
+ * 回调是浏览器的**顶层导航**：后端如果直接返回 `401 + {"code":…}`，浏览器只会把
+ * JSON 原文当页面显示，前端完全没有介入的机会。所以后端要把失败也变成 302，落到这里：
+ *
+ *   GET /auth/error?error=<业务码>&mode=<login|bind>&return_to=<可选，绝对 URL>
+ *
+ * 只带业务码不带 `msg`：文案由前端按 code 决定，避免把后端内部信息直接铺到页面上。
+ */
+export const AUTH_ERROR_PATH = '/auth/error'
+
+export type AuthCallbackMode = 'login' | 'bind'
+
+export interface AuthCallbackErrorInfo {
+  /** 后端业务码；解析不出数字时为 undefined。 */
+  code?: number
+  mode: AuthCallbackMode
+  /** 回到哪里（已 sanitize，非法值落 `/`）。 */
+  returnTo: string
+}
+
+/** 只在绑定流程里会出现的码：mode 缺失时据此推断。 */
+const BIND_ONLY_CODES: readonly number[] = [
+  AUTH_ERROR_CODE.identityAlreadyLinked,
+  AUTH_ERROR_CODE.emailNotVerified,
+  AUTH_ERROR_CODE.providerAlreadyBound,
+]
+
+/**
+ * 解析回调落地页的 query。`mode` 缺失时按 code 推断，
+ * 这样后端即使只传 `error` 也不会把绑定失败说成登录失败。
+ */
+export function parseAuthCallbackError(search: string): AuthCallbackErrorInfo {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  const rawCode = params.get('error')
+  const parsed = rawCode === null ? Number.NaN : Number.parseInt(rawCode, 10)
+  const code = Number.isFinite(parsed) ? parsed : undefined
+
+  const rawMode = params.get('mode')
+  const mode: AuthCallbackMode =
+    rawMode === 'login' || rawMode === 'bind'
+      ? rawMode
+      : code !== undefined && BIND_ONLY_CODES.includes(code)
+        ? 'bind'
+        : 'login'
+
+  return { code, mode, returnTo: sanitizeReturnTo(params.get('return_to')) }
 }
 
 /**
