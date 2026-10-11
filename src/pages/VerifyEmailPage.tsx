@@ -90,7 +90,8 @@ export function VerifyEmailPage() {
   /** 验证成功后统一收尾：读一次 me 决定是否需要补设口令，再回到 return_to。 */
   const finishVerification = async () => {
     const me = await queryClient
-      .fetchQuery<MeResponse>({ queryKey: ME_QUERY_KEY, queryFn: getMe })
+      // staleTime: 0 —— 会话刚签发，必须重新取一次，不能吃旧缓存。
+      .fetchQuery<MeResponse>({ queryKey: ME_QUERY_KEY, queryFn: getMe, staleTime: 0 })
       .catch(() => null)
     if (me && me.has_password === false) {
       navigate(buildSetPasswordPath(returnTo), { replace: true })
