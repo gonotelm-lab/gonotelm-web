@@ -51,6 +51,9 @@
     "loginSourceEmail": "Email verification",
     "passwordStateLabel": "Password",
     "passwordSet": "Set",
-    "passwordNotSet": "Not set"
+    "passwordNotSet": "Not set",
+    "setPassword": "Set password",
+    "changePassword": "Change password",
+    "saved": "Password updated"
   }
 }

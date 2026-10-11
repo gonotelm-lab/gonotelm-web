@@ -51,6 +51,9 @@
     "loginSourceEmail": "邮箱验证",
     "passwordStateLabel": "口令状态",
     "passwordSet": "已设置",
-    "passwordNotSet": "未设置"
+    "passwordNotSet": "未设置",
+    "setPassword": "设置口令",
+    "changePassword": "修改口令",
+    "saved": "口令已更新"
   }
 }

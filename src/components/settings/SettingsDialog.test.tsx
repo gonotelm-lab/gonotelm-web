@@ -408,7 +408,7 @@ describe('SettingsDialog', () => {
     expect(i18n.resolvedLanguage).toBe('en')
   })
 
-  it('切换到账号安全分区可以设置口令（无口令时只发 new_password）', async () => {
+  it('账号安全区：口令表单不常驻，点「设置口令」在弹窗里提交（无口令只发 new_password）', async () => {
     const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
     const putBodies: unknown[] = []
     mockServer.use(
@@ -420,6 +420,15 @@ describe('SettingsDialog', () => {
 
     const { renderer } = await renderDialog()
     act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+
+    // 概览：左标签右值 + 一个动作按钮；表单只在弹窗里。
+    expect(textOf(renderer, 'security-login-source')).toBe('—')
+    expect(textOf(renderer, 'security-password-state')).toBe('未设置')
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'settings-password-new-input' }),
+    ).toHaveLength(0)
+
+    act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
 
     // 默认 /user/me 没有 has_password，保守按「无口令」处理：不要求当前口令。
     expect(
@@ -441,7 +450,35 @@ describe('SettingsDialog', () => {
     await flush()
 
     expect(putBodies).toEqual([{ new_password: 'secret-123' }])
-    expect(renderer.root.findByProps({ 'data-testid': 'settings-password-saved' })).toBeTruthy()
+    // 保存后弹窗关闭，状态回到区里展示。
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'settings-password-new-input' }),
+    ).toHaveLength(0)
+    expect(renderer.root.findByProps({ 'data-testid': 'security-password-saved' })).toBeTruthy()
+  })
+
+  it('账号安全区：弹窗可以取消，且不发请求', async () => {
+    const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
+    let putCalls = 0
+    mockServer.use(
+      http.put(passwordUrl, () => {
+        putCalls += 1
+        return createNoContentResponse()
+      }),
+    )
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
+    expect(renderer.root.findByProps({ 'data-testid': 'settings-password-new-input' })).toBeTruthy()
+
+    act(() => renderer.root.findByProps({ 'data-testid': 'security-password-cancel' }).props.onClick())
+    await flush()
+
+    expect(putCalls).toBe(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'settings-password-new-input' }),
+    ).toHaveLength(0)
   })
 
   it('账号安全区展示登录方式与口令状态（读 /user/me 的 login_source 与 has_password）', async () => {
@@ -462,7 +499,12 @@ describe('SettingsDialog', () => {
 
     expect(textOf(renderer, 'security-login-source')).toBe('GitHub')
     expect(textOf(renderer, 'security-password-state')).toBe('已设置')
-    // 已有口令：必须要求当前口令。
+    expect(JSON.stringify(renderer.toJSON())).toContain('修改口令')
+    // 表单不常驻；点开弹窗后才要求当前口令。
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'settings-password-current-input' }),
+    ).toHaveLength(0)
+    act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
     expect(renderer.root.findByProps({ 'data-testid': 'settings-password-current-input' })).toBeTruthy()
   })
 
