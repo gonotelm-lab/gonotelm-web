@@ -158,36 +158,56 @@ export function buildLoginPath(returnTo?: string, notice?: string): string {
 export const RELOGIN_NOTICE_PASSWORD_CHANGED = 'password_changed'
 
 /**
- * 跳 IdP 之前记住「我在哪」，供回调失败时回到原处。
+ * 跳 IdP 之前记住「我在哪、这次做什么」，供回调失败时回到原处并选对文案。
  *
  * 为什么需要它：回调失败的落地页是后端 302 过来的**全新顶层导航**，前端内存状态全没了；
- * 而后端在「state cookie 不匹配 / login state 已过期」这类最常见的失败下**根本读不到
- * return_to**（state 都没了）。sessionStorage 同源跨导航仍在，正好补这个空档。
+ * 而后端在「state cookie 不匹配 / login state 已过期」这类最常见的失败下**既读不到
+ * return_to、也分不清刚才那次是登录还是绑定**（login state 都没了）。
+ * sessionStorage 同源跨导航仍在，正好补这个空档。
  *
  * 只是 UX 提示，不是安全边界：读回来照样过 `sanitizeReturnTo`。
  */
-const PENDING_AUTH_RETURN_KEY = 'gnlm:pending-auth-return'
+const PENDING_AUTH_ATTEMPT_KEY = 'gnlm:pending-auth-attempt'
 
-/** 跳 IdP 前记录当前位置（绝对 URL）。 */
-export function rememberAuthReturn(returnTo: string): void {
+/** 这次跳 IdP 是登录还是绑定。 */
+export type AuthAttemptMode = 'login' | 'bind'
+
+export interface AuthAttempt {
+  /** 站内相对路径（已 sanitize）。 */
+  returnTo: string
+  mode: AuthAttemptMode
+}
+
+/** 跳 IdP 前记录当前位置与流程类型。 */
+export function rememberAuthAttempt(returnTo: string, mode: AuthAttemptMode): void {
   if (typeof window === 'undefined') {
     return
   }
   try {
-    window.sessionStorage?.setItem(PENDING_AUTH_RETURN_KEY, absoluteReturnTo(returnTo))
+    window.sessionStorage?.setItem(
+      PENDING_AUTH_ATTEMPT_KEY,
+      JSON.stringify({ returnTo: absoluteReturnTo(returnTo), mode }),
+    )
   } catch {
     // 隐私模式/配额限制：记不住就退回站点根，不影响主流程。
   }
 }
 
-/** 取回上次记录的落地位置；没有或非法时返回 null。 */
-export function recallAuthReturn(): string | null {
+/** 取回上次记录的位置与流程类型；没有、损坏或非法时返回 null。 */
+export function recallAuthAttempt(): AuthAttempt | null {
   if (typeof window === 'undefined') {
     return null
   }
   try {
-    const raw = window.sessionStorage?.getItem(PENDING_AUTH_RETURN_KEY)
-    return raw ? sanitizeReturnTo(raw) : null
+    const raw = window.sessionStorage?.getItem(PENDING_AUTH_ATTEMPT_KEY)
+    if (!raw) {
+      return null
+    }
+    const parsed = JSON.parse(raw) as { returnTo?: unknown; mode?: unknown }
+    return {
+      returnTo: sanitizeReturnTo(typeof parsed.returnTo === 'string' ? parsed.returnTo : null),
+      mode: parsed.mode === 'bind' ? 'bind' : 'login',
+    }
   } catch {
     return null
   }
@@ -212,50 +232,90 @@ export function buildSignupPath(returnTo?: string): string {
  * 第三方回调失败的落地页（公开路由，不需要会话）。
  *
  * 回调是浏览器的**顶层导航**：后端如果直接返回 `401 + {"code":…}`，浏览器只会把
- * JSON 原文当页面显示，前端完全没有介入的机会。所以后端要把失败也变成 302，落到这里：
+ * JSON 原文当页面显示，前端完全没有介入的机会。所以后端把失败也变成 302：
  *
- *   GET /auth/error?error=<业务码>&mode=<login|bind>&return_to=<可选，绝对 URL>
+ *   登录失败 → GET /login?reason=<kebab>&provider=<github|google|…>
+ *   绑定失败 → GET /auth/error?reason=<kebab>&provider=…
  *
- * 只带业务码不带 `msg`：文案由前端按 code 决定，避免把后端内部信息直接铺到页面上。
+ * 只带 reason 不带后端 msg：文案由前端按 reason 决定，不把内部信息铺到页面上。
+ * 两个落地页的分工由**路径**决定，不再靠参数猜。
  */
 export const AUTH_ERROR_PATH = '/auth/error'
 
-export type AuthCallbackMode = 'login' | 'bind'
+/**
+ * 回调失败的 reason 取值，与后端 interfaces 层的映射一一对应：
+ * `domainerr` 里的错误转成 kebab-case，认不出来的一律 `internal-callback-error`。
+ *
+ * 前端只在这里登记一次；后端加/改映射时改这一处，测试会先红。
+ */
+export const CALLBACK_REASON = {
+  /** 路由里的 provider 不在支持列表。 */
+  providerNotFound: 'provider-not-found',
+  /** IdP 侧失败（回调 `?error=`，含用户取消授权）。 */
+  idpError: 'idp-error',
+  /** IdP 明确回了 access_denied（用户点了取消）。 */
+  idpAccessDenied: 'idp-access-denied',
+  /** login state 不存在/已过期（超过 10 分钟、换了浏览器）。 */
+  loginStateNotFound: 'login-state-not-found',
+  /** login state 不匹配（含 state cookie 缺失/不匹配，CSRF 防护命中）。 */
+  loginStateMismatch: 'login-state-mismatch',
+  /** 用 code 换 token 失败。 */
+  idpExchangeError: 'idp-exchange-error',
+  userNotFound: 'user-not-found',
+  userSessionNotFound: 'user-session-not-found',
+  /** 账号被封禁。 */
+  userBanned: 'user-banned',
+  /** provider 没有返回已验证邮箱。 */
+  idpEmailUnavailable: 'idp-email-unavailable',
+  /** 该三方身份已绑定其它账号。 */
+  identityAlreadyLinked: 'identity-already-linked',
+  /** 绑定要求账号邮箱已验证。 */
+  emailNotVerified: 'email-not-verified',
+  identityNotFound: 'identity-not-found',
+  /** 该账号已绑定过同 provider 的另一个身份。 */
+  providerAlreadyBound: 'provider-already-bound',
+  /** 认不出来的错误。 */
+  internal: 'internal-callback-error',
+} as const
 
-export interface AuthCallbackErrorInfo {
-  /** 后端业务码；解析不出数字时为 undefined。 */
-  code?: number
-  mode: AuthCallbackMode
-  /** 回到哪里（已 sanitize，非法值落 `/`）。 */
-  returnTo: string
+export type CallbackReason = (typeof CALLBACK_REASON)[keyof typeof CALLBACK_REASON]
+
+/** 回调失败落地页的两个 query 参数名（后端拼、前端读）。 */
+export const CALLBACK_REASON_PARAM = 'reason'
+export const CALLBACK_PROVIDER_PARAM = 'provider'
+
+export interface CallbackFailure {
+  /** 原始 reason 串：未知值原样保留，便于排查（文案退回通用）。 */
+  reason: string
+  provider: string
 }
 
-/** 只在绑定流程里会出现的码：mode 缺失时据此推断。 */
-const BIND_ONLY_CODES: readonly number[] = [
-  AUTH_ERROR_CODE.identityAlreadyLinked,
-  AUTH_ERROR_CODE.emailNotVerified,
-  AUTH_ERROR_CODE.providerAlreadyBound,
-]
-
-/**
- * 解析回调落地页的 query。`mode` 缺失时按 code 推断，
- * 这样后端即使只传 `error` 也不会把绑定失败说成登录失败。
- */
-export function parseAuthCallbackError(search: string): AuthCallbackErrorInfo {
+/** 解析回调落地页的 `?reason=&provider=`；没有 reason 就说明不是回调失败落地。 */
+export function parseCallbackFailure(search: string): CallbackFailure | null {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
-  const rawCode = params.get('error')
-  const parsed = rawCode === null ? Number.NaN : Number.parseInt(rawCode, 10)
-  const code = Number.isFinite(parsed) ? parsed : undefined
+  const reason = params.get(CALLBACK_REASON_PARAM)?.trim()
+  if (!reason) {
+    return null
+  }
+  return { reason, provider: params.get(CALLBACK_PROVIDER_PARAM)?.trim() ?? '' }
+}
 
-  const rawMode = params.get('mode')
-  const mode: AuthCallbackMode =
-    rawMode === 'login' || rawMode === 'bind'
-      ? rawMode
-      : code !== undefined && BIND_ONLY_CODES.includes(code)
-        ? 'bind'
-        : 'login'
+/** 把失败原因附加到落地地址上（错误页「返回设置」时带上，原因就地显示在对话框里）。 */
+export function appendCallbackFailure(path: string, failure: CallbackFailure): string {
+  const query = new URLSearchParams({ [CALLBACK_REASON_PARAM]: failure.reason })
+  if (failure.provider) {
+    query.set(CALLBACK_PROVIDER_PARAM, failure.provider)
+  }
+  return `${path}${path.includes('?') ? '&' : '?'}${query.toString()}`
+}
 
-  return { code, mode, returnTo: sanitizeReturnTo(params.get('return_to')) }
+/** 绑定失败落地页地址；登录页发现「这次其实是绑定」时用它转场。 */
+export function buildBindErrorPath(reason: string, provider: string): string {
+  const query = new URLSearchParams({ reason })
+  if (provider) {
+    query.set('provider', provider)
+  }
+  return `${AUTH_ERROR_PATH}?${query.toString()}`
 }
 
 /**

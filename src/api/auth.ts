@@ -1,5 +1,5 @@
 import { request, ApiError } from '../lib/http'
-import { absoluteReturnTo, rememberAuthReturn } from '../lib/auth'
+import { absoluteReturnTo, rememberAuthAttempt } from '../lib/auth'
 import { attachCsrfHeader, ensureCsrfToken } from '../lib/csrf'
 import type {
   AuthIdentitiesResponse,
@@ -63,8 +63,8 @@ export function buildAuthLoginUrl(params: AuthLoginParams): string {
  * 跨域 302 也只会得到 opaqueredirect（status 0、读不到 Location）。
  */
 export function goToAuthLogin(params: AuthLoginParams): void {
-  // 回调失败时落地页是全新导航，内存状态全丢；先记下当前位置以便回得来。
-  rememberAuthReturn(params.returnTo ?? '/')
+  // 回调失败时落地页是全新导航，内存状态全丢；先记下「在哪、做什么」以便回得来。
+  rememberAuthAttempt(params.returnTo ?? '/', 'login')
   window.location.assign(buildAuthLoginUrl(params))
 }
 
@@ -196,8 +196,9 @@ export async function startIdentityBind(
   if (returnTo) {
     payload.return_to = absoluteReturnTo(returnTo)
   }
-  // 同上：绑定失败（state 过期/换浏览器）时后端拿不到 return_to，靠这里兜底。
-  rememberAuthReturn(returnTo ?? '/')
+  // 同上：绑定失败（state 过期/换浏览器）时后端既拿不到 return_to，也分不清是不是绑定，
+  // 靠这里兜底（登录页会据此把用户转到绑定落地页）。
+  rememberAuthAttempt(returnTo ?? '/', 'bind')
 
   const response = await fetch(`${API_BASE_URL}${AUTH_BIND_IDENTITY_PATH}`, {
     method,

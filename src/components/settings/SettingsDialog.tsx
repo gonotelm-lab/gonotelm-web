@@ -153,7 +153,7 @@ export function SettingsDialog({
         >
           {activeSection === 'profile' ? (
             <ProfileSettingsSection createCanvas={createCanvas} createImage={createImage} />
-          ) : activeSection === 'security' ? (
+          ) : activeSection === 'account' ? (
             <SecuritySettingsSection />
           ) : (
             <LanguageSettingsSection />

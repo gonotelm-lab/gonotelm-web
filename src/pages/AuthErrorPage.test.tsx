@@ -1,14 +1,13 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { rememberAuthReturn } from '@/lib/auth'
+import { rememberAuthAttempt } from '@/lib/auth'
 import { AuthErrorPage } from './AuthErrorPage'
 
-/** node 测试环境没有 sessionStorage：给一个最小实现，用来验证「回到原处」的兜底。 */
+/** node 测试环境没有 sessionStorage：给一个最小实现，用来验证「回到原处」。 */
 function installSessionStorage() {
   const store = new Map<string, string>()
   return {
-    store,
     storage: {
       getItem: (key: string) => store.get(key) ?? null,
       setItem: (key: string, value: string) => void store.set(key, value),
@@ -31,14 +30,16 @@ const renderPage = async (entry: string) => {
   return renderer
 }
 
-describe('AuthErrorPage', () => {
-  let session: ReturnType<typeof installSessionStorage>
+const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON())
+const backTo = (renderer: ReactTestRenderer) => {
+  const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
+  return back.props.href ?? back.props.to
+}
 
+describe('AuthErrorPage（绑定失败落地页）', () => {
   beforeEach(() => {
-    session = installSessionStorage()
-    // 只补 sessionStorage，window.location.origin 仍由 absoluteReturnTo 的守卫处理。
     ;(globalThis as { window?: unknown }).window = {
-      sessionStorage: session.storage,
+      sessionStorage: installSessionStorage().storage,
       location: { origin: 'http://127.0.0.1:5173' },
     }
   })
@@ -47,90 +48,73 @@ describe('AuthErrorPage', () => {
     delete (globalThis as { window?: unknown }).window
   })
 
-  it('后端带不了 return_to 时，用跳 IdP 前记住的位置回到原处', async () => {
-    rememberAuthReturn('/notebook/n-1?settings=security')
+  it('已绑定到其它账号：说清原因并带上 provider 名字', async () => {
+    const renderer = await renderPage(
+      '/auth/error?reason=identity-already-linked&provider=github',
+    )
 
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind')
-
-    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
-    expect(back.props.href ?? back.props.to).toBe('/notebook/n-1?settings=security')
+    expect(text(renderer)).toContain('绑定未完成')
+    expect(text(renderer)).toContain('GitHub')
+    expect(text(renderer)).toContain('已经绑定到其它账号')
   })
 
-  it('后端给了 return_to 时优先用它，忽略记住的位置', async () => {
-    rememberAuthReturn('/notebook/old')
+  it('同 provider 已绑定过：给专门的文案', async () => {
+    const renderer = await renderPage(
+      '/auth/error?reason=provider-already-bound&provider=google',
+    )
 
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind&return_to=%2Fnotebook%2Fn-2')
-
-    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
-    expect(back.props.href ?? back.props.to).toBe('/notebook/n-2')
+    expect(text(renderer)).toContain('已经绑定过同类型的第三方账号')
   })
 
-  it('没记住任何位置时退回站点根', async () => {
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind')
+  it('state 过期：绑定语义（回到设置重新发起），而不是登录语义', async () => {
+    const renderer = await renderPage('/auth/error?reason=login-state-not-found&provider=github')
 
-    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
-    expect(back.props.href ?? back.props.to).toBe('/')
+    expect(text(renderer)).toContain('这次绑定已经过期')
+    expect(text(renderer)).not.toContain('重新发起登录')
   })
 
-  it('登录流程的封禁码：说清原因并给出「重新登录」出口', async () => {
-    const renderer = await renderPage('/auth/error?error=106008&mode=login&return_to=%2Fnotebook%2Fn-1')
+  it('用户取消授权：有单独的说法', async () => {
+    const renderer = await renderPage('/auth/error?reason=idp-access-denied&provider=github')
 
-    expect(JSON.stringify(renderer.toJSON())).toContain('登录未完成')
-    expect(JSON.stringify(renderer.toJSON())).toContain('该账号已被封禁')
-    // 登录失败才有「重新登录」，并把 return_to 带回去。
-    const retry = renderer.root.findByProps({ 'data-testid': 'auth-error-retry-login' })
-    expect(String(retry.props.href ?? retry.props.to)).toContain('/login?return_to=')
-    expect(JSON.stringify(renderer.toJSON())).toContain('106008')
+    expect(text(renderer)).toContain('取消了')
   })
 
-  it('绑定流程的已绑定码：按绑定语义给文案，且不出现「重新登录」', async () => {
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind')
+  it('后端新增的未知 reason 退回通用文案，并把原值展示出来便于排查', async () => {
+    const renderer = await renderPage('/auth/error?reason=brand-new-thing&provider=github')
 
-    expect(JSON.stringify(renderer.toJSON())).toContain('绑定未完成')
-    expect(JSON.stringify(renderer.toJSON())).toContain('已经绑定到其它账号')
-    expect(renderer.root.findAllByProps({ 'data-testid': 'auth-error-retry-login' })).toHaveLength(0)
+    expect(text(renderer)).toContain('绑定第三方账号失败')
+    expect(renderer.root.findByProps({ 'data-testid': 'auth-error-reason' })).toBeTruthy()
+    expect(text(renderer)).toContain('brand-new-thing')
   })
 
-  it('后端只传 error 不传 mode 时，按绑定专属码推断为绑定', async () => {
-    const renderer = await renderPage('/auth/error?error=106023')
-
-    expect(JSON.stringify(renderer.toJSON())).toContain('绑定未完成')
-    expect(JSON.stringify(renderer.toJSON())).toContain('已经绑定过同类型')
-  })
-
-  it('state 过期码：登录与绑定给不同的补救说法', async () => {
-    const login = await renderPage('/auth/error?error=106003&mode=login')
-    expect(JSON.stringify(login.toJSON())).toContain('重新发起登录')
-
-    const bind = await renderPage('/auth/error?error=106003&mode=bind')
-    expect(JSON.stringify(bind.toJSON())).toContain('回到设置里重新发起')
-  })
-
-  it('未知码退回通用文案，仍展示错误码便于排查', async () => {
-    const renderer = await renderPage('/auth/error?error=999999&mode=login')
-
-    expect(JSON.stringify(renderer.toJSON())).toContain('第三方登录失败')
-    expect(JSON.stringify(renderer.toJSON())).toContain('999999')
-  })
-
-  it('没有 error 参数也能渲染（不炸、不给错误码）', async () => {
+  it('没有 reason 也能渲染（不炸、不显示原因行）', async () => {
     const renderer = await renderPage('/auth/error')
 
-    expect(JSON.stringify(renderer.toJSON())).toContain('登录未完成')
-    expect(renderer.root.findAllByProps({ 'data-testid': 'auth-error-code' })).toHaveLength(0)
+    expect(text(renderer)).toContain('绑定未完成')
+    expect(renderer.root.findAllByProps({ 'data-testid': 'auth-error-reason' })).toHaveLength(0)
   })
 
-  it('return_to 非法时「返回」落到站点根，不会被带出去', async () => {
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind&return_to=https%3A%2F%2Fevil.com')
+  it('「返回设置」回到记住的位置，并把原因带进对话框就地显示', async () => {
+    rememberAuthAttempt('/notebook/n-1?settings=account', 'bind')
 
-    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
-    expect(back.props.href ?? back.props.to).toBe('/')
+    const renderer = await renderPage('/auth/error?reason=identity-already-linked&provider=github')
+
+    expect(backTo(renderer)).toBe(
+      '/notebook/n-1?settings=account&reason=identity-already-linked&provider=github',
+    )
   })
 
-  it('return_to 合法时「返回」回到原页面', async () => {
-    const renderer = await renderPage('/auth/error?error=106019&mode=bind&return_to=%2Fnotebook%2Fn-1')
+  it('记住的位置不是设置页时不硬塞参数', async () => {
+    rememberAuthAttempt('/notebook/n-1', 'bind')
 
-    const back = renderer.root.findByProps({ 'data-testid': 'auth-error-back' })
-    expect(back.props.href ?? back.props.to).toBe('/notebook/n-1')
+    const renderer = await renderPage('/auth/error?reason=identity-already-linked&provider=github')
+
+    expect(backTo(renderer)).toBe('/notebook/n-1')
+  })
+
+  it('没记住任何位置时「返回设置」退回站点根', async () => {
+    const renderer = await renderPage('/auth/error?reason=identity-already-linked')
+
+    expect(backTo(renderer)).toBe('/')
   })
 })

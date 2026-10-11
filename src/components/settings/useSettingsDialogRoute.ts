@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { CALLBACK_PROVIDER_PARAM, CALLBACK_REASON_PARAM } from '../../lib/auth'
 import { SETTINGS_SECTIONS, type SettingsSectionId } from './settingsSections'
 
 /**
@@ -50,6 +51,10 @@ export function useSettingsDialogRoute(): SettingsDialogRoute {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev)
+          // 失败原因是「一次落地」的临时状态：用户在设置里再动一下（切分区/关闭）
+          // 就把它清掉，否则关掉再打开会看到同一条早已过期的错误。
+          next.delete(CALLBACK_REASON_PARAM)
+          next.delete(CALLBACK_PROVIDER_PARAM)
           if (section) {
             next.set(SETTINGS_SEARCH_PARAM, section)
           } else {

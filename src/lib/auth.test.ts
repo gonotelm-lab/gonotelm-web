@@ -3,9 +3,10 @@ import { ApiError } from './http'
 import {
   AUTH_ERROR_CODE,
   RELOGIN_NOTICE_PASSWORD_CHANGED,
-  parseAuthCallbackError,
-  recallAuthReturn,
-  rememberAuthReturn,
+  buildBindErrorPath,
+  parseCallbackFailure,
+  recallAuthAttempt,
+  rememberAuthAttempt,
   absoluteReturnTo,
   buildLoginPath,
   buildReloginPath,
@@ -124,7 +125,7 @@ describe('buildLoginPath', () => {
   })
 })
 
-describe('rememberAuthReturn / recallAuthReturn', () => {
+describe('rememberAuthAttempt / recallAuthAttempt', () => {
   const installWindow = (options: { storage?: boolean } = {}) => {
     const store = new Map<string, string>()
     const sessionStorage = options.storage
@@ -142,58 +143,86 @@ describe('rememberAuthReturn / recallAuthReturn', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
-  it('记下当前位置，读回来是站内相对路径', () => {
+  it('记下位置与流程类型，读回来是站内相对路径', () => {
     installWindow({ storage: true })
-    rememberAuthReturn('/notebook/n-1?settings=security')
+    rememberAuthAttempt('/notebook/n-1?settings=account', 'bind')
 
-    expect(recallAuthReturn()).toBe('/notebook/n-1?settings=security')
+    expect(recallAuthAttempt()).toEqual({
+      returnTo: '/notebook/n-1?settings=account',
+      mode: 'bind',
+    })
+  })
+
+  it('登录流程记成 login', () => {
+    installWindow({ storage: true })
+    rememberAuthAttempt('/', 'login')
+
+    expect(recallAuthAttempt()?.mode).toBe('login')
   })
 
   it('读回时照样过 sanitize：被塞进站外 URL 也只会落到 /', () => {
     const store = installWindow({ storage: true })
-    store.set('gnlm:pending-auth-return', 'https://evil.com/steal')
+    store.set(
+      'gnlm:pending-auth-attempt',
+      JSON.stringify({ returnTo: 'https://evil.com/steal', mode: 'bind' }),
+    )
 
-    expect(recallAuthReturn()).toBe('/')
+    expect(recallAuthAttempt()?.returnTo).toBe('/')
+  })
+
+  it('内容损坏时返回 null 而不是抛异常', () => {
+    const store = installWindow({ storage: true })
+    store.set('gnlm:pending-auth-attempt', '{not json')
+
+    expect(recallAuthAttempt()).toBeNull()
   })
 
   it('没有 window（SSR/测试）时安静返回 null', () => {
     vi.stubGlobal('window', undefined)
-    rememberAuthReturn('/notebook/n-1')
+    rememberAuthAttempt('/notebook/n-1', 'bind')
 
-    expect(recallAuthReturn()).toBeNull()
+    expect(recallAuthAttempt()).toBeNull()
   })
 
   it('sessionStorage 不可用（隐私模式）时不抛异常', () => {
     installWindow()
-    expect(() => rememberAuthReturn('/notebook/n-1')).not.toThrow()
-    expect(recallAuthReturn()).toBeNull()
+    expect(() => rememberAuthAttempt('/notebook/n-1', 'bind')).not.toThrow()
+    expect(recallAuthAttempt()).toBeNull()
   })
 })
 
-describe('parseAuthCallbackError', () => {
-  it('解析 error / mode / return_to', () => {
-    expect(
-      parseAuthCallbackError('?error=106019&mode=bind&return_to=%2Fnotebook%2Fn-1'),
-    ).toEqual({ code: 106019, mode: 'bind', returnTo: '/notebook/n-1' })
+describe('parseCallbackFailure / buildBindErrorPath', () => {
+  it('解析后端 302 过来的 reason 与 provider', () => {
+    expect(parseCallbackFailure('?reason=login-state-not-found&provider=github')).toEqual({
+      reason: 'login-state-not-found',
+      provider: 'github',
+    })
   })
 
-  it('mode 缺失时按绑定专属码推断', () => {
-    expect(parseAuthCallbackError('?error=106019').mode).toBe('bind')
-    expect(parseAuthCallbackError('?error=106023').mode).toBe('bind')
-    // 登录侧的错误码不会被误判成绑定
-    expect(parseAuthCallbackError('?error=106008').mode).toBe('login')
-    expect(parseAuthCallbackError('?error=2000').mode).toBe('login')
+  it('没有 reason 就不是回调失败落地（例如普通打开登录页）', () => {
+    expect(parseCallbackFailure('?return_to=%2Fnotebook%2Fa')).toBeNull()
+    expect(parseCallbackFailure('')).toBeNull()
+    expect(parseCallbackFailure('?reason=%20')).toBeNull()
   })
 
-  it('缺参数/非数字码都不炸', () => {
-    expect(parseAuthCallbackError('')).toEqual({ code: undefined, mode: 'login', returnTo: '/' })
-    expect(parseAuthCallbackError('?error=abc').code).toBeUndefined()
-    expect(parseAuthCallbackError('?error=106019&mode=weird').mode).toBe('bind')
+  it('provider 缺失时留空串，不炸', () => {
+    expect(parseCallbackFailure('?reason=user-banned')).toEqual({
+      reason: 'user-banned',
+      provider: '',
+    })
   })
 
-  it('return_to 走与其它入口相同的 sanitize（站外一律落 /）', () => {
-    expect(parseAuthCallbackError('?return_to=https%3A%2F%2Fevil.com').returnTo).toBe('/')
-    expect(parseAuthCallbackError('?return_to=%2F%2Fevil.com').returnTo).toBe('/')
+  it('未知 reason 原样保留（文案退回通用，排查时能看到原值）', () => {
+    expect(parseCallbackFailure('?reason=brand-new-thing')?.reason).toBe('brand-new-thing')
+  })
+
+  it('buildBindErrorPath 拼出绑定落地页，provider 可选', () => {
+    expect(buildBindErrorPath('provider-already-bound', 'google')).toBe(
+      '/auth/error?reason=provider-already-bound&provider=google',
+    )
+    expect(buildBindErrorPath('internal-callback-error', '')).toBe(
+      '/auth/error?reason=internal-callback-error',
+    )
   })
 })
 

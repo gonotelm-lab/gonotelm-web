@@ -23,7 +23,7 @@ function Harness() {
       <button data-testid="open" onClick={() => openSettings()}>
         open
       </button>
-      <button data-testid="open-security" onClick={() => openSettings('security')}>
+      <button data-testid="open-account" onClick={() => openSettings('account')}>
         open security
       </button>
       <button data-testid="select-general" onClick={() => selectSection('general')}>
@@ -83,11 +83,11 @@ describe('useSettingsDialogRoute', () => {
     expect(url(renderer)).toBe('/notebook/n-1?settings=profile')
   })
 
-  it('深链直接进某个分区：?settings=security 打开即账号安全', async () => {
-    const { renderer } = await renderHarness('/notebook/n-1?settings=security')
+  it('深链直接进某个分区：?settings=account 打开即账号安全', async () => {
+    const { renderer } = await renderHarness('/notebook/n-1?settings=account')
 
     expect(isOpen(renderer)).toBe('true')
-    expect(section(renderer)).toBe('security')
+    expect(section(renderer)).toBe('account')
   })
 
   it('未知分区值退回默认分区，而不是判成关闭', async () => {
@@ -98,7 +98,7 @@ describe('useSettingsDialogRoute', () => {
   })
 
   it('关闭只去掉参数，保留其它 query', async () => {
-    const { renderer } = await renderHarness('/notebook/n-1?tab=chat&settings=security')
+    const { renderer } = await renderHarness('/notebook/n-1?tab=chat&settings=account')
     click(renderer, 'close')
 
     expect(isOpen(renderer)).toBe('false')
@@ -131,8 +131,8 @@ describe('useSettingsDialogRoute', () => {
     const { renderer, router } = await renderHarness('/notebook/n-1')
     click(renderer, 'open')
     // 第二次 open（带分区）应 replace，而不是再 push 一条
-    click(renderer, 'open-security')
-    expect(url(renderer)).toBe('/notebook/n-1?settings=security')
+    click(renderer, 'open-account')
+    expect(url(renderer)).toBe('/notebook/n-1?settings=account')
 
     // 若第二次 open 压了历史，这次后退会退回 ?settings=profile（对话框仍开着）。
     await goBack(router)

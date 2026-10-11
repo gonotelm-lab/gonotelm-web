@@ -164,12 +164,12 @@ describe('AccountMenu', () => {
     expect(renderer.root.findAllByProps({ 'data-testid': 'settings-dialog' })).toHaveLength(0)
   })
 
-  it('带 ?settings=security 的 URL 直接打开在「账号安全」分区', async () => {
-    const renderer = await renderMenu('/notebook/n-1?settings=security')
+  it('带 ?settings=account 的 URL 直接打开在「账号安全」分区', async () => {
+    const renderer = await renderMenu('/notebook/n-1?settings=account')
 
     expect(
       renderer.root.findByProps({ 'data-testid': 'settings-dialog' }).props['data-section'],
-    ).toBe('security')
+    ).toBe('account')
   })
 
   it('点击退出登录调用接口并回登录页', async () => {

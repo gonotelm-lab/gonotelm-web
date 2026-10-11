@@ -10,6 +10,8 @@ import {
   IdentityBindRedirectError,
   startIdentityBind,
 } from '../../api/auth'
+import { parseCallbackFailure } from '../../lib/auth'
+import { describeCallbackFailure } from '../auth/callbackFailureText'
 import type { AuthIdentity } from '../../types/api'
 import { ProviderIcon } from '../auth/ProviderIcon'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
@@ -115,8 +117,11 @@ function IdentityRow({
 export function ThirdPartyAccountsBlock() {
   const { t } = useTranslation(['settings', 'auth'])
   // 用 router 的 location 而不是 window.location：前者是唯一真相，
-  // 而且带上 `?settings=security` 后，绑完回来设置会自动开在账号安全那一页。
+  // 而且带上 `?settings=account` 后，绑完回来设置会自动开在账号安全那一页。
   const location = useLocation()
+  // 绑定失败时后端 302 回 `/…/settings/security?reason=…&provider=…`，
+  // 用户落回这个对话框，错误就地显示——不必再单独看一个错误页。
+  const callbackFailure = parseCallbackFailure(location.search)
 
   const boundQuery = useQuery({
     queryKey: AUTH_IDENTITIES_QUERY_KEY,
@@ -195,6 +200,17 @@ export function ThirdPartyAccountsBlock() {
       {bindMutation.isError ? (
         <Alert data-testid="identity-bind-error" severity="error">
           {describeBindError(bindMutation.error, t)}
+        </Alert>
+      ) : null}
+
+      {callbackFailure ? (
+        <Alert data-testid="identity-bind-callback-error" severity="error">
+          {describeCallbackFailure(
+            callbackFailure.reason,
+            callbackFailure.provider,
+            'bind',
+            t,
+          )}
         </Alert>
       ) : null}
     </Stack>

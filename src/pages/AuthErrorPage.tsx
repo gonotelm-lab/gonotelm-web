@@ -2,119 +2,74 @@ import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
-import type { TFunction } from 'i18next'
-import {
-  AUTH_ERROR_CODE,
-  UNAUTHORIZED_CODE,
-  buildLoginPath,
-  parseAuthCallbackError,
-  recallAuthReturn,
-  type AuthCallbackMode,
-} from '../lib/auth'
+import { appendCallbackFailure, parseCallbackFailure, recallAuthAttempt } from '../lib/auth'
+import { SETTINGS_SEARCH_PARAM } from '../components/settings/useSettingsDialogRoute'
 import { AuthShell } from '../components/auth/AuthShell'
-import { authFocusRing, authSubmitButtonSx } from '../components/auth/authStyles'
+import { describeCallbackFailure } from '../components/auth/callbackFailureText'
+import { authFocusRing } from '../components/auth/authStyles'
 import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
 
 /**
- * 回调失败的文案：绑定与登录是两套语义，同一个 code 在两边的说法不同。
+ * **绑定失败**的落地页（公开路由，不查 `/user/me`）。
  *
- * 这里只按业务码取文案，绝不回显后端 `msg`——那是内部信息，而且顶层导航下
- * 用户只会看到一页 JSON（这正是本页存在的原因）。
- */
-function describeCallbackError(
-  code: number | undefined,
-  mode: AuthCallbackMode,
-  t: TFunction,
-): string {
-  const isBind = mode === 'bind'
-
-  switch (code) {
-    case AUTH_ERROR_CODE.identityAlreadyLinked:
-      return t('callbackError.identityAlreadyLinked')
-    case AUTH_ERROR_CODE.providerAlreadyBound:
-      return t('callbackError.providerAlreadyBound')
-    case AUTH_ERROR_CODE.emailNotVerified:
-      return t('callbackError.emailNotVerified')
-    case AUTH_ERROR_CODE.userBanned:
-      return t('callbackError.userBanned')
-    case AUTH_ERROR_CODE.idpEmailUnavailable:
-      return t('callbackError.idpEmailUnavailable')
-    case AUTH_ERROR_CODE.loginStateNotFound:
-    case AUTH_ERROR_CODE.loginStateMismatch:
-    case UNAUTHORIZED_CODE:
-      return isBind ? t('callbackError.bindSessionExpired') : t('callbackError.sessionExpired')
-    case AUTH_ERROR_CODE.idpError:
-    case AUTH_ERROR_CODE.idpExchangeError:
-      return isBind ? t('callbackError.bindIdpFailed') : t('callbackError.idpFailed')
-    default:
-      return isBind ? t('callbackError.bindFailed') : t('callbackError.loginFailed')
-  }
-}
-
-/**
- * 第三方回调失败的落地页（公开路由，不查 `/user/me`）。
+ * 后端把回调失败也做成 302（回调是顶层导航，返回 JSON 会被原样渲染成页面）：
  *
- * 回调是顶层导航：后端返回 JSON 时浏览器只会原样显示那段 JSON。后端改成
- * 302 到这里之后，失败也能用站内的样子说清楚，并给出「回去 / 重试」的出口。
+ *   GET /auth/error?reason=<kebab>&provider=<github|google|…>
  *
- * 契约见 `lib/auth.ts` 的 `AUTH_ERROR_PATH`：`?error=<code>&mode=<login|bind>&return_to=`。
+ * 登录失败落在 `/login`（同样带 reason/provider），所以「哪套文案」由**路径**决定，
+ * 不靠参数猜。`reason` 的取值见 `lib/auth.ts` 的 `CALLBACK_REASON`。
+ *
+ * 「返回设置」优先用跳 IdP 前记住的位置（`recallAuthAttempt`）——后端在
+ * 「state 已过期」这类最常见失败下拿不到 return_to，只能靠前端自己记。
  */
 export function AuthErrorPage() {
   const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
-  const { code, mode, returnTo } = parseAuthCallbackError(searchParams.toString())
-  const isBind = mode === 'bind'
-  // 后端能带 return_to 就用它的；带不了（state 已过期/换浏览器，最常见的那类）
-  // 就退回「跳 IdP 之前前端自己记下的位置」。
-  const backTo = searchParams.get('return_to') ? returnTo : (recallAuthReturn() ?? returnTo)
-
-  const title = isBind ? t('callbackError.bindTitle') : t('callbackError.loginTitle')
-  const message = describeCallbackError(code, mode, t)
+  const failure = parseCallbackFailure(searchParams.toString())
+  const reason = failure?.reason ?? ''
+  const provider = failure?.provider ?? ''
+  // 回到「那一页 + 设置已打开 + 账号安全」——绑定就是从那里发起的。
+  const remembered = recallAuthAttempt()?.returnTo ?? '/'
+  // 顺手把原因带过去：设置对话框会就地显示这条错误，用户不用记住上一页说了什么。
+  const backTo =
+    failure && remembered.includes(`${SETTINGS_SEARCH_PARAM}=`)
+      ? appendCallbackFailure(remembered, failure)
+      : remembered
 
   return (
-    <AuthShell title={title} subtitle={message} showLegal={false}>
+    <AuthShell
+      title={t('callbackReason.bindTitle')}
+      subtitle={describeCallbackFailure(reason, provider, 'bind', t)}
+      showLegal={false}
+    >
       <Stack spacing={workspaceSpace.lg} sx={{ width: '100%', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', color: 'text.secondary' }}>
           <ErrorOutlineRoundedIcon sx={{ fontSize: 40 }} />
         </Box>
 
-        <Stack
-          direction="row"
-          spacing={workspaceSpace.md}
-          sx={{ width: '100%', justifyContent: 'center' }}
+        <Button
+          component={Link}
+          to={backTo}
+          data-testid="auth-error-back"
+          variant="outlined"
+          sx={{ minHeight: 44, ...authFocusRing }}
         >
-          <Button
-            component={Link}
-            to={backTo}
-            data-testid="auth-error-back"
-            variant="outlined"
-            sx={{ minHeight: 44, ...authFocusRing }}
-          >
-            {isBind ? t('callbackError.backToApp') : t('callbackError.backHome')}
-          </Button>
-          {isBind ? null : (
-            <Button
-              component={Link}
-              to={buildLoginPath(backTo)}
-              data-testid="auth-error-retry-login"
-              variant="contained"
-              sx={authSubmitButtonSx}
-            >
-              {t('callbackError.retryLogin')}
-            </Button>
-          )}
-        </Stack>
+          {t('callbackReason.backToApp')}
+        </Button>
 
-        {code === undefined ? null : (
+        {failure ? (
           <Typography
-            data-testid="auth-error-code"
+            data-testid="auth-error-reason"
             variant="caption"
             color="text.secondary"
             sx={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            {t('callbackError.codeLabel', { code })}
+            {t('callbackReason.reasonLabel', {
+              reason,
+              provider: provider || t('callbackReason.providerFallback'),
+            })}
           </Typography>
-        )}
+        ) : null}
       </Stack>
     </AuthShell>
   )

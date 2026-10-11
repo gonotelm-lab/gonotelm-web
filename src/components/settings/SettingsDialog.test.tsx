@@ -359,7 +359,7 @@ describe('SettingsDialog', () => {
     const { renderer } = await renderDialog()
     expect(renderer.root.findAllByProps({ 'data-testid': 'profile-email' })).toHaveLength(0)
 
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     expect(renderer.root.findAllByProps({ 'data-testid': 'security-email' })).toHaveLength(0)
   })
 
@@ -444,7 +444,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
 
     // 概览：左标签右值 + 一个动作按钮；表单只在弹窗里。
     expect(textOf(renderer, 'security-login-source')).toBe('—')
@@ -496,7 +496,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
 
     const setValue = (testId: string, value: string) =>
@@ -527,7 +527,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
     expect(renderer.root.findByProps({ 'data-testid': 'settings-password-new-input' })).toBeTruthy()
 
@@ -555,7 +555,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
 
     expect(textOf(renderer, 'security-email')).toBe('user@example.com')
     expect(textOf(renderer, 'security-login-source')).toBe('GitHub')
@@ -583,14 +583,14 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
 
     expect(textOf(renderer, 'security-login-source')).toBe('邮箱与口令')
   })
 
   it('账号安全区展示第三方账号绑定状态（已绑定 provider 带邮箱快照）', async () => {
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     await flush()
     await flush()
 
@@ -615,7 +615,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     await flush()
 
     // 查不到 ≠ 未绑定：整块隐藏，避免误导。
@@ -645,7 +645,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     await flush()
     await flush()
 
@@ -665,7 +665,7 @@ describe('SettingsDialog', () => {
     vi.stubGlobal('window', undefined)
   })
 
-  it('绑定带上当前 URL：设置已打开时 return_to 会包含 ?settings=security', async () => {
+  it('绑定带上当前 URL：设置已打开时 return_to 会包含 ?settings=account', async () => {
     const assign = vi.fn()
     vi.stubGlobal('window', {
       location: { pathname: '/notebook/n-1', search: '', origin: 'http://localhost', assign },
@@ -679,8 +679,8 @@ describe('SettingsDialog', () => {
       }),
     )
 
-    const { renderer } = await renderDialog({ entry: '/notebook/n-1?settings=security' })
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    const { renderer } = await renderDialog({ entry: '/notebook/n-1?settings=account' })
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     await flush()
     await flush()
 
@@ -692,10 +692,23 @@ describe('SettingsDialog', () => {
     // 绑完（或失败回来）时设置会自动开在账号安全这一页。
     expect(received).toEqual({
       provider: 'google',
-      return_to: 'http://localhost/notebook/n-1?settings=security',
+      return_to: 'http://localhost/notebook/n-1?settings=account',
     })
 
     vi.stubGlobal('window', undefined)
+  })
+
+  it('绑定失败落回设置时：对话框里就地显示原因（不必回看错误页）', async () => {
+    const { renderer } = await renderDialog({
+      entry: '/notebook/n-1?settings=account&reason=identity-already-linked&provider=github',
+    })
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
+    await flush()
+    await flush()
+
+    renderer.root.findByProps({ 'data-testid': 'identity-bind-callback-error' })
+    // 文案随语言切换，这里断言「原因确实传到了对话框」（provider 名两种语言一致）。
+    expect(JSON.stringify(renderer.toJSON())).toContain('GitHub')
   })
 
   it('后端仍以 302 跳 IdP 时，绑定给出明确提示而不是静默失败', async () => {
@@ -711,7 +724,7 @@ describe('SettingsDialog', () => {
     )
 
     const { renderer } = await renderDialog()
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-security' }).props.onClick())
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
     await flush()
     await flush()
 

@@ -4,7 +4,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 
-export type SettingsSectionId = 'profile' | 'security' | 'general'
+export type SettingsSectionId = 'profile' | 'account' | 'general'
 
 export interface SettingsSectionDefinition {
   id: SettingsSectionId
@@ -19,6 +19,7 @@ export interface SettingsSectionDefinition {
  */
 export const SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
   { id: 'profile', labelKey: 'nav.profile', Icon: PersonOutlinedIcon },
-  { id: 'security', labelKey: 'nav.security', Icon: LockOutlinedIcon },
+  // 对外地址是 `?settings=account`（内容文案仍在 `settings:security.*` 命名空间下）。
+  { id: 'account', labelKey: 'nav.security', Icon: LockOutlinedIcon },
   { id: 'general', labelKey: 'nav.general', Icon: TuneOutlinedIcon },
 ]

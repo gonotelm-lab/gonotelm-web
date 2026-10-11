@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http } from 'msw'
 import { mockServer } from '@/test/mocks'
 import { ApiError } from '@/lib/http'
-import { recallAuthReturn } from '@/lib/auth'
+import { recallAuthAttempt } from '@/lib/auth'
 import {
   createNoContentResponse,
   createSuccessResponse,
@@ -239,9 +239,12 @@ describe('startIdentityBind', () => {
       ),
     )
 
-    await startIdentityBind('github', '/notebook/n-1?settings=security')
+    await startIdentityBind('github', '/notebook/n-1?settings=account')
 
-    expect(recallAuthReturn()).toBe('/notebook/n-1?settings=security')
+    expect(recallAuthAttempt()).toEqual({
+      returnTo: '/notebook/n-1?settings=account',
+      mode: 'bind',
+    })
   })
 
   it('缺 authorize_url 时报错，不静默跳一个空地址', async () => {
