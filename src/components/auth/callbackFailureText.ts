@@ -53,7 +53,7 @@ export function describeCallbackFailure(
     case CALLBACK_REASON.userSessionNotFound:
       return t('callbackReason.accountAbnormal')
     default:
-      // 含 internal-callback-error 与后端将来新增但前端还没登记的 reason。
+      // 含 internal-error 与后端将来新增但前端还没登记的 reason。
       return isBind ? t('callbackReason.bindFailed') : t('callbackReason.loginFailed')
   }
 }

@@ -32,5 +32,10 @@
   "nav": {
     "backLevel": "Go back"
   },
-  "sourceCount": "{{count}} sources"
+  "sourceCount": "{{count}} sources",
+  "routeError": {
+    "title": "Something went wrong",
+    "description": "That did not finish. You can try again.",
+    "reload": "Reload"
+  }
 }

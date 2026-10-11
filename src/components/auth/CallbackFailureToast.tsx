@@ -1,21 +1,19 @@
 import { useState } from 'react'
 import { Alert, Snackbar } from '@mui/material'
-import type { CallbackFailure } from '../../lib/auth'
 
 /**
- * 回调失败的 toast 提示。
+ * 回调失败的 toast 提示（文案由调用方给，已是 human-readable 的本地化文本）。
  *
- * 目前**原样显示 `reason` 文本**（例如 `login-state-not-found`），联调期能直接看到
- * 后端到底给了什么。文案映射已经就绪（`callbackFailureText.ts` 的
- * `describeCallbackFailure(reason, provider, 'login', t)`），接上时把下面那行换掉即可。
+ * 不带关闭按钮：只靠 5 秒自动消失（Esc 也能关）。`Snackbar` 自己的 `onClose`
+ * 必须留着——MUI 只在给了它的时候才启动自动隐藏计时。
  */
-export function CallbackFailureToast({ failure }: { failure: CallbackFailure }) {
+export function CallbackFailureToast({ message }: { message: string }) {
   const [open, setOpen] = useState(true)
 
   return (
     <Snackbar
       open={open}
-      autoHideDuration={6000}
+      autoHideDuration={5000}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       onClose={(_, reason) => {
         if (reason !== 'clickaway') {
@@ -24,13 +22,12 @@ export function CallbackFailureToast({ failure }: { failure: CallbackFailure }) 
       }}
     >
       <Alert
-        data-testid="login-callback-toast"
+        data-testid="callback-failure-toast"
         severity="error"
         variant="filled"
-        onClose={() => setOpen(false)}
         sx={{ maxWidth: 460, textAlign: 'left' }}
       >
-        {failure.reason}
+        {message}
       </Alert>
     </Snackbar>
   )

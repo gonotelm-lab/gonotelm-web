@@ -244,7 +244,7 @@ export const AUTH_ERROR_PATH = '/auth/error'
 
 /**
  * 回调失败的 reason 取值，与后端 interfaces 层的映射一一对应：
- * `domainerr` 里的错误转成 kebab-case，认不出来的一律 `internal-callback-error`。
+ * `domainerr` 里的错误转成 kebab-case，认不出来的一律 `internal-error`。
  *
  * 前端只在这里登记一次；后端加/改映射时改这一处，测试会先红。
  */
@@ -275,7 +275,7 @@ export const CALLBACK_REASON = {
   /** 该账号已绑定过同 provider 的另一个身份。 */
   providerAlreadyBound: 'provider-already-bound',
   /** 认不出来的错误。 */
-  internal: 'internal-callback-error',
+  internal: 'internal-error',
 } as const
 
 export type CallbackReason = (typeof CALLBACK_REASON)[keyof typeof CALLBACK_REASON]

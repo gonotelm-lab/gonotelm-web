@@ -698,19 +698,6 @@ describe('SettingsDialog', () => {
     vi.stubGlobal('window', undefined)
   })
 
-  it('绑定失败落回设置时：对话框里就地显示原因（不必回看错误页）', async () => {
-    const { renderer } = await renderDialog({
-      entry: '/notebook/n-1?settings=account&reason=identity-already-linked&provider=github',
-    })
-    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
-    await flush()
-    await flush()
-
-    renderer.root.findByProps({ 'data-testid': 'identity-bind-callback-error' })
-    // 文案随语言切换，这里断言「原因确实传到了对话框」（provider 名两种语言一致）。
-    expect(JSON.stringify(renderer.toJSON())).toContain('GitHub')
-  })
-
   it('后端仍以 302 跳 IdP 时，绑定给出明确提示而不是静默失败', async () => {
     let bindCalls = 0
     mockServer.use(

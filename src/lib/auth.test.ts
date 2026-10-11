@@ -220,8 +220,8 @@ describe('parseCallbackFailure / buildBindErrorPath', () => {
     expect(buildBindErrorPath('provider-already-bound', 'google')).toBe(
       '/auth/error?reason=provider-already-bound&provider=google',
     )
-    expect(buildBindErrorPath('internal-callback-error', '')).toBe(
-      '/auth/error?reason=internal-callback-error',
+    expect(buildBindErrorPath('internal-error', '')).toBe(
+      '/auth/error?reason=internal-error',
     )
   })
 })

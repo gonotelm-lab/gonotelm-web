@@ -32,5 +32,10 @@
   "nav": {
     "backLevel": "返回上一级"
   },
-  "sourceCount": "{{count}} 个来源"
+  "sourceCount": "{{count}} 个来源",
+  "routeError": {
+    "title": "页面出错了",
+    "description": "刚才的操作没能完成，可以重试一次。",
+    "reload": "重新加载"
+  }
 }
