@@ -14,14 +14,14 @@ interface AuthShellProps {
   subtitle?: ReactNode
   /** 表单请求进行中：置 aria-busy，读屏会提示区域正在更新。 */
   busy?: boolean
-  /** 条款行只在登录/注册页出现，验证与设置口令页不重复。 */
+  /** 条款行只在登录/注册页出现，验证与设置密码页不重复。 */
   showLegal?: boolean
   children: ReactNode
 }
 
 /**
  * 认证页的共用外壳：品牌标记 → 标题/副标题 → 表单区 →（可选）条款行。
- * 四个页面（登录/注册/验证邮箱/设置口令）共用同一条中线与同一套留白。
+ * 四个页面（登录/注册/验证邮箱/设置密码）共用同一条中线与同一套留白。
  */
 export function AuthShell({
   title,

@@ -61,7 +61,7 @@ function describeResendError(error: unknown, t: (key: string) => string): string
  * - 注册后跳转 → `?email=…`，输入 6 位验证码（或重发邮件）。
  *
  * 服务端验证成功即建号并签发会话；若注册票据不匹配（换设备验证），
- * `has_password` 会是 false，于是转到设置口令页补齐口令。
+ * `has_password` 会是 false，于是转到设置密码页补齐密码。
  */
 export function VerifyEmailPage() {
   const { t } = useTranslation('auth')
@@ -87,7 +87,7 @@ export function VerifyEmailPage() {
   const [code, setCode] = useState('')
   const [resent, setResent] = useState(false)
 
-  /** 验证成功后统一收尾：读一次 me 决定是否需要补设口令，再回到 return_to。 */
+  /** 验证成功后统一收尾：读一次 me 决定是否需要补设密码，再回到 return_to。 */
   const finishVerification = async () => {
     const me = await queryClient
       // staleTime: 0 —— 会话刚签发，必须重新取一次，不能吃旧缓存。

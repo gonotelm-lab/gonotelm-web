@@ -23,8 +23,8 @@ export interface AuthProvider {
 export interface AuthProvidersResponse {
   providers: AuthProvider[]
   /**
-   * 后端是否启用「邮箱 + 口令」登录（users_v2 改造新增）。
-   * 字段缺失（旧后端）时前端不渲染口令表单，保持只走三方登录。
+   * 后端是否启用「邮箱 + 密码」登录（users_v2 改造新增）。
+   * 字段缺失（旧后端）时前端不渲染密码表单，保持只走三方登录。
    */
   password_enabled?: boolean
 }
@@ -72,18 +72,18 @@ export interface MeResponse {
   /** 头像公开地址；用户未设置头像时后端返回空串。 */
   avatar_url: string
   /**
-   * 本次登录方式：`password`（邮箱口令）、`email`（邮箱验证建号）或 provider 名。
+   * 本次登录方式：`password`（邮箱密码）、`email`（邮箱验证建号）或 provider 名。
    * 旧会话缺该字段时后端会退回最早绑定的身份。
    */
   login_source?: string
   /**
-   * 账号是否已有口令（users_v2 改造新增，P0）。
-   * 字段缺失（旧后端）时按「未知」处理：不做设置口令的引导。
+   * 账号是否已有密码（users_v2 改造新增，P0）。
+   * 字段缺失（旧后端）时按「未知」处理：不做设置密码的引导。
    */
   has_password?: boolean
 }
 
-/** POST /api/v1/auth/login —— 邮箱口令登录（与 GET 同路径不同方法）。 */
+/** POST /api/v1/auth/login —— 邮箱密码登录（与 GET 同路径不同方法）。 */
 export interface PasswordLoginRequest {
   email: string
   password: string
@@ -91,10 +91,28 @@ export interface PasswordLoginRequest {
   login_from?: AuthLoginFrom
 }
 
-/** POST /api/v1/auth/email/register —— 注册只写 pending，成功不建账号、不签发会话。 */
+/** POST /api/v1/auth/email/register —— 需要验证时只写 pending；免验证时直接建号并签发会话。 */
 export interface EmailRegisterRequest {
   email: string
   password: string
+}
+
+/**
+ * GET /api/v1/auth/email/register/prefetch 的响应：注册前拿到的服务端元数据。
+ * require_complex_password=true 时，密码除长度下限外还必须同时含大写字母、小写字母与数字。
+ */
+export interface EmailRegisterPrefetchResponse {
+  require_complex_password: boolean
+}
+
+/**
+ * POST /api/v1/auth/email/register 的响应。
+ * email_verified=true：后端免验证模式（auth.emailVerificationRequired=false），账号已建好并签发会话；
+ * false：账号要等验证信里的链接/验证码通过后才建立。
+ */
+export interface EmailRegisterResponse {
+  email_verified: boolean
+  user_id?: string
 }
 
 /** POST /api/v1/auth/email/verify —— 消费邮件链接里的 token，成功即建号并签发会话。 */
@@ -108,14 +126,14 @@ export interface EmailVerifyCodeRequest {
   code: string
 }
 
-/** POST /api/v1/auth/email/resend —— 只重置两条验证凭证，不动口令与注册票据。 */
+/** POST /api/v1/auth/email/resend —— 只重置两条验证凭证，不动密码与注册票据。 */
 export interface EmailResendRequest {
   email: string
 }
 
-/** PUT /api/v1/auth/password —— 已认证会话设置/修改口令。 */
+/** PUT /api/v1/auth/password —— 已认证会话设置/修改密码。 */
 export interface SetPasswordRequest {
-  /** 账号已有口令时必填；无口令（三方首登建的号）时省略。 */
+  /** 账号已有密码时必填；无密码（三方首登建的号）时省略。 */
   old_password?: string
   new_password: string
 }
@@ -123,7 +141,7 @@ export interface SetPasswordRequest {
 /**
  * PUT /api/v1/auth/password 的响应（200，不再是 204）。
  *
- * 后端保存口令后会作废该账号全部会话（含当前这一个）并清掉会话 cookie，
+ * 后端保存密码后会作废该账号全部会话（含当前这一个）并清掉会话 cookie，
  * 前端据此把用户送回登录页，而不是留在一个已经失效的界面上。
  */
 export interface SetPasswordResponse {

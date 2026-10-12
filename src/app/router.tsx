@@ -36,7 +36,7 @@ export const router = createBrowserRouter([
       path: AUTH_ERROR_PATH,
       element: <AuthErrorPage />,
     },
-    // 设置口令需要已认证会话（注册票据不匹配时的补救路径）。
+    // 设置密码需要已认证会话（注册票据不匹配时的补救路径）。
     {
       path: '/set-password',
       element: (

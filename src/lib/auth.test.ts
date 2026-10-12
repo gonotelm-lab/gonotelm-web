@@ -231,7 +231,7 @@ describe('buildReloginPath', () => {
     vi.unstubAllGlobals()
   })
 
-  it('改口令后回登录页并带 notice=password_changed', () => {
+  it('改密码后回登录页并带 notice=password_changed', () => {
     vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
     expect(buildReloginPath('/notebook/a')).toBe(
       '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_changed',

@@ -15,7 +15,9 @@
     "open": "打开",
     "download": "下载",
     "edit": "编辑",
-    "preview": "预览"
+    "preview": "预览",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码"
   },
   "error": {
     "deleteFailed": "删除失败，请稍后重试",

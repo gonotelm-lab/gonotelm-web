@@ -87,7 +87,7 @@ describe('VerifyEmailPage · 邮件链接模式', () => {
     expect(renderer.root.findByProps({ 'data-testid': 'home-landed' })).toBeTruthy()
   })
 
-  it('验证后 has_password 为 false（跨设备验证）时转到设置口令页', async () => {
+  it('验证后 has_password 为 false（跨设备验证）时转到设置密码页', async () => {
     vi.stubGlobal('window', {
       location: { hash: '#tok-1', search: '', origin: 'http://localhost' },
     })

@@ -53,6 +53,17 @@ describe('isValidPassword', () => {
     expect(isValidPassword('你'.repeat(24))).toBe(true)
     expect(isValidPassword('你'.repeat(25))).toBe(false)
   })
+
+  it('要求复杂密码时，大小写与数字缺一不可（长度仍要过）', () => {
+    expect(isValidPassword('password123', true)).toBe(false)
+    expect(isValidPassword('PASSWORD123', true)).toBe(false)
+    expect(isValidPassword('Passwordabc', true)).toBe(false)
+    expect(isValidPassword('Ab1', true)).toBe(false)
+    expect(isValidPassword('Password123', true)).toBe(true)
+
+    // 关掉复杂度后，同样的密码按简单规则放行
+    expect(isValidPassword('password123')).toBe(true)
+  })
 })
 
 describe('验证码', () => {

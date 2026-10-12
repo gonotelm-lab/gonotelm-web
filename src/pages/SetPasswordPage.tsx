@@ -7,9 +7,9 @@ import { PasswordForm } from '../components/auth/PasswordForm'
 import { useMeQuery } from '../components/auth/useMeQuery'
 
 /**
- * 设置/修改口令页（受 AuthGate 保护）。
+ * 设置/修改密码页（受 AuthGate 保护）。
  *
- * 主要用途是「注册票据不匹配」的补救路径：跨设备/换浏览器验证时后端不写口令，
+ * 主要用途是「注册票据不匹配」的补救路径：跨设备/换浏览器验证时后端不写密码，
  * 前端把已登录用户引导到这里，由已认证会话通过 `PUT /auth/password` 补上。
  *
  * 保存成功即 `relogin_required`：后端作废了全部会话（含当前），所以这里不是

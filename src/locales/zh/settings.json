@@ -45,19 +45,19 @@
     "languageEn": "English"
   },
   "security": {
-    "title": "登录口令",
-    "subtitle": "设置口令后，也可以用邮箱与口令登录。",
-    "changeSubtitle": "修改后请使用新口令登录。",
+    "title": "登录密码",
+    "subtitle": "设置密码后，也可以用邮箱与密码登录。",
+    "changeSubtitle": "修改后请使用新密码登录。",
     "emailLabel": "邮箱",
     "loginSourceLabel": "登录方式",
-    "loginSourcePassword": "邮箱与口令",
+    "loginSourcePassword": "邮箱与密码",
     "loginSourceEmail": "邮箱验证",
-    "passwordStateLabel": "口令状态",
+    "passwordStateLabel": "密码状态",
     "passwordSet": "已设置",
     "passwordNotSet": "未设置",
-    "setPassword": "设置口令",
-    "changePassword": "修改口令",
-    "saved": "口令已更新",
+    "setPassword": "设置密码",
+    "changePassword": "修改密码",
+    "saved": "密码已更新",
     "identities": {
       "title": "第三方账号",
       "subtitle": "已绑定的第三方登录方式，绑定后可直接用它登录。",
@@ -74,7 +74,7 @@
       "unbindBody": "解绑后将无法再用该账号登录，之后可以重新绑定。",
       "unbindDone": "已解绑 {{provider}}。",
       "unbindFailed": "解绑失败，请重试。",
-      "unbindLastMethod": "这是当前唯一的登录方式，请先设置口令再解绑。",
+      "unbindLastMethod": "这是当前唯一的登录方式，请先设置密码再解绑。",
       "unbindIdentityGone": "该三方身份不存在或已解绑。"
     }
   }

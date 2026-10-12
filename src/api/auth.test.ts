@@ -98,7 +98,7 @@ async function captureRequest(path: string) {
   return captured
 }
 
-describe('邮箱口令登录', () => {
+describe('邮箱密码登录', () => {
   it('POST /auth/email/login，body 带 email/password 且固定 login_from=web，成功返回 user_id', async () => {
     let received: unknown = null
     mockServer.use(
@@ -121,11 +121,18 @@ describe('邮箱口令登录', () => {
 })
 
 describe('邮箱注册与验证', () => {
-  it('registerEmail POST /auth/email/register（204）', async () => {
-    const captured = await captureRequest('/api/v1/auth/email/register')
-    await expect(registerEmail({ email: 'a@b.com', password: 'secret-123' })).resolves.toBeNull()
-    expect(captured.method).toBe('POST')
-    expect(captured.body).toEqual({ email: 'a@b.com', password: 'secret-123' })
+  it('registerEmail POST /auth/email/register，返回 email_verified', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/email/register`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ email_verified: false })
+      }),
+    )
+    await expect(registerEmail({ email: 'a@b.com', password: 'secret-123' })).resolves.toEqual({
+      email_verified: false,
+    })
+    expect(received).toEqual({ email: 'a@b.com', password: 'secret-123' })
   })
 
   it('verifyEmailToken POST /auth/email/verify，带 token 与 login_from', async () => {
@@ -161,8 +168,8 @@ describe('邮箱注册与验证', () => {
   })
 })
 
-describe('口令设置', () => {
-  it('无口令时只发 new_password，并解析 200 + relogin_required', async () => {
+describe('密码设置', () => {
+  it('无密码时只发 new_password，并解析 200 + relogin_required', async () => {
     let received: unknown = null
     mockServer.use(
       http.put(`${apiBaseUrl}/api/v1/auth/password`, async ({ request }) => {
@@ -177,7 +184,7 @@ describe('口令设置', () => {
     expect(received).toEqual({ new_password: 'secret-123' })
   })
 
-  it('已有口令时带 old_password', async () => {
+  it('已有密码时带 old_password', async () => {
     const captured = await captureRequest('/api/v1/auth/password')
     await setPassword({ old_password: 'old-12345', new_password: 'secret-123' })
     expect(captured.method).toBe('PUT')

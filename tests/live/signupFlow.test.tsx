@@ -78,6 +78,8 @@ const renderAt = async (entry: string) => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<div data-testid="verify-landed" />} />
+            {/* 免验证部署下注册成功直接进 return_to，业务页得有个落点 */}
+            <Route path="/notebook/n-1" element={<div data-testid="home-landed" />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -166,20 +168,37 @@ describe.skipIf(!live)('live UI · 创建账号 → 注册页 → 执行注册',
     expect(windowLocation.pathname).toBe('/signup')
   })
 
-  it('注册页提交后真实注册成功，并跳到验证页', async () => {
-    const renderer = await renderAt('/signup')
+  it('注册页提交后真实注册成功：免验证直接进 return_to，需验证则跳验证页', async () => {
+    const renderer = await renderAt('/signup?return_to=%2Fnotebook%2Fn-1')
     await waitFor(() => renderer.root.findAllByProps({ 'data-testid': 'signup-email-input' }).length > 0)
 
     fill(renderer, 'signup-email-input', signupEmail)
-    fill(renderer, 'signup-password-input', 'web-ui-pass-123')
-    fill(renderer, 'signup-confirm-input', 'web-ui-pass-123')
+    // 后端 requireComplexPassword=true：密码必须同时含大小写与数字，否则前端不会发请求。
+    fill(renderer, 'signup-password-input', 'Web-Ui-Pass-123')
+    fill(renderer, 'signup-confirm-input', 'Web-Ui-Pass-123')
 
     await act(async () => {
       renderer.root.findByType('form').props.onSubmit({ preventDefault() {} })
     })
-    await waitFor(() => renderer.root.findAllByProps({ 'data-testid': 'verify-landed' }).length > 0)
+
+    // 部署开关 auth.emailVerificationRequired 决定注册结果：
+    //   false（本机默认）→ 后端已建号签发会话，响应 email_verified=true，前端直接进 return_to；
+    //   true            → 只写 pending，前端跳验证页。
+    // 真机测试要对两种部署都成立，所以这里等「任一落点」再分支断言。
+    await waitFor(
+      () =>
+        renderer.root.findAllByProps({ 'data-testid': 'verify-landed' }).length > 0 ||
+        renderer.root.findAllByProps({ 'data-testid': 'home-landed' }).length > 0,
+    )
 
     const location = locationOf(renderer)
+
+    if (renderer.root.findAllByProps({ 'data-testid': 'home-landed' }).length > 0) {
+      // 免验证：账号已建好，前端不能把用户丢在注册页
+      expect(location).toBe('/notebook/n-1')
+      return
+    }
+
     expect(location).toContain('/verify-email')
     expect(location).toContain(encodeURIComponent(signupEmail))
 

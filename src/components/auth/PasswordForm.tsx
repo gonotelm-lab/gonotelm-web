@@ -9,15 +9,19 @@ import type { SetPasswordResponse } from '../../types/api'
 import {
   PASSWORD_MAX_BYTES,
   PASSWORD_MIN_LENGTH,
+  isComplexPassword,
   isValidPassword,
   passwordByteLength,
 } from '../../lib/authValidation'
 import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 import { ME_QUERY_KEY } from './useMeQuery'
+import { useRequireComplexPassword } from './usePasswordPolicy'
+import { PasswordPolicyHints } from './PasswordPolicyHints'
+import { PasswordVisibilityToggle } from './PasswordVisibilityToggle'
 import { authSubmitButtonSx } from './authStyles'
 
 interface PasswordFormProps {
-  /** 账号是否已有口令：决定要不要校验「当前口令」以及文案（设置 vs 修改）。 */
+  /** 账号是否已有密码：决定要不要校验「当前密码」以及文案（设置 vs 修改）。 */
   hasPassword: boolean
   /**
    * 保存成功回调；引导页用来跳转，设置区用来收起表单。
@@ -32,12 +36,18 @@ interface PasswordFormProps {
   testIdPrefix?: string
 }
 
-function describePasswordError(error: unknown, t: TFunction): string {
+function describePasswordError(
+  error: unknown,
+  t: TFunction,
+  requireComplexPassword: boolean,
+): string {
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.invalidCredentials)) {
     return t('password.wrongOldPassword')
   }
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.weakPassword)) {
-    return t('password.weakPassword', { min: PASSWORD_MIN_LENGTH })
+    return requireComplexPassword
+      ? t('password.weakPasswordComplex', { min: PASSWORD_MIN_LENGTH })
+      : t('password.weakPassword', { min: PASSWORD_MIN_LENGTH })
   }
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.tooManyRequests)) {
     return t('login.tooManyRequests')
@@ -67,10 +77,10 @@ async function syncMeAfterPasswordSave(
 }
 
 /**
- * 设置/修改口令表单（PUT /auth/password）。
+ * 设置/修改密码表单（PUT /auth/password）。
  *
- * 两处复用：`/set-password` 引导页（注册票据不匹配、或账号尚无口令时）与
- * 设置弹窗的「账号安全」区。口令只在请求体里传递，不落任何本地存储。
+ * 两处复用：`/set-password` 引导页（注册票据不匹配、或账号尚无密码时）与
+ * 设置弹窗的「账号安全」区。密码只在请求体里传递，不落任何本地存储。
  */
 export function PasswordForm({
   hasPassword,
@@ -80,12 +90,17 @@ export function PasswordForm({
 }: PasswordFormProps) {
   const { t } = useTranslation('auth')
   const queryClient = useQueryClient()
+  // 与注册共用同一个服务端策略，避免这里放行、后端 106014 打回
+  const requireComplexPassword = useRequireComplexPassword()
 
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [touched, setTouched] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNext, setShowNext] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const mutation = useMutation({
     mutationFn: setPassword,
@@ -102,19 +117,35 @@ export function PasswordForm({
   })
 
   const nextBytes = passwordByteLength(next)
-  const nextTooShort = touched && nextBytes < PASSWORD_MIN_LENGTH
+  // 新密码已经在敲（或点过保存）之后，未满足的规则才报红；空着没动过时不提前骂人。
+  const nextTouched = touched || nextBytes > 0
+  const nextTooShort = nextBytes < PASSWORD_MIN_LENGTH && nextTouched
   const nextTooLong = nextBytes > PASSWORD_MAX_BYTES
+  // 复杂度必须和长度一样实时：只靠点保存才报，用户根本不知道差哪一条。
+  const nextTooSimple =
+    requireComplexPassword &&
+    nextTouched &&
+    nextBytes >= PASSWORD_MIN_LENGTH &&
+    nextBytes <= PASSWORD_MAX_BYTES &&
+    !isComplexPassword(next)
+  const nextNeedsAttention = nextTooShort || nextTooLong || nextTooSimple
   const mismatch = confirm.length > 0 && confirm !== next
   const currentRequired = touched && hasPassword && current.length === 0
 
-  const canSubmit =
-    (!hasPassword || current.length > 0) && isValidPassword(next) && confirm === next && !mutation.isPending
+  /**
+   * 校验只决定「要不要发请求」，不再决定按钮能不能点：
+   * 按钮始终可点（仅请求进行中禁用），点了才把错误亮出来。
+   */
+  const formValid =
+    (!hasPassword || current.length > 0) &&
+    isValidPassword(next, requireComplexPassword) &&
+    confirm === next
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setTouched(true)
     setSaved(false)
-    if (!canSubmit) {
+    if (mutation.isPending || !formValid) {
       return
     }
     mutation.mutate(
@@ -129,7 +160,7 @@ export function PasswordForm({
           <TextField
             fullWidth
             size="small"
-            type="password"
+            type={showCurrent ? 'text' : 'password'}
             name="current-password"
             autoComplete="current-password"
             label={t('password.currentLabel')}
@@ -137,33 +168,67 @@ export function PasswordForm({
             onChange={(event) => setCurrent(event.target.value)}
             disabled={mutation.isPending}
             error={currentRequired}
-            slotProps={{ htmlInput: { 'data-testid': `${testIdPrefix}-current-input` } }}
+            helperText={currentRequired ? t('password.currentRequired') : undefined}
+            slotProps={{
+              htmlInput: { 'data-testid': `${testIdPrefix}-current-input` },
+              input: {
+                endAdornment: (
+                  <PasswordVisibilityToggle
+                    shown={showCurrent}
+                    onToggle={() => setShowCurrent((shown) => !shown)}
+                    testId={`${testIdPrefix}-current-visibility`}
+                  />
+                ),
+              },
+            }}
           />
         ) : null}
         <TextField
           fullWidth
           size="small"
-          type="password"
+          type={showNext ? 'text' : 'password'}
           name="new-password"
           autoComplete="new-password"
           label={t('password.newLabel')}
           value={next}
           onChange={(event) => setNext(event.target.value)}
           disabled={mutation.isPending}
-          error={nextTooShort || nextTooLong}
+          error={nextNeedsAttention}
           helperText={
-            nextTooLong
-              ? t('signup.passwordTooLong', { max: PASSWORD_MAX_BYTES })
-              : nextTooShort
-                ? t('password.weakPassword', { min: PASSWORD_MIN_LENGTH })
-                : t('password.hint', { min: PASSWORD_MIN_LENGTH })
+            requireComplexPassword ? (
+              <PasswordPolicyHints
+                value={next}
+                requireComplex={requireComplexPassword}
+                showErrors={nextNeedsAttention}
+                testId={`${testIdPrefix}-hints`}
+              />
+            ) : nextTooLong ? (
+              t('signup.passwordTooLong', { max: PASSWORD_MAX_BYTES })
+            ) : nextTooShort ? (
+              t('password.weakPassword', { min: PASSWORD_MIN_LENGTH })
+            ) : (
+              t('password.hint', { min: PASSWORD_MIN_LENGTH })
+            )
           }
-          slotProps={{ htmlInput: { 'data-testid': `${testIdPrefix}-new-input` } }}
+          slotProps={{
+            htmlInput: { 'data-testid': `${testIdPrefix}-new-input` },
+            input: {
+              endAdornment: (
+                <PasswordVisibilityToggle
+                  shown={showNext}
+                  onToggle={() => setShowNext((shown) => !shown)}
+                  testId={`${testIdPrefix}-new-visibility`}
+                />
+              ),
+            },
+            // 清单是 <ul>，不能塞进 FormHelperText 默认的 <p> 里
+            formHelperText: { component: 'div' },
+          }}
         />
         <TextField
           fullWidth
           size="small"
-          type="password"
+          type={showConfirm ? 'text' : 'password'}
           name="confirm-password"
           autoComplete="new-password"
           label={t('password.confirmLabel')}
@@ -172,12 +237,23 @@ export function PasswordForm({
           disabled={mutation.isPending}
           error={mismatch}
           helperText={mismatch ? t('password.mismatch') : undefined}
-          slotProps={{ htmlInput: { 'data-testid': `${testIdPrefix}-confirm-input` } }}
+          slotProps={{
+            htmlInput: { 'data-testid': `${testIdPrefix}-confirm-input` },
+            input: {
+              endAdornment: (
+                <PasswordVisibilityToggle
+                  shown={showConfirm}
+                  onToggle={() => setShowConfirm((shown) => !shown)}
+                  testId={`${testIdPrefix}-confirm-visibility`}
+                />
+              ),
+            },
+          }}
         />
 
         {mutation.isError ? (
           <Alert data-testid={`${testIdPrefix}-error`} severity="error" sx={{ textAlign: 'left' }}>
-            {describePasswordError(mutation.error, t)}
+            {describePasswordError(mutation.error, t, requireComplexPassword)}
           </Alert>
         ) : null}
 
@@ -186,7 +262,7 @@ export function PasswordForm({
             data-testid={`${testIdPrefix}-submit`}
             type="submit"
             variant="contained"
-            disabled={!canSubmit}
+            disabled={mutation.isPending}
             sx={authSubmitButtonSx}
           >
             {mutation.isPending ? t('password.submitting') : t('password.submit')}

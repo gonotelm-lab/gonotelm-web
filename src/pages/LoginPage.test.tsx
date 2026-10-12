@@ -114,7 +114,7 @@ describe('LoginPage', () => {
     )
 
     renderer.root.findByProps({ 'data-testid': 'login-notice-password-changed' })
-    expect(JSON.stringify(renderer.toJSON())).toContain('口令已更新')
+    expect(JSON.stringify(renderer.toJSON())).toContain('密码已更新')
   })
 
   it('没有 notice 时不显示说明', async () => {
@@ -210,7 +210,7 @@ describe('LoginPage', () => {
   })
 })
 
-describe('LoginPage 邮箱口令登录（users_v2）', () => {
+describe('LoginPage 邮箱密码登录（users_v2）', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   /** 未登录 + 目标路由：既能渲染表单，又能断言登录成功后的落点。 */
@@ -251,7 +251,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     })
   }
 
-  it('password_enabled 为 true 时渲染邮箱口令表单与注册入口', async () => {
+  it('password_enabled 为 true 时渲染邮箱密码表单与注册入口', async () => {
     enablePasswordLogin()
     const renderer = await renderLogin()
 
@@ -260,7 +260,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     expect(renderer.root.findByProps({ 'data-testid': 'login-signup-link' })).toBeTruthy()
   })
 
-  it('password_enabled 缺失（旧后端）时不渲染口令表单', async () => {
+  it('password_enabled 缺失（旧后端）时不渲染密码表单', async () => {
     const renderer = await renderLogin()
 
     expect(() => renderer.root.findByProps({ 'data-testid': 'login-email-input' })).toThrow()
@@ -278,7 +278,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     expect(link?.props.to).toContain(encodeURIComponent('/notebook/n-1'))
   })
 
-  it('提交口令登录：POST /auth/login 带归一化邮箱与 login_from', async () => {
+  it('提交密码登录：POST /auth/login 带归一化邮箱与 login_from', async () => {
     enablePasswordLogin()
     let received: unknown = null
     mockServer.use(
@@ -312,7 +312,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     expect(renderer.root.findByProps({ 'data-testid': 'landed' })).toBeTruthy()
   })
 
-  it('106011 映射为「邮箱或口令不正确」而不是原始 msg', async () => {
+  it('106011 映射为「邮箱或密码不正确」而不是原始 msg', async () => {
     enablePasswordLogin()
     mockServer.use(
       http.post(passwordLoginUrl, () => createErrorResponse(200, 'INVALID_CREDENTIALS', 106011)),
@@ -324,7 +324,7 @@ describe('LoginPage 邮箱口令登录（users_v2）', () => {
     await submitForm(renderer)
 
     renderer.root.findByProps({ 'data-testid': 'login-password-error' })
-    expect(JSON.stringify(renderer.toJSON())).toContain('邮箱或口令不正确')
+    expect(JSON.stringify(renderer.toJSON())).toContain('邮箱或密码不正确')
   })
 
   it('106008（账号封禁）给专门文案而不是通用失败', async () => {

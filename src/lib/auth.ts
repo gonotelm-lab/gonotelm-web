@@ -36,7 +36,7 @@ export const AUTH_ERROR_CODE = {
   emailTaken: 106012,
   /** 邮箱格式非法。 */
   emailInvalid: 106013,
-  /** 口令不满足策略。 */
+  /** 密码不满足策略。 */
   weakPassword: 106014,
   /** provider 无可用已验证邮箱。 */
   idpEmailUnavailable: 106015,
@@ -56,9 +56,9 @@ export const AUTH_ERROR_CODE = {
   identityNotFound: 106022,
   /** 该账号已经绑定过同 provider 的另一个身份。 */
   providerAlreadyBound: 106023,
-  /** 解绑会把账号唯一的登录方式删掉（后端要求先设口令）。 */
+  /** 解绑会把账号唯一的登录方式删掉（后端要求先设密码）。 */
   lastLoginMethod: 106024,
-  /** 新口令与当前口令相同。 */
+  /** 新密码与当前密码相同。 */
   passwordUnchanged: 106025,
 } as const
 
@@ -168,7 +168,7 @@ export function buildLoginPath(returnTo?: string, notice?: string): string {
   return notice ? `${base}&notice=${encodeURIComponent(notice)}` : base
 }
 
-/** 登录页的说明性提示（`?notice=`）；当前只有一个来源：改口令后全部会话被作废。 */
+/** 登录页的说明性提示（`?notice=`）；当前只有一个来源：改密码后全部会话被作废。 */
 export const RELOGIN_NOTICE_PASSWORD_CHANGED = 'password_changed'
 
 /**
@@ -228,9 +228,9 @@ export function recallAuthAttempt(): AuthAttempt | null {
 }
 
 /**
- * 改口令/设口令成功后回登录页。
+ * 改密码/设密码成功后回登录页。
  *
- * 后端保存口令会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是
+ * 后端保存密码会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是
  * 「重新登录」：带上提示，用户才不会以为自己莫名其妙被登出。
  */
 export function buildReloginPath(returnTo?: string): string {

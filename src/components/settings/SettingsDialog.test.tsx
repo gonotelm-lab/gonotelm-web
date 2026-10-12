@@ -428,7 +428,7 @@ describe('SettingsDialog', () => {
     expect(i18n.resolvedLanguage).toBe('en')
   })
 
-  it('账号安全区：口令表单不常驻，点「设置口令」在弹窗里提交（无口令只发 new_password）', async () => {
+  it('账号安全区：密码表单不常驻，点「设置密码」在弹窗里提交（无密码只发 new_password）', async () => {
     const assign = vi.fn()
     vi.stubGlobal('window', {
       location: { pathname: '/notebook/n-1', search: '', origin: 'http://localhost', assign },
@@ -455,7 +455,7 @@ describe('SettingsDialog', () => {
 
     act(() => renderer.root.findByProps({ 'data-testid': 'security-password-open' }).props.onClick())
 
-    // 默认 /user/me 没有 has_password，保守按「无口令」处理：不要求当前口令。
+    // 默认 /user/me 没有 has_password，保守按「无密码」处理：不要求当前密码。
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'settings-password-current-input' }),
     ).toHaveLength(0)
@@ -540,7 +540,7 @@ describe('SettingsDialog', () => {
     ).toHaveLength(0)
   })
 
-  it('账号安全区展示邮箱、登录方式与口令状态（读 /user/me 的 login_source 与 has_password）', async () => {
+  it('账号安全区展示邮箱、登录方式与密码状态（读 /user/me 的 login_source 与 has_password）', async () => {
     mockServer.use(
       http.get(meUrl, () =>
         createSuccessResponse({
@@ -560,8 +560,8 @@ describe('SettingsDialog', () => {
     expect(textOf(renderer, 'security-email')).toBe('user@example.com')
     expect(textOf(renderer, 'security-login-source')).toBe('GitHub')
     expect(textOf(renderer, 'security-password-state')).toBe('已设置')
-    expect(JSON.stringify(renderer.toJSON())).toContain('修改口令')
-    // 表单不常驻；点开弹窗后才要求当前口令。
+    expect(JSON.stringify(renderer.toJSON())).toContain('修改密码')
+    // 表单不常驻；点开弹窗后才要求当前密码。
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'settings-password-current-input' }),
     ).toHaveLength(0)
@@ -569,7 +569,7 @@ describe('SettingsDialog', () => {
     expect(renderer.root.findByProps({ 'data-testid': 'settings-password-current-input' })).toBeTruthy()
   })
 
-  it('账号安全区：口令登录的账号显示「邮箱与口令」', async () => {
+  it('账号安全区：密码登录的账号显示「邮箱与密码」', async () => {
     mockServer.use(
       http.get(meUrl, () =>
         createSuccessResponse({
@@ -585,7 +585,7 @@ describe('SettingsDialog', () => {
     const { renderer } = await renderDialog()
     act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-account' }).props.onClick())
 
-    expect(textOf(renderer, 'security-login-source')).toBe('邮箱与口令')
+    expect(textOf(renderer, 'security-login-source')).toBe('邮箱与密码')
   })
 
   it('账号安全区展示第三方账号绑定状态（已绑定 provider 带邮箱快照）', async () => {
@@ -754,7 +754,7 @@ describe('SettingsDialog', () => {
     let received: unknown = null
     let unbound = false
     mockServer.use(
-      // 账号有口令：不属于「唯一登录方式」的拦截场景。
+      // 账号有密码：不属于「唯一登录方式」的拦截场景。
       http.get(meUrl, () =>
         createSuccessResponse({
           user_id: 'user-1',
@@ -834,7 +834,7 @@ describe('SettingsDialog', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('唯一的登录方式')
   })
 
-  it('解绑是唯一登录方式且没有口令时：挡下来并提示先设口令', async () => {
+  it('解绑是唯一登录方式且没有密码时：挡下来并提示先设密码', async () => {
     let unbindCalls = 0
     mockServer.use(
       http.get(meUrl, () =>

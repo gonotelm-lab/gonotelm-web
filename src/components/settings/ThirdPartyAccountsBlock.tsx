@@ -134,7 +134,7 @@ function IdentityRow({
  * 解绑的确认、保护与请求。
  *
  * 单独抽出来既是为了让组件本体只做接线，也是为了让「锁门」这条规则只有一个入口：
- * 解绑掉唯一登录方式且账号还没有口令，用户就再也进不来了——先挡住并提示设口令。
+ * 解绑掉唯一登录方式且账号还没有密码，用户就再也进不来了——先挡住并提示设密码。
  */
 function useIdentityUnbind(boundCount: number, hasPassword: boolean) {
   const queryClient = useQueryClient()

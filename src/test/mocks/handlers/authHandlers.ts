@@ -7,12 +7,12 @@ const apiBaseUrl = 'http://127.0.0.1:4173'
 export const MOCK_UPLOADED_AVATAR_URL = 'https://cdn.example.com/avatars/user-1-uploaded.png'
 
 /**
- * 邮箱注册与验证成功都是「无响应体」语义（后端用 204），
- * 口令登录成功只体现在 Set-Cookie 上，因此同样按 204 处理。
+ * 邮箱验证成功是「无响应体」语义（后端用 204），
+ * 密码登录成功只体现在 Set-Cookie 上，因此同样按 204 处理。
  */
 export const authHandlers = [
   // 默认保持与「users_v2 改造前」的后端一致：providers 里没有 password_enabled，
-  // 因此默认不渲染口令表单。需要口令表单的用例自己覆盖该 handler。
+  // 因此默认不渲染密码表单。需要密码表单的用例自己覆盖该 handler。
   http.get(`${apiBaseUrl}/api/v1/auth/providers`, () =>
     createSuccessResponse({ providers: [{ name: 'github' }, { name: 'google' }] }),
   ),
@@ -34,7 +34,7 @@ export const authHandlers = [
 
   // ── users_v2 登录改造新增（P0）─────────────────────────────────────────────
   // 登录/验证成功：200 + { user_id }（后端 finishSession → AuthSessionResponse）。
-  // 口令登录在 `email/*` 分组下（不是 POST /auth/login）。
+  // 密码登录在 `email/*` 分组下（不是 POST /auth/login）。
   http.post(`${apiBaseUrl}/api/v1/auth/email/login`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),
@@ -44,10 +44,17 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),
-  // 注册/重发成功：204 无响应体（后端 OkRespNoContent）。
-  http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () => createNoContentResponse()),
+  // 注册：200 + { email_verified }——默认走需要验证的模式（账号要等验证通过才建）；
+  // 免验证模式的用例自己覆盖成 { email_verified: true }。重发仍是 204。
+  http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () =>
+    createSuccessResponse({ email_verified: false }),
+  ),
+  // 注册前元数据：默认不要求复杂密码；需要复杂密码的用例自己覆盖成 true。
+  http.get(`${apiBaseUrl}/api/v1/auth/email/register/prefetch`, () =>
+    createSuccessResponse({ require_complex_password: false }),
+  ),
   http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
-  // 设置/修改口令：200 + { relogin_required }（后端作废全部会话，不再是 204）。
+  // 设置/修改密码：200 + { relogin_required }（后端作废全部会话，不再是 204）。
   http.put(`${apiBaseUrl}/api/v1/auth/password`, () =>
     createSuccessResponse({ relogin_required: true }),
   ),

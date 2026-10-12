@@ -7,7 +7,9 @@ import type {
   AuthSessionResponse,
   AuthSupportedIdentitiesResponse,
   BindIdentityRequest,
+  EmailRegisterPrefetchResponse,
   EmailRegisterRequest,
+  EmailRegisterResponse,
   EmailResendRequest,
   EmailVerifyCodeRequest,
   EmailVerifyRequest,
@@ -26,7 +28,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 export const AUTH_LOGIN_PATH = '/api/v1/auth/login'
 
 /**
- * POST 邮箱口令登录。与上面的 GET 不同路径：口令登录归属 `email/*` 分组，
+ * POST 邮箱密码登录。与上面的 GET 不同路径：密码登录归属 `email/*` 分组，
  * 不要因为名字相近而误用 `AUTH_LOGIN_PATH`。
  */
 export const AUTH_EMAIL_LOGIN_PATH = '/api/v1/auth/email/login'
@@ -78,9 +80,9 @@ export function logout() {
 }
 
 /**
- * 邮箱口令登录。
+ * 邮箱密码登录。
  *
- * 路径是 `POST /api/v1/auth/email/login`：后端在 2026-10-11 14:45 把口令登录从
+ * 路径是 `POST /api/v1/auth/email/login`：后端在 2026-10-11 14:45 把密码登录从
  * 「与 `GET /auth/login` 同路径不同方法」改到了 `email/*` 分组下（设计稿 §12 原写
  * `POST /auth/login`，按 §12 的分组原则 `email/*` 更自洽）。GET `/auth/login` 仍是三方登录发起。
  *
@@ -93,12 +95,20 @@ export function passwordLogin(body: PasswordLoginRequest) {
   })
 }
 
+/** 注册前元数据（服务端密码策略等）；react-query 查询键，注册页与设置密码表单共用同一份缓存。 */
+export const EMAIL_REGISTER_PREFETCH_QUERY_KEY = ['auth', 'email-register-prefetch'] as const
+
+export function getEmailRegisterPrefetch() {
+  return request<EmailRegisterPrefetchResponse>('/api/v1/auth/email/register/prefetch')
+}
+
 /**
- * 邮箱注册：只写 pending 并下发验证邮件 + `_gnlm_signup_ticket`，
- * 不建账号、不签发会话；真正的建号发生在验证成功那一刻。
+ * 邮箱注册。默认只写 pending 并下发验证邮件 + `_gnlm_signup_ticket`，不建账号、不签发会话；
+ * 后端关闭邮箱验证时（auth.emailVerificationRequired=false）直接建号并签发会话，
+ * 响应里的 `email_verified` 用来区分这两种结果。
  */
 export function registerEmail(body: EmailRegisterRequest) {
-  return request<null>('/api/v1/auth/email/register', {
+  return request<EmailRegisterResponse>('/api/v1/auth/email/register', {
     method: 'POST',
     body: JSON.stringify(body),
   })
@@ -129,7 +139,7 @@ export function resendVerificationEmail(body: EmailResendRequest) {
 }
 
 /**
- * 设置/修改口令（authed + CSRF）。已有口令时必须带 `old_password`。
+ * 设置/修改密码（authed + CSRF）。已有密码时必须带 `old_password`。
  *
  * 返回 200 `{relogin_required}`：后端会作废该账号全部会话（含当前）并清 cookie，
  * 调用方必须按 `relogin_required` 把用户送回登录页，不能假设会话还在。

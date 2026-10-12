@@ -15,7 +15,9 @@
     "open": "Open",
     "download": "Download",
     "edit": "Edit",
-    "preview": "Preview"
+    "preview": "Preview",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "error": {
     "deleteFailed": "Delete failed. Please try again later.",

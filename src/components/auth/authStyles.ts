@@ -3,7 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 /**
  * Card-less auth column (reference: brand mark → title → form stack → legal row).
  * No panel background: the controls themselves are the only raised surfaces.
- * Shared by every auth page so 登录 / 注册 / 验证 / 设置口令 keep one column width.
+ * Shared by every auth page so 登录 / 注册 / 验证 / 设置密码 keep one column width.
  */
 export const authColumnMaxWidth = 400
 

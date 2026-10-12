@@ -27,7 +27,7 @@ import { workspaceIconSize } from '../notebook-workspace/shared/ui/typeTokens'
 /**
  * 把 `/user/me` 的 `login_source` 翻成可读文案。
  *
- * 后端取值（`entity.UserSession.LoginSource`）：`password` = 邮箱口令登录、
+ * 后端取值（`entity.UserSession.LoginSource`）：`password` = 邮箱密码登录、
  * `email` = 邮箱验证建号、其余是 provider 名；空串（旧会话）显示占位符。
  */
 function loginSourceLabel(source: string | undefined, t: TFunction): string {
@@ -74,9 +74,9 @@ function SecurityRow({
 }
 
 /**
- * 「账号安全」设置分区：账号概览（邮箱 / 登录方式 / 口令状态）+ 口令动作 + 第三方账号状态。
+ * 「账号安全」设置分区：账号概览（邮箱 / 登录方式 / 密码状态）+ 密码动作 + 第三方账号状态。
  *
- * 口令表单不常驻页面：点按钮后在独立对话框里改（与设置弹窗的其它分区保持一致的
+ * 密码表单不常驻页面：点按钮后在独立对话框里改（与设置弹窗的其它分区保持一致的
  * 「概览 + 动作」节奏）。`/set-password` 引导页仍然用同一套 `PasswordForm` 内联渲染。
  */
 export function SecuritySettingsSection() {

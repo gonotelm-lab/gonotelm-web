@@ -14,7 +14,7 @@ import { installBrowserShims } from './browserShim'
  * 探针只发无效凭证，不建 pending、不建账号、不签发会话：
  * - 注册用非法邮箱（命中 106013 参数校验，不会写 pending）
  * - 验证/重发用不存在的凭证（命中 106016，不会建号）
- * - 口令登录用不存在的邮箱（命中 106011，统一文案）
+ * - 密码登录用不存在的邮箱（命中 106011，统一文案）
  */
 
 const live = process.env.GNLM_LIVE_AUTH === '1'
@@ -52,7 +52,7 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
     )
   })
 
-  it('POST /auth/email/login 邮箱口令登录已挂载，错误凭证返回 106011', async () => {
+  it('POST /auth/email/login 邮箱密码登录已挂载，错误凭证返回 106011', async () => {
     await expect(
       auth.passwordLogin({ email: 'nobody@example.invalid', password: 'not-a-real-password' }),
     ).rejects.toSatisfy(

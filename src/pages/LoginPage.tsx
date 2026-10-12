@@ -30,7 +30,7 @@ function providerLabel(name: string, t: (key: string) => string): string {
   return known === `provider.${name}` ? name : known
 }
 
-/** 登录失败文案：账号不存在与口令错误共用统一文案，避免登录变成账号枚举器。 */
+/** 登录失败文案：账号不存在与密码错误共用统一文案，避免登录变成账号枚举器。 */
 function describePasswordLoginError(error: unknown, t: (key: string) => string): string {
   if (isAuthErrorCode(error, AUTH_ERROR_CODE.invalidCredentials)) {
     return t('login.invalidCredentials')
@@ -44,7 +44,7 @@ function describePasswordLoginError(error: unknown, t: (key: string) => string):
   return t('login.failed')
 }
 
-/** 邮箱 + 口令登录（POST /auth/login）；仅在后端开启口令登录时渲染。 */
+/** 邮箱 + 密码登录（POST /auth/login）；仅在后端开启密码登录时渲染。 */
 function PasswordLoginForm({ returnTo }: { returnTo: string }) {
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
@@ -56,7 +56,7 @@ function PasswordLoginForm({ returnTo }: { returnTo: string }) {
   const loginMutation = useMutation({
     mutationFn: passwordLogin,
     onSuccess: async () => {
-      // 口令登录成功即签发会话；让 me 查询失效，AuthGate 会在跳转后重新校验。
+      // 密码登录成功即签发会话；让 me 查询失效，AuthGate 会在跳转后重新校验。
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
       navigate(returnTo, { replace: true })
     },
@@ -157,7 +157,7 @@ export function LoginPage() {
   const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
   const returnTo = sanitizeReturnTo(searchParams.get('return_to'))
-  // 改口令后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
+  // 改密码后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
   const passwordChangedNotice =
     searchParams.get('notice') === RELOGIN_NOTICE_PASSWORD_CHANGED
   const callback = resolveCallbackLanding(searchParams)
