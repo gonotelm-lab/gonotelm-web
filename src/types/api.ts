@@ -98,10 +98,13 @@ export interface EmailRegisterRequest {
 }
 
 /**
- * GET /api/v1/auth/email/register/prefetch 的响应：注册前拿到的服务端元数据。
+ * GET /api/v1/auth/prefetch 的响应：注册页、设置/修改密码、找回密码共用的服务端元数据。
  * require_complex_password=true 时，密码除长度下限外还必须同时含大写字母、小写字母与数字。
+ *
+ * 后端 2026-10-14 把原来注册页 / 重置页两个 prefetch 接口合并成这一个（Go 侧
+ * `AuthPrefetchResponse`），字段不变。
  */
-export interface EmailRegisterPrefetchResponse {
+export interface AuthPrefetchResponse {
   require_complex_password: boolean
 }
 
@@ -113,11 +116,6 @@ export interface EmailRegisterPrefetchResponse {
 export interface EmailRegisterResponse {
   email_verified: boolean
   user_id?: string
-}
-
-/** POST /api/v1/auth/email/verify —— 消费邮件链接里的 token，成功即建号并签发会话。 */
-export interface EmailVerifyRequest {
-  token: string
 }
 
 /** POST /api/v1/auth/email/verify/code —— 用 6 位验证码验证，语义同链接验证。 */
@@ -145,6 +143,30 @@ export interface SetPasswordRequest {
  * 前端据此把用户送回登录页，而不是留在一个已经失效的界面上。
  */
 export interface SetPasswordResponse {
+  relogin_required: boolean
+}
+
+/**
+ * POST /api/v1/auth/password/reset —— 发起找回密码。
+ *
+ * 防账号枚举：邮箱没注册时后端**同样**返回 204、不发信、不写 pending，
+ * 所以前端无法（也不该）据此判断邮箱是否存在，成功态文案必须保持中性。
+ */
+export interface PasswordResetRequest {
+  email: string
+}
+
+/** POST /api/v1/auth/password/reset/verify —— 用邮件链接的 token 重置密码。 */
+export interface PasswordResetConfirmLinkRequest {
+  token: string
+  new_password: string
+}
+
+/**
+ * 上面两个确认接口的响应：后端 `PasswordResetConfirmResult` 恒返回
+ * `relogin_required: true`（重置成功即作废该账号全部会话，含当前）。
+ */
+export interface PasswordResetConfirmResponse {
   relogin_required: boolean
 }
 

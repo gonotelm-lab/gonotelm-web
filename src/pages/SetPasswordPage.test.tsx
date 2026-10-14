@@ -14,7 +14,7 @@ import { SetPasswordPage } from './SetPasswordPage'
 
 const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
 const passwordUrl = 'http://127.0.0.1:4173/api/v1/auth/password'
-const prefetchUrl = 'http://127.0.0.1:4173/api/v1/auth/email/register/prefetch'
+const prefetchUrl = 'http://127.0.0.1:4173/api/v1/auth/prefetch'
 
 const useMe = (hasPassword: boolean) =>
   mockServer.use(

@@ -117,12 +117,29 @@ describe('LoginPage', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('密码已更新')
   })
 
+  it('带 notice=password_reset 时说明「密码已重置，请重新登录」', async () => {
+    const renderer = await renderLogin('/login?return_to=%2F&notice=password_reset')
+
+    renderer.root.findByProps({ 'data-testid': 'login-notice-password-reset' })
+    expect(JSON.stringify(renderer.toJSON())).toContain('密码已重置')
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'login-notice-password-changed' }),
+    ).toHaveLength(0)
+  })
+
   it('没有 notice 时不显示说明', async () => {
     const renderer = await renderLogin()
 
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'login-notice-password-changed' }),
     ).toHaveLength(0)
+  })
+
+  it('notice=constructor 这类原型链成员不会渲染出空提示', async () => {
+    const renderer = await renderLogin('/login?notice=constructor')
+
+    // Object.hasOwn 过滤：否则 'constructor' in NOTICES 为真，会渲染一个没文案也没 testid 的 Alert
+    expect(renderer.root.findAllByProps({ severity: 'info' })).toHaveLength(0)
   })
 
   it('展示 providers 并点击触发整页跳转', async () => {
@@ -276,6 +293,38 @@ describe('LoginPage 邮箱密码登录（users_v2）', () => {
       .find((node) => typeof node.props.to === 'string')
     expect(link?.props.to).toContain('/signup?return_to=')
     expect(link?.props.to).toContain(encodeURIComponent('/notebook/n-1'))
+  })
+
+  it('找回密码与注册入口并排在同一块里，且都保留 return_to', async () => {
+    enablePasswordLogin()
+    const renderer = await renderLogin()
+
+    const block = renderer.root.findByProps({ 'data-testid': 'login-alt-entries' })
+    const testIds = block
+      .findAll((node) => typeof node.props?.['data-testid'] === 'string')
+      .map((node) => node.props['data-testid'])
+    // 同一行里两个入口都在：创建账号在左（主入口），忘记密码在右
+    expect(testIds).toContain('login-forgot-password')
+    expect(testIds).toContain('login-signup-link')
+    expect(testIds.indexOf('login-signup-link')).toBeLessThan(
+      testIds.indexOf('login-forgot-password'),
+    )
+    const pageText = JSON.stringify(renderer.toJSON())
+    expect(pageText).toContain('忘记密码')
+    expect(pageText).toContain('创建账号')
+
+    const forgot = renderer.root
+      .findAllByProps({ 'data-testid': 'login-forgot-password' })
+      .find((node) => typeof node.props.to === 'string')
+    expect(forgot?.props.to).toContain('/reset-password?return_to=')
+    expect(forgot?.props.to).toContain(encodeURIComponent('/notebook/n-1'))
+  })
+
+  it('password_enabled 缺失时找回密码入口也不渲染', async () => {
+    const renderer = await renderLogin()
+
+    expect(() => renderer.root.findByProps({ 'data-testid': 'login-forgot-password' })).toThrow()
+    expect(() => renderer.root.findByProps({ 'data-testid': 'login-alt-entries' })).toThrow()
   })
 
   it('提交密码登录：POST /auth/login 带归一化邮箱与 login_from', async () => {

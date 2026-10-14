@@ -7,7 +7,9 @@ import { getAuthProviders, goToAuthLogin, passwordLogin } from '../api/auth'
 import {
   AUTH_ERROR_CODE,
   RELOGIN_NOTICE_PASSWORD_CHANGED,
+  RELOGIN_NOTICE_PASSWORD_RESET,
   buildBindErrorPath,
+  buildResetPasswordPath,
   buildSignupPath,
   isAuthErrorCode,
   parseCallbackFailure,
@@ -153,13 +155,32 @@ function resolveCallbackLanding(params: URLSearchParams): CallbackLanding {
   }
 }
 
+/**
+ * `?notice=` 的分流：两个来源都是「密码被改过、全部会话已作废」，但触发场景不同
+ * （自己改密码 vs 找回密码），文案分开写用户才知道刚才发生了什么。
+ */
+const RELOGIN_NOTICES = {
+  [RELOGIN_NOTICE_PASSWORD_CHANGED]: {
+    testId: 'login-notice-password-changed',
+    messageKey: 'login.passwordChangedNotice',
+  },
+  [RELOGIN_NOTICE_PASSWORD_RESET]: {
+    testId: 'login-notice-password-reset',
+    messageKey: 'login.passwordResetNotice',
+  },
+} as const
+
 export function LoginPage() {
   const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
   const returnTo = sanitizeReturnTo(searchParams.get('return_to'))
-  // 改密码后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
-  const passwordChangedNotice =
-    searchParams.get('notice') === RELOGIN_NOTICE_PASSWORD_CHANGED
+  // 改密码/找回密码后后端作废了全部会话，前端带着 ?notice= 回到这里解释原因。
+  // 必须用 Object.hasOwn：`in` 会走原型链，?notice=constructor 会命中 Object.prototype 的成员，
+  // 渲染出一个没有文案也没有 testid 的空 Alert。
+  const noticeParam = searchParams.get('notice') ?? ''
+  const notice = Object.hasOwn(RELOGIN_NOTICES, noticeParam)
+    ? RELOGIN_NOTICES[noticeParam as keyof typeof RELOGIN_NOTICES]
+    : null
   const callback = resolveCallbackLanding(searchParams)
   const meQuery = useMeQuery()
 
@@ -192,13 +213,9 @@ export function LoginPage() {
 
   return (
     <AuthShell title={t('login.title')} subtitle={t('login.subtitle')} busy={providersQuery.isPending}>
-      {passwordChangedNotice ? (
-        <Alert
-          data-testid="login-notice-password-changed"
-          severity="info"
-          sx={{ width: '100%', textAlign: 'left' }}
-        >
-          {t('login.passwordChangedNotice')}
+      {notice ? (
+        <Alert data-testid={notice.testId} severity="info" sx={{ width: '100%', textAlign: 'left' }}>
+          {t(notice.messageKey)}
         </Alert>
       ) : null}
 
@@ -268,18 +285,39 @@ export function LoginPage() {
         </Stack>
       )}
 
+      {/* 注册与找回密码是同一层的替代入口，并排放在底部同一行，用一道发丝线分隔：
+          左边「创建账号」是主入口，右边「忘记密码」是登不进来时的后路。
+          两者都只服务于邮箱密码流程，旧后端没开密码登录时整块不渲染（与表单一致）。 */}
       {passwordEnabled ? (
-        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: '6px' }}>
-          {t('login.noAccount')}
-          <Box
-            component={Link}
-            to={buildSignupPath(returnTo)}
-            data-testid="login-signup-link"
-            sx={textLinkSx}
-          >
-            {t('login.signupLink')}
-          </Box>
-        </Typography>
+        <Stack
+          data-testid="login-alt-entries"
+          direction="row"
+          spacing={workspaceSpace.md}
+          sx={{ alignItems: 'center' }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: '6px' }}>
+            {t('login.noAccount')}
+            <Box
+              component={Link}
+              to={buildSignupPath(returnTo)}
+              data-testid="login-signup-link"
+              sx={textLinkSx}
+            >
+              {t('login.signupLink')}
+            </Box>
+          </Typography>
+          <Box aria-hidden sx={{ width: '1px', height: 14, bgcolor: 'divider' }} />
+          <Typography variant="body2" color="text.secondary">
+            <Box
+              component={Link}
+              to={buildResetPasswordPath(returnTo)}
+              data-testid="login-forgot-password"
+              sx={textLinkSx}
+            >
+              {t('login.forgotPassword')}
+            </Box>
+          </Typography>
+        </Stack>
       ) : null}
     </AuthShell>
   )

@@ -11,15 +11,17 @@ import {
   AUTH_BIND_IDENTITY_PATH,
   buildAuthLoginPath,
   buildAuthLoginUrl,
+  confirmPasswordResetLink,
+  getAuthPrefetch,
   getAuthProviders,
   logout,
   passwordLogin,
   registerEmail,
+  requestPasswordReset,
   resendVerificationEmail,
   setPassword,
   startIdentityBind,
   verifyEmailCode,
-  verifyEmailToken,
 } from './auth'
 
 describe('buildAuthLoginPath', () => {
@@ -135,17 +137,6 @@ describe('邮箱注册与验证', () => {
     expect(received).toEqual({ email: 'a@b.com', password: 'secret-123' })
   })
 
-  it('verifyEmailToken POST /auth/email/verify，带 token 与 login_from', async () => {
-    let received: unknown = null
-    mockServer.use(
-      http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, async ({ request }) => {
-        received = await request.json()
-        return createSuccessResponse({ user_id: 'user-1' })
-      }),
-    )
-    await expect(verifyEmailToken({ token: 'tok-1' })).resolves.toEqual({ user_id: 'user-1' })
-    expect(received).toEqual({ token: 'tok-1', login_from: 'web' })
-  })
 
   it('verifyEmailCode POST /auth/email/verify/code', async () => {
     let received: unknown = null
@@ -190,6 +181,39 @@ describe('密码设置', () => {
     expect(captured.method).toBe('PUT')
     expect(captured.body).toEqual({ old_password: 'old-12345', new_password: 'secret-123' })
   })
+})
+
+describe('表单元数据', () => {
+  it('getAuthPrefetch GET /auth/prefetch，返回密码策略', async () => {
+    await expect(getAuthPrefetch()).resolves.toEqual({
+      require_complex_password: false,
+    })
+  })
+})
+
+describe('找回密码', () => {
+  it('requestPasswordReset POST /auth/password/reset 只带 email，204 解析成 null', async () => {
+    const captured = await captureRequest('/api/v1/auth/password/reset')
+    await expect(requestPasswordReset({ email: 'a@b.com' })).resolves.toBeNull()
+    expect(captured.method).toBe('POST')
+    expect(captured.body).toEqual({ email: 'a@b.com' })
+  })
+
+  it('confirmPasswordResetLink POST /auth/password/reset/verify，返回 relogin_required', async () => {
+    let received: unknown = null
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/auth/password/reset/verify`, async ({ request }) => {
+        received = await request.json()
+        return createSuccessResponse({ relogin_required: true })
+      }),
+    )
+
+    await expect(
+      confirmPasswordResetLink({ token: 'tok-1', new_password: 'secret-123' }),
+    ).resolves.toEqual({ relogin_required: true })
+    expect(received).toEqual({ token: 'tok-1', new_password: 'secret-123' })
+  })
+
 })
 
 describe('startIdentityBind', () => {

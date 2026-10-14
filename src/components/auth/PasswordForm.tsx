@@ -7,16 +7,14 @@ import { setPassword } from '../../api/auth'
 import { AUTH_ERROR_CODE, isAuthErrorCode } from '../../lib/auth'
 import type { SetPasswordResponse } from '../../types/api'
 import {
-  PASSWORD_MAX_BYTES,
   PASSWORD_MIN_LENGTH,
-  isComplexPassword,
   isValidPassword,
   passwordByteLength,
 } from '../../lib/authValidation'
 import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 import { ME_QUERY_KEY } from './useMeQuery'
 import { useRequireComplexPassword } from './usePasswordPolicy'
-import { PasswordPolicyHints } from './PasswordPolicyHints'
+import { NewPasswordFields } from './NewPasswordFields'
 import { PasswordVisibilityToggle } from './PasswordVisibilityToggle'
 import { authSubmitButtonSx } from './authStyles'
 
@@ -99,8 +97,6 @@ export function PasswordForm({
   const [touched, setTouched] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
-  const [showNext, setShowNext] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
 
   const mutation = useMutation({
     mutationFn: setPassword,
@@ -116,20 +112,6 @@ export function PasswordForm({
     },
   })
 
-  const nextBytes = passwordByteLength(next)
-  // 新密码已经在敲（或点过保存）之后，未满足的规则才报红；空着没动过时不提前骂人。
-  const nextTouched = touched || nextBytes > 0
-  const nextTooShort = nextBytes < PASSWORD_MIN_LENGTH && nextTouched
-  const nextTooLong = nextBytes > PASSWORD_MAX_BYTES
-  // 复杂度必须和长度一样实时：只靠点保存才报，用户根本不知道差哪一条。
-  const nextTooSimple =
-    requireComplexPassword &&
-    nextTouched &&
-    nextBytes >= PASSWORD_MIN_LENGTH &&
-    nextBytes <= PASSWORD_MAX_BYTES &&
-    !isComplexPassword(next)
-  const nextNeedsAttention = nextTooShort || nextTooLong || nextTooSimple
-  const mismatch = confirm.length > 0 && confirm !== next
   const currentRequired = touched && hasPassword && current.length === 0
 
   /**
@@ -183,72 +165,15 @@ export function PasswordForm({
             }}
           />
         ) : null}
-        <TextField
-          fullWidth
-          size="small"
-          type={showNext ? 'text' : 'password'}
-          name="new-password"
-          autoComplete="new-password"
-          label={t('password.newLabel')}
-          value={next}
-          onChange={(event) => setNext(event.target.value)}
+        <NewPasswordFields
+          password={next}
+          confirm={confirm}
+          onPasswordChange={setNext}
+          onConfirmChange={setConfirm}
+          requireComplex={requireComplexPassword}
+          showErrors={touched || passwordByteLength(next) > 0}
           disabled={mutation.isPending}
-          error={nextNeedsAttention}
-          helperText={
-            requireComplexPassword ? (
-              <PasswordPolicyHints
-                value={next}
-                requireComplex={requireComplexPassword}
-                showErrors={nextNeedsAttention}
-                testId={`${testIdPrefix}-hints`}
-              />
-            ) : nextTooLong ? (
-              t('signup.passwordTooLong', { max: PASSWORD_MAX_BYTES })
-            ) : nextTooShort ? (
-              t('password.weakPassword', { min: PASSWORD_MIN_LENGTH })
-            ) : (
-              t('password.hint', { min: PASSWORD_MIN_LENGTH })
-            )
-          }
-          slotProps={{
-            htmlInput: { 'data-testid': `${testIdPrefix}-new-input` },
-            input: {
-              endAdornment: (
-                <PasswordVisibilityToggle
-                  shown={showNext}
-                  onToggle={() => setShowNext((shown) => !shown)}
-                  testId={`${testIdPrefix}-new-visibility`}
-                />
-              ),
-            },
-            // 清单是 <ul>，不能塞进 FormHelperText 默认的 <p> 里
-            formHelperText: { component: 'div' },
-          }}
-        />
-        <TextField
-          fullWidth
-          size="small"
-          type={showConfirm ? 'text' : 'password'}
-          name="confirm-password"
-          autoComplete="new-password"
-          label={t('password.confirmLabel')}
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-          disabled={mutation.isPending}
-          error={mismatch}
-          helperText={mismatch ? t('password.mismatch') : undefined}
-          slotProps={{
-            htmlInput: { 'data-testid': `${testIdPrefix}-confirm-input` },
-            input: {
-              endAdornment: (
-                <PasswordVisibilityToggle
-                  shown={showConfirm}
-                  onToggle={() => setShowConfirm((shown) => !shown)}
-                  testId={`${testIdPrefix}-confirm-visibility`}
-                />
-              ),
-            },
-          }}
+          testIdPrefix={testIdPrefix}
         />
 
         {mutation.isError ? (

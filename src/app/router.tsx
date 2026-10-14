@@ -1,12 +1,13 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AuthGate } from '../components/auth/AuthGate'
-import { AUTH_ERROR_PATH } from '../lib/auth'
+import { AUTH_ERROR_PATH, RESET_PASSWORD_PATH } from '../lib/auth'
 import { AppRoot } from './AppRoot'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { AuthErrorPage } from '../pages/AuthErrorPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotebookWorkspacePage } from '../pages/NotebookWorkspacePage'
+import { ResetPasswordPage } from '../pages/ResetPasswordPage'
 import { SetPasswordPage } from '../pages/SetPasswordPage'
 import { SignupPage } from '../pages/SignupPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage'
@@ -30,6 +31,11 @@ export const router = createBrowserRouter([
     {
       path: '/verify-email',
       element: <VerifyEmailPage />,
+    },
+    // 找回密码页公开：用户正是因为登不进来才走这条路，邮件链接可能落在任何浏览器。
+    {
+      path: RESET_PASSWORD_PATH,
+      element: <ResetPasswordPage />,
     },
     // 第三方回调失败的落地页（后端 302 过来）。公开：可能来自未登录的浏览器。
     {

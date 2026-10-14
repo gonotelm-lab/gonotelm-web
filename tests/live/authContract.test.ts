@@ -13,13 +13,21 @@ import { installBrowserShims } from './browserShim'
  *
  * 探针只发无效凭证，不建 pending、不建账号、不签发会话：
  * - 注册用非法邮箱（命中 106013 参数校验，不会写 pending）
- * - 验证/重发用不存在的凭证（命中 106016，不会建号）
+ * - 验证码/重发用不存在的凭证（命中 106016，不会建号）
+ * - 重置只发随机邮箱与乱 token（不写 pending、不发信）
  * - 密码登录用不存在的邮箱（命中 106011，统一文案）
  */
 
 const live = process.env.GNLM_LIVE_AUTH === '1'
 
 const errorCode = (error: unknown) => (error as { code?: number }).code
+
+/**
+ * 每次运行换一个收件地址：后端会对同一邮箱占发送间隔（防轰炸），固定地址会让第二次运行
+ * 撞上 106021，把「接口没挂载」和「上一次跑过」混为一谈。`.invalid` 是保留 TLD，永远不可达。
+ */
+const freshProbeEmail = () =>
+  `probe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}@example.invalid`
 
 describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
   let auth: typeof import('@/api/auth')
@@ -67,12 +75,6 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
     ).rejects.toSatisfy((error: unknown) => errorCode(error) === authLib.AUTH_ERROR_CODE.emailInvalid)
   })
 
-  it('POST /auth/email/verify 已挂载，无效 token 返回 106016', async () => {
-    await expect(auth.verifyEmailToken({ token: 'not-a-real-token' })).rejects.toSatisfy(
-      (error: unknown) => errorCode(error) === authLib.AUTH_ERROR_CODE.verificationExpired,
-    )
-  })
-
   it('POST /auth/email/verify/code 已挂载，无 pending 返回 106016', async () => {
     await expect(
       auth.verifyEmailCode({ email: 'nobody@example.invalid', code: '000000' }),
@@ -94,6 +96,33 @@ describe.skipIf(!live)('live backend · users_v2 登录契约', () => {
       (error: unknown) => errorCode(error) === authLib.NOT_LOGIN_CODE,
     )
   })
+
+  // ── 找回密码（公开）───────────────────────────────────────────────────────
+  // 三条都无副作用：不存在的邮箱不发信、不写 pending；乱 token 只读不写。
+  it('GET /auth/prefetch 已挂载，返回密码策略字段', async () => {
+    await expect(auth.getAuthPrefetch()).resolves.toEqual({
+      require_complex_password: expect.any(Boolean),
+    })
+  })
+
+  it('POST /auth/password/reset 已挂载，且不存在的邮箱也成功（防账号枚举）', async () => {
+    await expect(
+      auth.requestPasswordReset({ email: freshProbeEmail() }),
+    ).resolves.toBeNull()
+  })
+
+  it('POST /auth/password/reset/verify 已挂载，无效 token 返回 106016', async () => {
+    // 口令要先过硬策略校验（否则拿到的是 106014，探不出后面那步），这里给一个合规口令。
+    await expect(
+      auth.confirmPasswordResetLink({
+        token: 'not-a-real-token',
+        new_password: 'Not-a-real1Pass',
+      }),
+    ).rejects.toSatisfy(
+      (error: unknown) => errorCode(error) === authLib.AUTH_ERROR_CODE.verificationExpired,
+    )
+  })
+
 
   it('GET /auth/identities 已挂载且要求已登录（2002）', async () => {
     await expect(auth.getAuthIdentities()).rejects.toSatisfy(

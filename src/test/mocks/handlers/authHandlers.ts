@@ -38,9 +38,6 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/email/login`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),
-  http.post(`${apiBaseUrl}/api/v1/auth/email/verify`, () =>
-    createSuccessResponse({ user_id: 'user-1' }),
-  ),
   http.post(`${apiBaseUrl}/api/v1/auth/email/verify/code`, () =>
     createSuccessResponse({ user_id: 'user-1' }),
   ),
@@ -49,13 +46,23 @@ export const authHandlers = [
   http.post(`${apiBaseUrl}/api/v1/auth/email/register`, () =>
     createSuccessResponse({ email_verified: false }),
   ),
-  // 注册前元数据：默认不要求复杂密码；需要复杂密码的用例自己覆盖成 true。
-  http.get(`${apiBaseUrl}/api/v1/auth/email/register/prefetch`, () =>
+  // 表单元数据：注册页 / 设置密码 / 重置页共用同一个接口；
+  // 默认不要求复杂密码，需要复杂密码的用例自己覆盖成 true。
+  http.get(`${apiBaseUrl}/api/v1/auth/prefetch`, () =>
     createSuccessResponse({ require_complex_password: false }),
   ),
   http.post(`${apiBaseUrl}/api/v1/auth/email/resend`, () => createNoContentResponse()),
   // 设置/修改密码：200 + { relogin_required }（后端作废全部会话，不再是 204）。
   http.put(`${apiBaseUrl}/api/v1/auth/password`, () =>
+    createSuccessResponse({ relogin_required: true }),
+  ),
+
+  // ── 找回密码（公开）────────────────────────────────────────────────────────
+  // 重置页的密码策略同样走上面的 GET /auth/prefetch。
+  // 发起找回恒 204：账号不存在时后端也这样返回（防账号枚举）。
+  http.post(`${apiBaseUrl}/api/v1/auth/password/reset`, () => createNoContentResponse()),
+  // 链接/验证码确认：200 + { relogin_required }（后端作废该账号全部会话）。
+  http.post(`${apiBaseUrl}/api/v1/auth/password/reset/verify`, () =>
     createSuccessResponse({ relogin_required: true }),
   ),
 

@@ -60,6 +60,8 @@ export const AUTH_ERROR_CODE = {
   lastLoginMethod: 106024,
   /** 新密码与当前密码相同。 */
   passwordUnchanged: 106025,
+  /** 邮件发送失败（注册验证信与找回密码信共用）。 */
+  mailSendFailed: 106026,
 } as const
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODE)[keyof typeof AUTH_ERROR_CODE]
@@ -168,8 +170,9 @@ export function buildLoginPath(returnTo?: string, notice?: string): string {
   return notice ? `${base}&notice=${encodeURIComponent(notice)}` : base
 }
 
-/** 登录页的说明性提示（`?notice=`）；当前只有一个来源：改密码后全部会话被作废。 */
+/** 登录页的说明性提示（`?notice=`）取值：改密码、找回密码后全部会话都被作废。 */
 export const RELOGIN_NOTICE_PASSWORD_CHANGED = 'password_changed'
+export const RELOGIN_NOTICE_PASSWORD_RESET = 'password_reset'
 
 /**
  * 跳 IdP 之前记住「我在哪、这次做什么」，供回调失败时回到原处并选对文案。
@@ -228,13 +231,16 @@ export function recallAuthAttempt(): AuthAttempt | null {
 }
 
 /**
- * 改密码/设密码成功后回登录页。
+ * 改密码/找回密码成功后回登录页。
  *
- * 后端保存密码会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是
+ * 后端保存或重置密码会作废该账号全部会话（含当前这一个），所以这不是「跳转」而是
  * 「重新登录」：带上提示，用户才不会以为自己莫名其妙被登出。
  */
-export function buildReloginPath(returnTo?: string): string {
-  return buildLoginPath(returnTo, RELOGIN_NOTICE_PASSWORD_CHANGED)
+export function buildReloginPath(
+  returnTo?: string,
+  notice: string = RELOGIN_NOTICE_PASSWORD_CHANGED,
+): string {
+  return buildLoginPath(returnTo, notice)
 }
 
 /** 注册页与登录页共用 return_to 语义（注册成功验证后回到原路径）。 */
@@ -336,14 +342,12 @@ export function buildBindErrorPath(reason: string, provider: string): string {
 }
 
 /**
- * 邮箱验证页。/signup 成功后跳到 `?email=` 进入「输验证码」模式；
- * 邮件链接则直接带 `#token=` 进入「确认链接」模式。
+ * 邮箱验证页路径：`/signup` 注册成功后带着邮箱跳过去，由用户填 6 位验证码。
+ *
+ * 注册只认验证码（后端已下线链接验证 `POST /auth/email/verify` 与邮件里的验证链接），
+ * 所以这里不再构造 `#token=` 形式的落点。
  */
-export function buildVerifyEmailPath(options?: {
-  email?: string
-  returnTo?: string
-  token?: string
-}): string {
+export function buildVerifyEmailPath(options?: { email?: string; returnTo?: string }): string {
   const query = new URLSearchParams()
   if (options?.email) {
     query.set('email', options.email)
@@ -352,13 +356,25 @@ export function buildVerifyEmailPath(options?: {
     query.set('return_to', absoluteReturnTo(options.returnTo))
   }
   const search = query.toString()
-  const base = `/verify-email${search ? `?${search}` : ''}`
-  // token 只放 URL 片段：不发服务端、不进访问日志、也不进 Referer。
-  return options?.token ? `${base}#token=${encodeURIComponent(options.token)}` : base
+  return `/verify-email${search ? `?${search}` : ''}`
 }
 
 export function buildSetPasswordPath(returnTo?: string): string {
   return `/set-password?return_to=${encodeURIComponent(absoluteReturnTo(returnTo))}`
+}
+
+/**
+ * 找回密码页路径（公开路由），与后端 `conf.Auth.PasswordResetURLBase`（默认 `…/reset-password`）
+ * 的落点一致。
+ *
+ * 页面只认两种进入方式：URL 上没有 token 就是「输邮箱发起找回」，带 `#token=` 就是邮件链接进来
+ * 设置新密码。重置已不支持验证码（后端 `/reset/verify/code` 与邮件里的验证码都已下线），
+ * 所以出站只需要带一个 `return_to`——`#token=` 由后端拼邮件链接，不从这里构造。
+ */
+export const RESET_PASSWORD_PATH = '/reset-password'
+
+export function buildResetPasswordPath(returnTo?: string): string {
+  return `${RESET_PASSWORD_PATH}?return_to=${encodeURIComponent(absoluteReturnTo(returnTo))}`
 }
 
 /** 验证 token 允许的形态：非空、无空白与控制字符。 */
@@ -371,12 +387,12 @@ function toSafeVerifyToken(raw: string | null | undefined): string {
 }
 
 /**
- * 从邮件链接的 URL 片段里取验证 token。
+ * 从邮件链接的 URL 片段里取一次性 token（找回密码的重置链接）。
  *
- * 后端设计把 token 放在 `#` 之后（`#token=xxx`），同时兼容 `#<token>` 这种裸写法；
- * `?token=` 只作为兜底（query 会进服务端日志，仅在后端确实这样下发时才用到）。
+ * 后端 `buildTokenLink` 把 token 放在 `#` 之后（`base#token=xxx`），同时兼容 `#<token>`
+ * 这种裸写法；`?token=` 只作为兜底（query 会进服务端日志，仅在后端确实这样下发时才用到）。
  */
-export function extractVerifyToken(hash: string, search?: string): string {
+export function extractResetPasswordToken(hash: string, search?: string): string {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
   if (raw) {
     const named = new URLSearchParams(raw).get('token')
@@ -398,6 +414,7 @@ export function extractVerifyToken(hash: string, search?: string): string {
   return ''
 }
 
+
 let redirecting = false
 
 /**
@@ -405,9 +422,15 @@ let redirecting = false
  * - `/login` 本身就是登录入口；
  * - `/signup`、`/verify-email` 在未登录态下才是正常入口，而且它们都会主动探一次
  *   `/user/me` 来判断「已登录就短路回 return_to」——若把这次 2002 当成会话失效，
- *   用户点「创建账号」会被立刻弹回登录页（真实 bug）。
+ *   用户点「创建账号」会被立刻弹回登录页（真实 bug）；
+ * - `/reset-password` 是邮件链接的落点，浏览器里本来就可能没有会话。
  */
-const AUTH_PAGES_HANDLING_NOT_LOGIN = ['/login', '/signup', '/verify-email']
+const AUTH_PAGES_HANDLING_NOT_LOGIN = [
+  '/login',
+  '/signup',
+  '/verify-email',
+  RESET_PASSWORD_PATH,
+]
 
 export function redirectToLogin(): void {
   if (redirecting || typeof window === 'undefined') {

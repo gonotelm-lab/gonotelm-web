@@ -3,17 +3,19 @@ import { absoluteReturnTo, rememberAuthAttempt } from '../lib/auth'
 import { attachCsrfHeader, ensureCsrfToken } from '../lib/csrf'
 import type {
   AuthIdentitiesResponse,
+  AuthPrefetchResponse,
   AuthProvidersResponse,
   AuthSessionResponse,
   AuthSupportedIdentitiesResponse,
   BindIdentityRequest,
-  EmailRegisterPrefetchResponse,
   EmailRegisterRequest,
   EmailRegisterResponse,
   EmailResendRequest,
   EmailVerifyCodeRequest,
-  EmailVerifyRequest,
   PasswordLoginRequest,
+  PasswordResetConfirmLinkRequest,
+  PasswordResetConfirmResponse,
+  PasswordResetRequest,
   SetPasswordRequest,
   SetPasswordResponse,
   UnbindIdentityRequest,
@@ -95,11 +97,20 @@ export function passwordLogin(body: PasswordLoginRequest) {
   })
 }
 
-/** 注册前元数据（服务端密码策略等）；react-query 查询键，注册页与设置密码表单共用同一份缓存。 */
-export const EMAIL_REGISTER_PREFETCH_QUERY_KEY = ['auth', 'email-register-prefetch'] as const
+/**
+ * 表单元数据（服务端密码策略等）：公开接口，注册页、设置/修改密码、找回密码共用。
+ *
+ * 后端 2026-10-14 把原来的 `GET /auth/email/register/prefetch` 与
+ * `GET /auth/password/reset/prefetch` 合并成这一个路径，响应体不变（Go 侧
+ * `AuthPrefetchResponse`）。全站只有一份策略、一个查询键，各入口进页面时共用同一份缓存。
+ */
+export const AUTH_PREFETCH_PATH = '/api/v1/auth/prefetch'
 
-export function getEmailRegisterPrefetch() {
-  return request<EmailRegisterPrefetchResponse>('/api/v1/auth/email/register/prefetch')
+/** 密码策略的 react-query 查询键。 */
+export const AUTH_PREFETCH_QUERY_KEY = ['auth', 'prefetch'] as const
+
+export function getAuthPrefetch() {
+  return request<AuthPrefetchResponse>(AUTH_PREFETCH_PATH)
 }
 
 /**
@@ -111,14 +122,6 @@ export function registerEmail(body: EmailRegisterRequest) {
   return request<EmailRegisterResponse>('/api/v1/auth/email/register', {
     method: 'POST',
     body: JSON.stringify(body),
-  })
-}
-
-/** 消费邮件链接里的 token（前端从 `location.hash` 读出后 POST 过来）；成功即建号并签发会话。 */
-export function verifyEmailToken(body: EmailVerifyRequest) {
-  return request<AuthSessionResponse>('/api/v1/auth/email/verify', {
-    method: 'POST',
-    body: JSON.stringify({ login_from: 'web', ...body }),
   })
 }
 
@@ -150,6 +153,33 @@ export function setPassword(body: SetPasswordRequest) {
     body: JSON.stringify(body),
   })
 }
+
+/**
+ * 发起找回密码：`POST /api/v1/auth/password/reset`（公开 + CSRF）。
+ *
+ * body 只有 email，成功是 **204**；邮箱不存在时后端也返回 204（防账号枚举），
+ * 所以调用方拿到 resolve 只能说明「请求受理了」，不能说明邮件已发出。
+ */
+export function requestPasswordReset(body: PasswordResetRequest) {
+  return request<null>('/api/v1/auth/password/reset', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+/**
+ * 邮件链接确认：`POST /api/v1/auth/password/reset/verify`。
+ *
+ * token 由前端从 `#token=` 片段读出后提交（与 `/auth/email/verify` 同一套约定），
+ * 成功后返回 `relogin_required: true`：后端作废了该账号全部会话。
+ */
+export function confirmPasswordResetLink(body: PasswordResetConfirmLinkRequest) {
+  return request<PasswordResetConfirmResponse>('/api/v1/auth/password/reset/verify', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
 
 /**
  * GET /api/v1/auth/identities —— 当前账号已绑定的三方身份（authed）。

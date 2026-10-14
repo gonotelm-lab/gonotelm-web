@@ -13,7 +13,7 @@ import { resetAuthRedirectForTest } from '@/lib/auth'
 
 const meUrl = 'http://127.0.0.1:4173/api/v1/user/me'
 const registerUrl = 'http://127.0.0.1:4173/api/v1/auth/email/register'
-const prefetchUrl = 'http://127.0.0.1:4173/api/v1/auth/email/register/prefetch'
+const prefetchUrl = 'http://127.0.0.1:4173/api/v1/auth/prefetch'
 
 const renderSignup = async () => {
   mockServer.use(http.get(meUrl, () => createErrorResponse(401, 'NOT_LOGIN', 2002)))

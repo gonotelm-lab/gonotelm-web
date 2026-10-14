@@ -3,6 +3,8 @@ import { ApiError } from './http'
 import {
   AUTH_ERROR_CODE,
   RELOGIN_NOTICE_PASSWORD_CHANGED,
+  RELOGIN_NOTICE_PASSWORD_RESET,
+  RESET_PASSWORD_PATH,
   buildBindErrorPath,
   parseCallbackFailure,
   recallAuthAttempt,
@@ -10,11 +12,12 @@ import {
   absoluteReturnTo,
   buildLoginPath,
   buildReloginPath,
+  buildResetPasswordPath,
   buildSetPasswordPath,
   buildSignupPath,
   buildVerifyEmailPath,
   authErrorCodeOf,
-  extractVerifyToken,
+  extractResetPasswordToken,
   isAuthErrorCode,
   isCsrfError,
   isNotLoginError,
@@ -237,6 +240,13 @@ describe('buildReloginPath', () => {
       '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_changed',
     )
   })
+
+  it('找回密码后回登录页并带 notice=password_reset（与改密码区分文案）', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(buildReloginPath('/notebook/a', RELOGIN_NOTICE_PASSWORD_RESET)).toBe(
+      '/login?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa&notice=password_reset',
+    )
+  })
 })
 
 describe('error guards', () => {
@@ -285,6 +295,7 @@ describe('AUTH_ERROR_CODE 契约', () => {
       providerAlreadyBound: 106023,
       lastLoginMethod: 106024,
       passwordUnchanged: 106025,
+      mailSendFailed: 106026,
     })
   })
 })
@@ -304,34 +315,39 @@ describe('邮箱认证页路径', () => {
     )
   })
 
-  it('buildVerifyEmailPath 只在有 token 时写 URL 片段', () => {
+  it('buildVerifyEmailPath 只带 email 与 return_to（注册只认验证码）', () => {
     vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
     expect(buildVerifyEmailPath({ email: 'a@b.com', returnTo: '/' })).toBe(
       '/verify-email?email=a%40b.com&return_to=http%3A%2F%2F127.0.0.1%3A5173%2F',
     )
-    expect(buildVerifyEmailPath({ returnTo: '/', token: 't 1' })).toContain('#token=t%201')
+    // 链接验证已下线：出站不再构造 #token=
+    expect(buildVerifyEmailPath({ email: 'a@b.com' })).not.toContain('#')
+  })
+
+  it('buildResetPasswordPath 落点与后端 passwordResetUrlBase 一致，只带 return_to', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://127.0.0.1:5173' } })
+    expect(RESET_PASSWORD_PATH).toBe('/reset-password')
+    expect(buildResetPasswordPath('/notebook/a b')).toBe(
+      '/reset-password?return_to=http%3A%2F%2F127.0.0.1%3A5173%2Fnotebook%2Fa%20b',
+    )
+    // 重置只认邮件链接里的 #token，出站不再构造 email/token
+    expect(buildResetPasswordPath('/')).not.toContain('token')
   })
 })
 
-describe('extractVerifyToken', () => {
-  it('解析 #token= 形式', () => {
-    expect(extractVerifyToken('#token=abc123')).toBe('abc123')
-  })
-
-  it('兼容裸 #<token> 形式', () => {
-    expect(extractVerifyToken('#abc123')).toBe('abc123')
-  })
-
-  it('片段里没有 token 时回退 query', () => {
-    expect(extractVerifyToken('', '?token=xyz')).toBe('xyz')
-    expect(extractVerifyToken('#', '?token=xyz')).toBe('xyz')
+describe('extractResetPasswordToken', () => {
+  it('解析重置链接的 #token=（兼容裸 #<token> 与 ?token= 兜底）', () => {
+    expect(extractResetPasswordToken('#token=abc123')).toBe('abc123')
+    expect(extractResetPasswordToken('#abc123')).toBe('abc123')
+    expect(extractResetPasswordToken('', '?token=xyz')).toBe('xyz')
+    expect(extractResetPasswordToken('#', '?token=xyz')).toBe('xyz')
   })
 
   it('空片段、无 token 与非法字符一律返回空串', () => {
-    expect(extractVerifyToken('')).toBe('')
-    expect(extractVerifyToken('#other=1')).toBe('')
-    expect(extractVerifyToken('#token=abc def')).toBe('')
-    expect(extractVerifyToken('#token=')).toBe('')
+    expect(extractResetPasswordToken('')).toBe('')
+    expect(extractResetPasswordToken('#other=1')).toBe('')
+    expect(extractResetPasswordToken('#token=abc def')).toBe('')
+    expect(extractResetPasswordToken('#token=')).toBe('')
   })
 })
 
@@ -380,6 +396,17 @@ describe('redirectToLogin', () => {
       expect(assign).not.toHaveBeenCalled()
     },
   )
+
+  it('找回密码页是公开落点，未登录时不被弹走', () => {
+    const assign = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: RESET_PASSWORD_PATH, search: '', assign, origin: 'http://localhost' },
+    })
+
+    redirectToLogin()
+
+    expect(assign).not.toHaveBeenCalled()
+  })
 
   it('受保护页面仍然会跳登录页', () => {
     const assign = vi.fn()
