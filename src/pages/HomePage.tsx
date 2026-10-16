@@ -117,7 +117,16 @@ export function HomePage() {
             minHeight: homeHeaderChrome.rowMinHeight,
           }}
         >
-          <Typography variant="h6">GoNoteLM</Typography>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Box
+              component="img"
+              src="/favicon.svg"
+              alt=""
+              aria-hidden
+              sx={{ width: 26, height: 26, display: 'block' }}
+            />
+            <Typography variant="h6">GoNoteLM</Typography>
+          </Stack>
           <AccountMenu
             triggerSize={homeHeaderChrome.controlHeight}
             avatarSize={homeHeaderChrome.avatarSize}
