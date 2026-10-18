@@ -6,6 +6,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
+import { COLOR_MODE_STORAGE_KEY } from '@/app/colorMode'
+import { useColorModeStore } from '@/app/colorModeStore'
 import { mockServer } from '@/test/mocks'
 import {
   createErrorResponse,
@@ -187,6 +189,31 @@ const createNodeMock = (element: { props?: unknown }) => {
   return { naturalWidth: 512, naturalHeight: 512 }
 }
 
+/** 通用分区里有两组胶囊选择器（语言 / 颜色模式），按组内 testid 精确定位。 */
+const findToggleGroup = (renderer: ReactTestRenderer, memberTestId: string) =>
+  renderer.root
+    .findAllByType(ToggleButtonGroup)
+    .find((group) => group.findAllByProps({ 'data-testid': memberTestId }).length > 0)
+
+/** 极简 localStorage 替身：只测键值读写，不模拟配额与隐私模式。 */
+const createMemoryStorage = () => {
+  const entries = new Map<string, string>()
+  return {
+    getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      entries.set(key, value)
+    },
+    removeItem: (key: string) => {
+      entries.delete(key)
+    },
+    clear: () => entries.clear(),
+    key: (index: number) => [...entries.keys()][index] ?? null,
+    get length() {
+      return entries.size
+    },
+  }
+}
+
 const renderDialog = async (options: { strict?: boolean; entry?: string } = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -332,6 +359,8 @@ describe('SettingsDialog', () => {
   afterEach(async () => {
     await i18n.changeLanguage('zh')
     stubDecodedSize({ width: 512, height: 512 })
+    // 颜色模式是全局 store，用例之间必须复位，否则选择会串场。
+    useColorModeStore.setState({ mode: 'light', systemPrefersDark: false })
   })
 
   it('默认选中个人资料并展示昵称、用户 ID 与邮箱', async () => {
@@ -419,13 +448,55 @@ describe('SettingsDialog', () => {
 
     act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-general' }).props.onClick())
 
-    const group = renderer.root.findByType(ToggleButtonGroup)
-    expect(group.props.value).toBe('zh')
+    const group = findToggleGroup(renderer, 'settings-language-zh')
+    expect(group?.props.value).toBe('zh')
     await act(async () => {
-      group.props.onChange(null, 'en')
+      group?.props.onChange(null, 'en')
     })
 
     expect(i18n.resolvedLanguage).toBe('en')
+  })
+
+  it('通用分区默认浅色，切到深色后写入 localStorage', async () => {
+    const storage = createMemoryStorage()
+    vi.stubGlobal('localStorage', storage)
+    useColorModeStore.setState({ mode: 'light', systemPrefersDark: false })
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-general' }).props.onClick())
+
+    const group = findToggleGroup(renderer, 'settings-color-mode-light')
+    expect(group?.props.value).toBe('light')
+    // 浅色是默认值：还没有选择过就不该写存储，避免污染「未设置」状态。
+    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBeNull()
+
+    await act(async () => {
+      group?.props.onChange(null, 'dark')
+    })
+
+    expect(useColorModeStore.getState().mode).toBe('dark')
+    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('dark')
+    expect(findToggleGroup(renderer, 'settings-color-mode-dark')?.props.value).toBe('dark')
+
+    vi.stubGlobal('localStorage', undefined)
+  })
+
+  it('跟随系统时用一行说明当前实际取到的模式', async () => {
+    vi.stubGlobal('localStorage', createMemoryStorage())
+    useColorModeStore.setState({ mode: 'system', systemPrefersDark: true })
+
+    const { renderer } = await renderDialog()
+    act(() => renderer.root.findByProps({ 'data-testid': 'settings-nav-general' }).props.onClick())
+
+    expect(textOf(renderer, 'settings-color-mode-system-hint')).toBe('当前跟随系统：深色')
+
+    // 系统切到浅色后，说明行跟着变。
+    await act(async () => {
+      useColorModeStore.setState({ systemPrefersDark: false })
+    })
+    expect(textOf(renderer, 'settings-color-mode-system-hint')).toBe('当前跟随系统：浅色')
+
+    vi.stubGlobal('localStorage', undefined)
   })
 
   it('账号安全区：密码表单不常驻，点「设置密码」在弹窗里提交（无密码只发 new_password）', async () => {

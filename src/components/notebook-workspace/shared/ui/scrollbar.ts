@@ -1,12 +1,18 @@
 import type { Theme } from '@mui/material/styles'
 
-const defaultHoverThumbColor = 'rgba(47, 107, 79, 0.28)'
+/** 主题没挂 workspacePalette 时（手搓主题的测试）的兜底：按模式给一深一浅两版。 */
+const fallbackHoverThumbColorByMode = {
+  light: 'rgba(47, 107, 79, 0.28)',
+  dark: 'rgba(124, 184, 153, 0.3)',
+} as const
 const scrollbarSizePx = 5
 
 const resolveHoverThumbColor = (theme: Theme) => {
   const scrollbar = theme.workspacePalette?.scrollbar
   if (!scrollbar) {
-    return defaultHoverThumbColor
+    return theme.palette?.mode === 'dark'
+      ? fallbackHoverThumbColorByMode.dark
+      : fallbackHoverThumbColorByMode.light
   }
   return `rgba(${scrollbar.hoverThumbRgb}, ${scrollbar.hoverThumbOpacity})`
 }

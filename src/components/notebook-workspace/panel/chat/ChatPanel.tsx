@@ -2,7 +2,6 @@ import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, use
 import { useTranslation } from 'react-i18next'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import { ChatComposer } from './ChatComposer'
 import { ChatMessagesList } from './ChatMessagesList'
 import { ChatNotebookInfoHeader } from './ChatNotebookInfoHeader'
@@ -18,6 +17,7 @@ import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './useChatConversation'
 import { useChatSuggestions } from './useChatSuggestions'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { resolveWorkspaceElevation } from '../../shared/ui/workspaceElevation'
 import { chatPanelLayoutTokens } from './layoutTokens'
 import { workspaceType } from '../../shared/ui/typeTokens'
 
@@ -409,7 +409,7 @@ function ChatPanelContent({
               border: 1,
               borderColor: 'divider',
               bgcolor: 'background.paper',
-              boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.dark, 0.16)}`,
+              boxShadow: (theme) => resolveWorkspaceElevation(theme).panel,
               zIndex: scrollToBottomButtonTokens.zIndex,
               '&:hover': {
                 bgcolor: 'background.default',
@@ -477,7 +477,7 @@ function ChatPanelContent({
               display: 'block',
               fontSize: workspaceType.xs,
               lineHeight: 1.35,
-              color: 'background.default',
+              color: 'primary.contrastText',
             }}
           >
             {errorToast?.message ?? ''}

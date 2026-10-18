@@ -15,6 +15,7 @@ import { workspaceIconSize, workspaceType } from '../../../shared/ui/typeTokens'
 interface MindmapCanvasProps {
   mermaid: string
   spacingPreset?: 'default' | 'wide'
+  /** 显式指定明暗一套配色；留空则跟随当前颜色模式（深色模式取 dark）。 */
   tone?: 'light' | 'dark'
   surfaceRadius?: number
   showBorder?: boolean
@@ -160,7 +161,7 @@ const buildNodeVisualByDepth = (
 function MindmapCanvasInner({
   mermaid,
   spacingPreset = 'default',
-  tone = 'light',
+  tone,
   surfaceRadius = 1.5,
   showBorder = true,
   height = 440,
@@ -168,7 +169,9 @@ function MindmapCanvasInner({
   const { t } = useTranslation(['studio', 'common'])
   const theme = useTheme()
   const mindmapTonePalette = theme.workspacePalette.mindmap
-  const tonePalette = mindmapTonePalette[tone]
+  // vis-network 拿不到 MUI 的 CSS，只能整份换成对应的明暗一套。
+  const resolvedTone = tone ?? (theme.palette.mode === 'dark' ? 'dark' : 'light')
+  const tonePalette = mindmapTonePalette[resolvedTone]
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const networkRef = useRef<VisNetwork | null>(null)
   const hasInitializedViewportRef = useRef(false)
@@ -182,8 +185,8 @@ function MindmapCanvasInner({
     [mermaid],
   )
   const graphOptions = useMemo(
-    () => buildMindmapGraphOptions(spacingPreset, tone, mindmapTonePalette),
-    [mindmapTonePalette, spacingPreset, tone],
+    () => buildMindmapGraphOptions(spacingPreset, resolvedTone, mindmapTonePalette),
+    [mindmapTonePalette, spacingPreset, resolvedTone],
   )
   const defaultCollapsedNodeIds = useMemo(() => {
     const next = new Set<string>()
@@ -215,7 +218,7 @@ function MindmapCanvasInner({
       const childCount = parsedMindmap.childIdsByNodeId[node.id]?.length ?? 0
       const hasChildren = childCount > 0
       const collapsed = hasChildren && collapsedNodeIds.has(node.id)
-      const nodeVisual = buildNodeVisualByDepth(node.depth, tone, mindmapTonePalette)
+      const nodeVisual = buildNodeVisualByDepth(node.depth, resolvedTone, mindmapTonePalette)
       const collapsedPrefix = hasChildren
         ? collapsed
           ? '▶ '
@@ -262,7 +265,7 @@ function MindmapCanvasInner({
     parsedMindmap.edges,
     parsedMindmap.nodes,
     mindmapTonePalette,
-    tone,
+    resolvedTone,
   ])
 
   useEffect(() => {

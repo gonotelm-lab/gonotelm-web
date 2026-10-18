@@ -16,6 +16,7 @@ import {
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { workspaceInteraction } from '../../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
+import { resolveWorkspaceElevation } from '../../../shared/ui/workspaceElevation'
 import { workspaceType } from '../../../shared/ui/typeTokens'
 
 export interface FlashcardCard {
@@ -190,10 +191,11 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
             <Box
               sx={(theme) => ({
                 ...cardFaceSx,
-                bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                // 正面＝问题：纸面本体，浮起最重的一层。
+                bgcolor: 'background.paper',
                 boxShadow: isOverlay
-                  ? '0 18px 48px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08)'
-                  : '0 8px 22px rgba(15, 23, 42, 0.1)',
+                  ? resolveWorkspaceElevation(theme).cardRaised
+                  : resolveWorkspaceElevation(theme).card,
                 transition: `box-shadow ${flipDurationMs}ms ease`,
                 ...subtleScrollbarSx(theme),
               })}
@@ -217,10 +219,11 @@ export function FlashcardViewer({ content, mode = 'inline' }: FlashcardViewerPro
             <Box
               sx={(theme) => ({
                 ...cardFaceSx,
-                bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                // 背面＝答案：同一张纸上一层品牌绿洗色，翻面后一眼能分辨正反。
+                bgcolor: 'action.selected',
                 boxShadow: isOverlay
-                  ? '0 18px 48px rgba(15, 23, 42, 0.2), 0 4px 12px rgba(15, 23, 42, 0.1)'
-                  : '0 8px 22px rgba(15, 23, 42, 0.12)',
+                  ? resolveWorkspaceElevation(theme).cardBackRaised
+                  : resolveWorkspaceElevation(theme).cardBack,
                 transform: 'rotateY(180deg) translateZ(1px)',
                 ...subtleScrollbarSx(theme),
               })}

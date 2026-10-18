@@ -868,7 +868,7 @@ export const StudioPanel = memo(function StudioPanel({
                     display: 'block',
                     fontSize: workspaceType.xs,
                     lineHeight: 1.35,
-                    color: 'background.default',
+                    color: 'primary.contrastText',
                   }}
                 >
                   {actionErrorToast?.message ?? ''}

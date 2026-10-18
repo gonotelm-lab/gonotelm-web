@@ -7,6 +7,11 @@ body {
   overflow-x: clip;
 }
 
+/* html 也要上底色：深色下若只靠 body，overscroll 的橡皮筋区域会闪出白底。 */
+html {
+  background: var(--color-paper-2);
+}
+
 body {
   margin: 0;
   min-height: 100vh;

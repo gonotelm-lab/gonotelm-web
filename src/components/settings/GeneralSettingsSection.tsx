@@ -2,41 +2,19 @@ import { Box, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/ma
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_LOCALE, type AppLocale } from '../../i18n'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
-import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
-import { workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
+import { ColorModeControl } from './ColorModeControl'
+import { settingsPillToggleSx } from './settingsToggleStyles'
 
 const normalizeLocale = (lng: string | undefined): AppLocale =>
   (lng ?? DEFAULT_LOCALE).toLowerCase().startsWith('en') ? 'en' : 'zh'
 
-const languageToggleSx = {
-  minWidth: 96,
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 999,
-  margin: 0,
-  px: workspaceSpace.md,
-  py: workspaceSpace.xxs,
-  textTransform: 'none',
-  fontSize: workspaceType.sm,
-  '&.MuiToggleButtonGroup-grouped': {
-    borderRadius: '999px !important',
-    margin: 0,
-  },
-  '&.MuiToggleButtonGroup-grouped:not(:first-of-type)': {
-    borderLeft: '1px solid',
-    borderColor: 'divider',
-  },
-  '&.Mui-selected': {
-    bgcolor: 'primary.main',
-    color: 'primary.contrastText',
-    borderColor: 'primary.main',
-    '&:hover': {
-      bgcolor: 'primary.dark',
-    },
-  },
-} as const
-
-export function LanguageSettingsSection() {
+/**
+ * 设置 → 通用：界面语言与颜色模式。
+ *
+ * 两项都是「立即生效 + 记住选择」的本地偏好：语言写回 i18n 的
+ * localStorage（gonotelm.locale），颜色模式写回 gonotelm.colorMode。
+ */
+export function GeneralSettingsSection() {
   const { t, i18n } = useTranslation('settings')
   const activeLocale = normalizeLocale(i18n.resolvedLanguage ?? i18n.language)
 
@@ -79,12 +57,16 @@ export function LanguageSettingsSection() {
           value={activeLocale}
           onChange={(_event, nextLocale: AppLocale | null) => handleLocaleChange(nextLocale)}
           aria-label={t('general.languageLabel')}
-          sx={{ mt: workspaceDialogLayout.controlMt, gap: workspaceDialogLayout.toggleGap, border: 'none' }}
+          sx={{
+            mt: workspaceDialogLayout.controlMt,
+            gap: workspaceDialogLayout.toggleGap,
+            border: 'none',
+          }}
         >
           <ToggleButton
             data-testid="settings-language-zh"
             value="zh"
-            sx={languageToggleSx}
+            sx={settingsPillToggleSx}
             aria-label={t('general.languageZh')}
           >
             {t('general.languageZh')}
@@ -92,13 +74,15 @@ export function LanguageSettingsSection() {
           <ToggleButton
             data-testid="settings-language-en"
             value="en"
-            sx={languageToggleSx}
+            sx={settingsPillToggleSx}
             aria-label={t('general.languageEn')}
           >
             {t('general.languageEn')}
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
+
+      <ColorModeControl />
     </Stack>
   )
 }

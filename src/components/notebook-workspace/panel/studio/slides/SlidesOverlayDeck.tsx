@@ -3,6 +3,7 @@ import { Box, Stack } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import type { PresentationData } from '@aiden0z/pptx-renderer'
 import { subtleScrollbarSx } from '../../../shared/ui/scrollbar'
+import { resolveWorkspaceElevation } from '../../../shared/ui/workspaceElevation'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { THUMB_NEIGHBOR_RANGE, THUMB_RAIL_WIDTH_PX, THUMB_WIDTH_PX } from './constants'
 import { getSlideCount, loadPptxModule } from './pptxEngine'
@@ -299,9 +300,8 @@ export function SlidesOverlayDeck({
                   bgcolor: 'background.paper',
                   boxShadow: selected
                     ? (theme) =>
-                        `0 0 0 1px ${alpha(theme.palette.primary.main, 0.35)}, 0 2px 8px ${alpha(theme.palette.common.black, 0.12)}`
-                    : (theme) =>
-                        `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}, 0 2px 8px ${alpha(theme.palette.common.black, 0.08)}`,
+                        `0 0 0 1px ${alpha(theme.palette.primary.main, 0.35)}, ${resolveWorkspaceElevation(theme).raised}`
+                    : (theme) => resolveWorkspaceElevation(theme).raisedMuted,
                 }}
               >
                 <Box
@@ -359,7 +359,7 @@ export function SlidesOverlayDeck({
               borderRadius: workspaceRadius.sm,
               border: '1px solid',
               borderColor: theme.palette.divider,
-              boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, 0.06)}, 0 4px 14px ${alpha(theme.palette.common.black, 0.12)}`,
+              boxShadow: resolveWorkspaceElevation(theme).menu,
               overflow: 'hidden',
               boxSizing: 'border-box',
             },

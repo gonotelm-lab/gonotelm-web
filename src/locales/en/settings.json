@@ -42,7 +42,13 @@
     "languageLabel": "Interface language",
     "languageHelp": "Applies immediately and is remembered.",
     "languageZh": "简体中文",
-    "languageEn": "English"
+    "languageEn": "English",
+    "colorModeLabel": "Color mode",
+    "colorModeHelp": "Choose light or dark, or follow your system setting. Applies immediately and is remembered.",
+    "colorModeLight": "Light",
+    "colorModeDark": "Dark",
+    "colorModeSystem": "System",
+    "colorModeSystemHint": "Following your system: {{mode}}"
   },
   "security": {
     "title": "Sign-in password",

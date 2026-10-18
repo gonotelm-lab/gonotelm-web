@@ -1,9 +1,11 @@
-/* Hallmark · genre: editorial · theme: Studio · design-system: design.md · designed-as-app
+/* Hallmark · genre: editorial · theme: Studio (light) / Studio Night (dark) · design-system: design.md · designed-as-app
  * pre-emit critique: P4 H4 E4 S4 R5 V4
  * Audience: general · Use: home→notebook→3 panels · Tone: calm forest studio
  */
 
 :root {
+  color-scheme: light;
+
   --color-paper: oklch(97% 0.012 90);
   --color-paper-2: oklch(94% 0.014 90);
   --color-paper-3: oklch(91% 0.016 90);
@@ -27,9 +29,12 @@
   --color-ink-hex: #1c2a22;
   --color-ink-2-hex: #4a5a50;
   --color-rule-hex: #d8d2c6;
+  --color-rule-2-hex: #afab9d;
   --color-accent-hex: #2f6b4f;
   --color-accent-deep-hex: #24563f;
+  --color-accent-ink-hex: #f7f4ed;
   --color-success-hex: #2f6b4f;
+  --color-warning-hex: #b8922a;
   --color-error-hex: #c24b3a;
 
   /* UI chrome uses --font-body (Geist). --font-display is Latin accent only — not CJK UI. */
@@ -65,4 +70,51 @@
   --radius-card: 12px;
 
   --shadow-soft: 0 1px 2px oklch(20% 0.02 145 / 0.06);
+}
+
+/* Studio Night · 深色。
+ * 与浅色共用同一组变量名（字体 / 间距 / 动效不随模式变化，因此不重复定义），
+ * 只换颜色与阴影。index.html 的首帧脚本会在首次绘制前写好 data-theme。
+ *
+ * 取值与浅色同色相、同色度，只翻转明度：
+ * 卡片比画布亮、凹陷面最暗；正文用奶白而非纯白；品牌绿提到 L≈73%，
+ * 于是既能当填充（配深墨字 7.9:1）也能当文字与图标（配卡片 6.1:1）。
+ *
+ * 表面整体抬高过一档（卡片 25.2% → 29.5%、画布 20.5% → 24%）：纯暗底在
+ * 大面积阅读时偏沉，提亮后仍是暖炭而不是灰，同时正文对比保持 11.5:1。 */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-paper: oklch(29.5% 0.012 155);
+  --color-paper-2: oklch(24% 0.012 155);
+  --color-paper-3: oklch(19.5% 0.011 155);
+  --color-ink: oklch(93.5% 0.01 95);
+  --color-ink-2: oklch(74.5% 0.014 130);
+  --color-rule: oklch(37.5% 0.014 150);
+  --color-rule-2: oklch(48% 0.016 148);
+  --color-muted: oklch(66% 0.012 140);
+
+  --color-accent: oklch(73.3% 0.078 161);
+  --color-accent-deep: oklch(79% 0.072 161);
+  --color-accent-ink: oklch(20% 0.02 160);
+  --color-focus: oklch(73.3% 0.078 161);
+  --color-success: oklch(73.3% 0.078 161);
+  --color-warning: oklch(78% 0.105 87.5);
+  --color-error: oklch(72% 0.13 30.6);
+
+  --color-paper-hex: #282e2a;
+  --color-paper-2-hex: #1b211d;
+  --color-paper-3-hex: #111613;
+  --color-ink-hex: #ebeae2;
+  --color-ink-2-hex: #a9aea5;
+  --color-rule-hex: #3c433d;
+  --color-rule-2-hex: #586059;
+  --color-accent-hex: #7cb899;
+  --color-accent-deep-hex: #91c9ac;
+  --color-accent-ink-hex: #0e1913;
+  --color-success-hex: #7cb899;
+  --color-warning-hex: #d4b365;
+  --color-error-hex: #eb8372;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.45);
 }

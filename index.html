@@ -2,17 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- 深色标签栏用浅色版标记，避免 forest 绿在暗底上对比不足 -->
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="/favicon-dark.svg"
-      media="(prefers-color-scheme: dark)"
-    />
+    <!-- 单张图标：具体用哪张由颜色模式决定（见下方脚本），不再跟随系统偏好。 -->
+    <link id="app-favicon" rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#efebe2" />
     <title>GoNoteLM</title>
+    <!--
+      首帧颜色：在样式表与 React 之前把「用户选择的颜色模式」解析成 <html data-theme>，
+      避免深色用户看到一帧白屏。规则与 src/app/colorMode.ts 必须保持一致
+      （键名、默认值、favicon 与 theme-color 取值；colorMode.test.ts 会校验同步）。
+    -->
+    <script>
+      ;(() => {
+        const DEFAULT_MODE = 'light'
+        const COLOR_MODES = ['light', 'dark', 'system']
+        const THEME_COLOR_BY_MODE = { light: '#efebe2', dark: '#1b211d' }
+        const FAVICON_HREF_BY_MODE = { light: '/favicon.svg', dark: '/favicon-dark.svg' }
+        try {
+          const stored = window.localStorage.getItem('gonotelm.colorMode')
+          const mode = COLOR_MODES.includes(stored) ? stored : DEFAULT_MODE
+          const prefersDark =
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches
+          const resolved = mode === 'system' ? (prefersDark ? 'dark' : 'light') : mode
+          const root = document.documentElement
+          root.setAttribute('data-theme', resolved)
+          root.style.colorScheme = resolved
+          const favicon = document.getElementById('app-favicon')
+          if (favicon) {
+            favicon.setAttribute('href', FAVICON_HREF_BY_MODE[resolved])
+          }
+          const themeColor = document.querySelector('meta[name="theme-color"]')
+          if (themeColor) {
+            themeColor.setAttribute('content', THEME_COLOR_BY_MODE[resolved])
+          }
+        } catch {
+          // 隐私模式下 localStorage 可能直接抛错：忽略即可，默认浅色仍然可用。
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

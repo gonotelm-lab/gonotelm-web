@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import { Box, ButtonBase, Dialog, Divider, IconButton, Stack, Typography } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
 import type { AvatarCanvasFactory, AvatarImageFactory } from '../../lib/avatarImage'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
@@ -9,7 +8,7 @@ import { workspaceRadius, workspaceSpace } from '../notebook-workspace/shared/ui
 import { workspaceTransitionPresets } from '../notebook-workspace/shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../notebook-workspace/shared/ui/scrollbar'
 import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
-import { LanguageSettingsSection } from './LanguageSettingsSection'
+import { GeneralSettingsSection } from './GeneralSettingsSection'
 import { SecuritySettingsSection } from './SecuritySettingsSection'
 import { ProfileSettingsSection } from './ProfileSettingsSection'
 import { SETTINGS_SECTIONS, type SettingsSectionId } from './settingsSections'
@@ -118,16 +117,15 @@ export function SettingsDialog({
                       py: workspaceSpace.sm,
                       borderRadius: workspaceRadius.sm,
                       color: selected ? 'primary.main' : 'text.secondary',
-                      backgroundColor: selected
-                        ? alpha(theme.palette.primary.main, 0.1)
-                        : 'transparent',
+                      // 选中 / hover 洗色用主题的 action token：深色模式需要更重的叠加才看得出来。
+                      backgroundColor: selected ? theme.palette.action.selected : 'transparent',
                       fontSize: workspaceType.sm,
                       fontWeight: selected ? 600 : 500,
                       textAlign: 'left',
                       transition: workspaceTransitionPresets.colorBorderBg,
                       '&:hover': {
                         backgroundColor: selected
-                          ? alpha(theme.palette.primary.main, 0.14)
+                          ? theme.palette.action.focus
                           : theme.palette.action.hover,
                       },
                     })}
@@ -156,7 +154,7 @@ export function SettingsDialog({
           ) : activeSection === 'account' ? (
             <SecuritySettingsSection />
           ) : (
-            <LanguageSettingsSection />
+            <GeneralSettingsSection />
           )}
         </Box>
       </Box>

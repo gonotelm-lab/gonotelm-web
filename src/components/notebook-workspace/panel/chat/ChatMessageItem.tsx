@@ -15,7 +15,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { alpha } from '@mui/material/styles'
 import type { Theme } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
 import type { GetSourceDocResponse } from '@/types/api'
@@ -40,6 +39,7 @@ import {
 } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
+import { resolveWorkspaceElevation } from '../../shared/ui/workspaceElevation'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { workspaceIconSize, workspaceType } from '../../shared/ui/typeTokens'
 
@@ -359,7 +359,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 borderRadius: citationCardTokens.paperBorderRadius,
                 border: '1px solid',
                 borderColor: 'divider',
-                boxShadow: `0 8px 24px ${alpha(theme.palette.primary.dark, 0.2)}`,
+                boxShadow: resolveWorkspaceElevation(theme).message,
               }),
             },
           }}

@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../../shared/ui/motionTokens'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
@@ -82,6 +83,9 @@ const copyToClipboard = async (content: string) => {
  */
 export function MarkdownCode({ inline, className, children }: MarkdownCodeProps) {
   const { t } = useTranslation(['chat', 'common'])
+  const theme = useTheme()
+  // oneLight / oneDark 是同一套配色方案的明暗两面，切换时高亮语言一致。
+  const syntaxStyle = theme.palette.mode === 'dark' ? oneDark : oneLight
   const [copied, setCopied] = useState(false)
   const copiedTimerRef = useRef<number | null>(null)
   const codeText = useMemo(() => String(children ?? '').replace(/\n$/, ''), [children])
@@ -206,14 +210,15 @@ export function MarkdownCode({ inline, className, children }: MarkdownCodeProps)
         sx={(theme) => ({
           m: 0,
           p: codeBlockLayoutTokens.contentPadding,
-          bgcolor: 'grey.100',
+          // 全站唯一偏冷的墨洗底色：代码块与暖色纸面区分开。
+          bgcolor: theme.workspacePalette.code.surface,
           overflowX: 'auto',
           ...subtleScrollbarSx(theme),
         })}
       >
         <SyntaxHighlighter
           language={language === 'text' ? undefined : language}
-          style={oneLight}
+          style={syntaxStyle}
           PreTag="div"
           customStyle={{
             margin: 0,

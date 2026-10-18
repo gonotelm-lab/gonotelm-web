@@ -1682,7 +1682,7 @@ export function NotebookWorkspacePage() {
                 display: 'block',
                 fontSize: workspaceType.xs,
                 lineHeight: 1.35,
-                color: 'background.default',
+                color: 'primary.contrastText',
               }}
             >
               {sourceErrorToast?.message ?? ''}

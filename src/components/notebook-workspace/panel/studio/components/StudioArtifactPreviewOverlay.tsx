@@ -143,7 +143,7 @@ export function StudioArtifactPreviewOverlay({
         backdrop: {
           sx: (theme) => ({
             bgcolor: alpha(
-              theme.palette.primary.dark,
+              theme.workspacePalette.overlay.backdropColor,
               theme.workspacePalette.overlay.backdropAlpha,
             ),
           }),
