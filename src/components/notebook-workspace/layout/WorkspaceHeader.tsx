@@ -1,6 +1,5 @@
 import { memo, useEffect, useState, type MouseEvent } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
-import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined'
 import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
@@ -17,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AccountMenu } from '../../auth/AccountMenu'
+import { BrandMark } from '../../brand/BrandMark'
 import { workspaceRadius, workspaceSpace } from '../shared/ui/layoutTokens'
 import {
   headerMenuIconSx,
@@ -30,6 +30,9 @@ import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
  * Workbench chrome. The 48px row is sized together with its contents: 36px controls
  * leave 6px breathing top/bottom, and 20px glyphs keep the icon-to-button ratio sane.
  *
+ * 左右两条边轨按 ink 对齐，不按盒子对齐：左侧 26px 标记退 4px 落 17px，右侧
+ * 32px 头像退 8px 落 18px —— 实心图形比线性 glyph 更贴边，差值 1px 内看着才齐平。
+ *
  * 标题走 20px 一档（原 14px），但行高和 36px 控件盒都不动：标题本身就是
  * `height: 36 / py: 0` 的 InputBase，字号变大只是把控件盒里的垂直余量吃掉，
  * 行高仍是 rowMinHeight，因此不需要再额外减 padding。
@@ -38,6 +41,10 @@ import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
  * navigation + rename + account row so the destructive action never sits next to
  * everyday chrome.
  *
+ * 最左是品牌标记，它本身就是回首页入口（原返回箭头）：两者同目标，并排摆会多出
+ * 一个重复的「回首页」控件，所以只留一个。图形保持装饰（`aria-hidden`），链接的
+ * 无障碍名字由 IconButton 的 aria-label 提供。
+ *
  * 「创建笔记本 / 分享」目前只是占位：按设计稿先把这两个入口放进尾部控件组，
  * 不接任何逻辑（无 onClick、无请求），等接口确定后再补行为。
  */
@@ -45,6 +52,7 @@ const headerChrome = {
   rowMinHeight: 48,
   controlHeight: 36,
   controlIconSize: workspaceIconSize.lg,
+  brandMarkSize: 26,
   accountAvatarSize: 32,
   statusSpinnerSize: workspaceIconSize.sm,
   titleFontSize: workspaceTypeRem.xl,
@@ -56,7 +64,7 @@ const headerChrome = {
  * 占位需要的盒子与图标间距。
  * 颜色走 `color="inherit"`（body ink），不用 theme 默认的 primary 绿：
  * 顶栏占位入口不抢强调色，等接了行为再决定是否需要 forest fill。
- * xs 下隐藏：375px 宽的顶栏放不下「返回 + 标题 + 两个文字按钮 + 更多 + 头像」，
+ * xs 下隐藏：375px 宽的顶栏放不下「标记 + 标题 + 两个文字按钮 + 更多 + 头像」，
  * 标题会被压成一条缝；sm（≥600px）起按设计稿显示。
  */
 const headerActionButtonSx = {
@@ -160,6 +168,13 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           gap: workspaceSpace.xxs,
         }}
       >
+        {/* 品牌标记兼回首页入口。
+            盒 36px：和尾部「更多 / 头像」同高，行内上下各留 6px（48 - 36）。
+            标记 26px：与首页顶栏同一尺寸，实心块比线性 glyph 重，但面宽仍小于
+            32px 头像，不抢账号控件的视觉权重；盒内居中，四周留 5px 让 hover 底色
+            不贴图形。
+            盒再退 4px（ml 覆盖 edge="start" 自带的 -3px）：标记 ink 落在 17px，
+            与右侧头像 ink 的 18px 对齐，左右两条边轨看起来才是一根线。 */}
         <IconButton
           component={Link}
           to="/"
@@ -168,13 +183,13 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           size="small"
           aria-label={t('workspace:header.backAria')}
           sx={{
-            ml: 0,
+            ml: workspaceSpace.xxs,
             width: headerChrome.controlHeight,
             height: headerChrome.controlHeight,
             p: 0,
           }}
         >
-          <ArrowBackOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />
+          <BrandMark size={headerChrome.brandMarkSize} />
         </IconButton>
         <InputBase
           value={draftName}

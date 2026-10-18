@@ -40,7 +40,6 @@ vi.mock('@mui/material', () => ({
 }))
 
 vi.mock('@mui/icons-material/AddOutlined', () => ({ default: () => null }))
-vi.mock('@mui/icons-material/ArrowBackOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/IosShareOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/MoreVertRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/RefreshRounded', () => ({ default: () => null }))
@@ -184,6 +183,25 @@ describe('WorkspaceHeader', () => {
     expect(
       renderer.root.findByProps({ 'data-testid': 'workspace-share-notebook' }),
     ).toBeTruthy()
+  })
+
+  it('最左的品牌标记就是回首页入口：链接到 /，无障碍名字来自按钮而非图形', () => {
+    const renderer = renderHeader()
+
+    // 箭头已并入标记：整条顶栏只有一个回首页控件，不再并排两个同目标入口。
+    const homeLinks = renderer.root
+      .findAllByType('button')
+      .filter((node) => node.props.to === '/')
+
+    expect(homeLinks).toHaveLength(1)
+
+    const [homeLink] = homeLinks
+    expect(homeLink.props['aria-label']).toBe('返回')
+
+    const mark = homeLink.findByProps({ src: '/favicon.svg' })
+    // 图形保持装饰：读屏念的只有按钮的 aria-label，不会重复念一遍图片。
+    expect(mark.props.alt).toBe('')
+    expect(mark.props['aria-hidden']).toBe(true)
   })
 
   it('标题放大到 20px，但控件盒与内边距不变（header 仍 48px）', () => {
