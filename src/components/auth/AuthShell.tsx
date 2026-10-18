@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactElement, ReactNode } from 'react'
 import { Box, Stack, Typography } from '@mui/material'
 import { Trans, useTranslation } from 'react-i18next'
+import { BrandMark } from '../brand/BrandMark'
 import { workspaceSpace } from '../notebook-workspace/shared/ui/layoutTokens'
 import { authColumnMaxWidth, textLinkSx } from './authStyles'
 
@@ -52,13 +53,7 @@ export function AuthShell({
         spacing={1.5}
         sx={{ alignItems: 'center', mb: { xs: 4, md: 5 } }}
       >
-        <Box
-          component="img"
-          src="/favicon.svg"
-          alt=""
-          aria-hidden
-          sx={{ width: 48, height: 'auto', display: 'block' }}
-        />
+        <BrandMark size={48} />
         <Typography
           sx={{
             fontWeight: 600,

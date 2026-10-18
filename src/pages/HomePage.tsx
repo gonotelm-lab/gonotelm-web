@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import type { ListNotebooksSortBy } from '@/types/api'
 import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
 import { AccountMenu } from '../components/auth/AccountMenu'
+import { BrandMark } from '../components/brand/BrandMark'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
@@ -118,13 +119,7 @@ export function HomePage() {
           }}
         >
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Box
-              component="img"
-              src="/favicon.svg"
-              alt=""
-              aria-hidden
-              sx={{ width: 26, height: 26, display: 'block' }}
-            />
+            <BrandMark />
             <Typography variant="h6">GoNoteLM</Typography>
           </Stack>
           <AccountMenu
