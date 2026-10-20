@@ -1,7 +1,9 @@
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import { Box, IconButton, Paper, Snackbar, Typography } from '@mui/material'
+import { Box, IconButton, Paper } from '@mui/material'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
+import { showAppToast } from '@/lib/apiErrorToast'
 import { ChatComposer } from './ChatComposer'
 import { ChatMessagesList } from './ChatMessagesList'
 import { ChatNotebookInfoHeader } from './ChatNotebookInfoHeader'
@@ -16,10 +18,9 @@ import {
 import type { ChatCitationJumpRequest } from './types'
 import { useChatConversation } from './useChatConversation'
 import { useChatSuggestions } from './useChatSuggestions'
-import { workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { resolveWorkspaceElevation } from '../../shared/ui/workspaceElevation'
 import { chatPanelLayoutTokens } from './layoutTokens'
-import { workspaceType } from '../../shared/ui/typeTokens'
 
 const scrollToBottomButtonTokens = {
   size: 32,
@@ -195,8 +196,6 @@ function ChatPanelContent({
   const [enableThinking, setEnableThinking] = useState(
     () => resolveStoredChatSettings(chatId).enableThinking,
   )
-  const [errorToast, setErrorToast] = useState<{ key: number; message: string } | null>(null)
-  const errorToastKeyRef = useRef(0)
   const chatInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const wasStreamingRef = useRef(false)
 
@@ -304,15 +303,10 @@ function ChatPanelContent({
   }, [answerLength, chatId, chatStyle, enableThinking])
 
   useEffect(() => {
-    if (!errorText) {
-      return
+    if (errorText) {
+      // 请求层已经提示过的错误会按最终文案去重，不会在全局 toast 之上再叠一层。
+      showAppToast({ message: errorText })
     }
-    errorToastKeyRef.current += 1
-    // oxlint-disable-next-line react-doctor/no-derived-state -- Toast visibility is intentionally decoupled from source error text for manual dismissal.
-    setErrorToast({
-      key: errorToastKeyRef.current,
-      message: errorText,
-    })
   }, [errorText])
 
   const handleSaveAsNote = useCallback(
@@ -324,18 +318,14 @@ function ChatPanelContent({
       try {
         await onSaveMessageAsNote({ chatId, msgId: messageId })
       } catch (error) {
-        errorToastKeyRef.current += 1
-        setErrorToast({
-          key: errorToastKeyRef.current,
-          message: error instanceof Error && error.message.trim()
-            ? error.message
-            : t('chat:error.saveNote'),
+        showAppToast({
+          message: apiErrorMessage(error, 'chat:error.saveNote'),
         })
       } finally {
         setSavingAsNoteMessageId(null)
       }
     },
-    [chatId, onSaveMessageAsNote, t],
+    [chatId, onSaveMessageAsNote],
   )
 
   const notebookInfoHeader = useMemo(
@@ -447,43 +437,6 @@ function ChatPanelContent({
         onEnableThinkingChange={setEnableThinking}
       />
 
-      <Snackbar
-        key={errorToast?.key}
-        open={Boolean(errorToast)}
-        autoHideDuration={2400}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        onClose={(_, reason) => {
-          if (reason === 'clickaway') {
-            return
-          }
-          setErrorToast(null)
-        }}
-      >
-        <Paper
-          elevation={2}
-          sx={{
-            px: workspaceSpace.md,
-            py: workspaceSpace.xxs,
-            borderRadius: workspaceRadius.md,
-            border: '1px solid',
-            borderColor: 'primary.main',
-            bgcolor: 'primary.dark',
-            maxWidth: 420,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              fontSize: workspaceType.xs,
-              lineHeight: 1.35,
-              color: 'primary.contrastText',
-            }}
-          >
-            {errorToast?.message ?? ''}
-          </Typography>
-        </Paper>
-      </Snackbar>
     </Paper>
   )
 }

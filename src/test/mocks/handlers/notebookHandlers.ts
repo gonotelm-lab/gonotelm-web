@@ -1,10 +1,13 @@
 import { http } from 'msw'
 import {
+  createGetNotebookSharingResponseFixture,
   createListNotebooksResponseFixture,
   createListNotebookSourcesResponseFixture,
+  createNotebookAccessFixture,
   createNotebookFixture,
   createNotebookSourceFixture,
   createNotebookSummaryFixture,
+  createUpsertNotebookMemberResponseFixture,
 } from '../fixtures/notebook'
 import { getMockScenario } from '../scenarios'
 import { createSuccessResponse, resolveNoContentScenarioResponse, resolveScenarioResponse } from './httpResponse'
@@ -118,6 +121,52 @@ export const notebookHandlers = [
       },
     })
   }),
+
+  http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/access`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: createNotebookAccessFixture(),
+      emptyData: createNotebookAccessFixture({
+        role: 'viewer',
+        can_manage_content: false,
+        can_manage_notebook: false,
+        can_manage_sharing: false,
+      }),
+    })
+  }),
+
+  http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: createGetNotebookSharingResponseFixture(),
+      emptyData: createGetNotebookSharingResponseFixture({ members: [] }),
+    })
+  }),
+
+  http.patch(`${apiBaseUrl}/api/v1/notebooks/:notebookId/visibility`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveNoContentScenarioResponse({ scenario })
+  }),
+
+  http.put(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing/members`, async ({ request }) => {
+    const scenario = getMockScenario('notebook')
+    const body = (await request.json()) as { email?: string; role?: 'collaborator' | 'viewer' }
+    return resolveScenarioResponse({
+      scenario,
+      successData: createUpsertNotebookMemberResponseFixture({ role: body.role ?? 'viewer' }),
+      emptyData: { user_id: '', role: 'viewer' },
+    })
+  }),
+
+  http.delete(
+    `${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing/members/:userId`,
+    async () => {
+      const scenario = getMockScenario('notebook')
+      return resolveNoContentScenarioResponse({ scenario })
+    },
+  ),
 
   http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sources`, async () => {
     const scenario = getMockScenario('notebook')

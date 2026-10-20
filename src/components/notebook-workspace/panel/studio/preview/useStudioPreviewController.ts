@@ -3,7 +3,7 @@ import i18n from '@/i18n'
 import {
   getStudioArtifact,
 } from '@/api/studio'
-import { ApiError } from '@/lib/http'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import type { StudioArtifactTaskStatus } from '@/types/api'
 import {
   buildTaskFailedMessage,
@@ -49,16 +49,8 @@ interface UseStudioPreviewControllerParams {
 
 const buildStudioPreviewErrorMessage = (
   error: unknown,
-  fallback = i18n.t('studio:preview.loadFailed'),
-) => {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-  return fallback
-}
+  fallbackKey = 'studio:preview.loadFailed',
+) => apiErrorMessage(error, fallbackKey)
 
 export function useStudioPreviewController({
   artifactItems,

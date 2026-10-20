@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import i18n from '@/i18n'
 import {
   cancelStudioArtifactTask,
   convertNoteToSource as convertNoteToSourceApi,
@@ -12,7 +11,8 @@ import {
   updateStudioArtifact,
 } from '@/api/studio'
 import { useAdaptivePollingLoop } from '@/components/notebook-workspace/hooks/useAdaptivePollingLoop'
-import { ApiError } from '@/lib/http'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
+import { showAppToast } from '@/lib/apiErrorToast'
 import type {
   InfoGraphicArtifactExtras,
   StudioArtifactKind,
@@ -67,16 +67,8 @@ const buildArtifactActionKey = (
 
 const buildStudioErrorMessage = (
   error: unknown,
-  fallback = i18n.t('studio:error.requestFailed'),
-) => {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-  return fallback
-}
+  fallbackKey = 'studio:error.requestFailed',
+) => apiErrorMessage(error, fallbackKey)
 
 const normalizeStudioTimestampMs = (timestamp: number | undefined) => {
   if (typeof timestamp !== 'number' || !Number.isFinite(timestamp) || timestamp <= 0) {
@@ -223,10 +215,6 @@ export function useStudioArtifactTasks({
   const [artifactItems, setArtifactItems] = useState<StudioArtifactItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
-  const [actionErrorToast, setActionErrorToast] = useState<{
-    key: number
-    message: string
-  } | null>(null)
   const [pendingActions, setPendingActions] = useState<
     Partial<Record<StudioToolActionId, boolean>>
   >({})
@@ -237,7 +225,6 @@ export function useStudioArtifactTasks({
   const activeNotebookIdRef = useRef(notebookId)
   const artifactItemsRef = useRef(artifactItems)
   const historyLoadSeqRef = useRef(0)
-  const actionErrorToastKeyRef = useRef(0)
   const onSourceCreatedRef = useRef(onSourceCreated)
   const statusPollFailureCountsRef = useRef<Map<string, number>>(new Map())
 
@@ -329,7 +316,7 @@ export function useStudioArtifactTasks({
                   status: 'failed',
                   error: buildStudioErrorMessage(
                     error,
-                    i18n.t('studio:error.fetchResult'),
+                    'studio:error.fetchResult',
                   ),
                 }
               : item,
@@ -470,7 +457,7 @@ export function useStudioArtifactTasks({
                     status: 'failed',
                     error: buildStudioErrorMessage(
                       error,
-                      i18n.t('studio:error.pollStatus'),
+                      'studio:error.pollStatus',
                     ),
                   }
                 : target,
@@ -544,7 +531,7 @@ export function useStudioArtifactTasks({
       if (historyLoadSeqRef.current !== requestSeq) {
         return
       }
-      setHistoryError(buildStudioErrorMessage(error, i18n.t('studio:error.loadHistory')))
+      setHistoryError(buildStudioErrorMessage(error, 'studio:error.loadHistory'))
       setArtifactItems([])
     } finally {
       if (historyLoadSeqRef.current === requestSeq) {
@@ -643,10 +630,8 @@ export function useStudioArtifactTasks({
           ...prev,
         ])
       } catch (error) {
-        actionErrorToastKeyRef.current += 1
-        setActionErrorToast({
-          key: actionErrorToastKeyRef.current,
-          message: buildStudioErrorMessage(error, i18n.t('studio:error.createTask')),
+        showAppToast({
+          message: buildStudioErrorMessage(error, 'studio:error.createTask'),
         })
       } finally {
         setPendingActions((prev) => ({ ...prev, [actionId]: false }))
@@ -696,10 +681,8 @@ export function useStudioArtifactTasks({
           ...prev,
         ])
       } catch (error) {
-        actionErrorToastKeyRef.current += 1
-        setActionErrorToast({
-          key: actionErrorToastKeyRef.current,
-          message: buildStudioErrorMessage(error, i18n.t('studio:error.saveNote')),
+        showAppToast({
+          message: buildStudioErrorMessage(error, 'studio:error.saveNote'),
         })
       } finally {
         setPendingActions((prev) => ({ ...prev, 'save-as-note': false }))
@@ -707,10 +690,6 @@ export function useStudioArtifactTasks({
     },
     [notebookId],
   )
-
-  const clearActionErrorToast = useCallback(() => {
-    setActionErrorToast(null)
-  }, [])
 
   const retryArtifact = useCallback(
     async (item: StudioArtifactItem) => {
@@ -740,7 +719,7 @@ export function useStudioArtifactTasks({
             target.id === item.id
               ? {
                   ...target,
-                  error: buildStudioErrorMessage(error, i18n.t('studio:error.retryTask')),
+                  error: buildStudioErrorMessage(error, 'studio:error.retryTask'),
                 }
               : target,
           ),
@@ -777,7 +756,7 @@ export function useStudioArtifactTasks({
             target.id === item.id
               ? {
                   ...target,
-                  error: buildStudioErrorMessage(error, i18n.t('studio:error.cancelTask')),
+                  error: buildStudioErrorMessage(error, 'studio:error.cancelTask'),
                 }
               : target,
           ),
@@ -808,7 +787,7 @@ export function useStudioArtifactTasks({
             target.id === item.id
               ? {
                   ...target,
-                  error: buildStudioErrorMessage(error, i18n.t('studio:error.deleteArtifact')),
+                  error: buildStudioErrorMessage(error, 'studio:error.deleteArtifact'),
                 }
               : target,
           ),
@@ -830,10 +809,8 @@ export function useStudioArtifactTasks({
         await convertNoteToSourceApi(item.taskId)
         onSourceCreatedRef.current?.()
       } catch (error) {
-        actionErrorToastKeyRef.current += 1
-        setActionErrorToast({
-          key: actionErrorToastKeyRef.current,
-          message: buildStudioErrorMessage(error, i18n.t('studio:error.convertToSource')),
+        showAppToast({
+          message: buildStudioErrorMessage(error, 'studio:error.convertToSource'),
         })
       } finally {
         setArtifactActionPending(item.id, 'convert', false)
@@ -865,10 +842,8 @@ export function useStudioArtifactTasks({
       setArtifactItems((prev) =>
         prev.map((item) => (item.id === taskId ? { ...item, title: prevTitle } : item)),
       )
-      actionErrorToastKeyRef.current += 1
-      setActionErrorToast({
-        key: actionErrorToastKeyRef.current,
-        message: i18n.t('studio:error.updateTitle'),
+      showAppToast({
+        message: buildStudioErrorMessage(error, 'studio:error.updateTitle'),
       })
       throw error
     }
@@ -900,8 +875,6 @@ export function useStudioArtifactTasks({
     artifactItems,
     historyLoading,
     historyError,
-    actionErrorToast,
-    clearActionErrorToast,
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,

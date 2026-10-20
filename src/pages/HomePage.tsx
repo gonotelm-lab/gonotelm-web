@@ -8,9 +8,9 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { useTranslation } from 'react-i18next'
 import type { ListNotebooksSortBy } from '@/types/api'
 import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
+import { apiErrorMessage } from '../lib/apiErrorMessage'
 import { AccountMenu } from '../components/auth/AccountMenu'
 import { BrandMark } from '../components/brand/BrandMark'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
@@ -32,7 +32,6 @@ const homeHeaderChrome = {
 } as const
 
 export function HomePage() {
-  const { t } = useTranslation('home')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [sortBy, setSortBy] = useState<ListNotebooksSortBy>('create_time')
@@ -86,11 +85,10 @@ export function HomePage() {
       navigate(`/notebook/${result.id}`)
     } catch (error) {
       // 保留输入和弹窗上下文，让用户可直接重试。
-      if (error instanceof Error && error.message.trim()) {
-        setCreateDialogState((prev) => ({ ...prev, errorMessage: error.message }))
-        return
-      }
-      setCreateDialogState((prev) => ({ ...prev, errorMessage: t('create.failed') }))
+      setCreateDialogState((prev) => ({
+        ...prev,
+        errorMessage: apiErrorMessage(error, 'home:create.failed'),
+      }))
     }
   }
 

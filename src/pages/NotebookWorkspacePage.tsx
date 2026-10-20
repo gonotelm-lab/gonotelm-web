@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box, Paper, Snackbar, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { Box, useMediaQuery, useTheme } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import {
@@ -28,12 +28,20 @@ import {
   updateNotebookName,
 } from '../api/notebook'
 import { hashFile } from '../lib/md5'
+import { apiErrorMessage } from '../lib/apiErrorMessage'
+import { isNotebookNotFoundError } from '../lib/apiErrorPresentation'
+import { showAppToast } from '../lib/apiErrorToast'
 import { resolveUploadMimeType } from '../lib/sourceMime'
+import {
+  isNotebookOwner as resolveIsNotebookOwner,
+  useNotebookAccessQuery,
+} from '../components/notebook-workspace/hooks/useNotebookAccessQuery'
 import { useSourcePolling } from '../components/notebook-workspace/hooks/useSourcePolling'
 import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import {
   ChatPanel,
+  NotebookSharingDialog,
   SourceSelectionController,
   SourcesPanel,
   StudioPanel,
@@ -48,14 +56,14 @@ import {
   workspaceMobilePanelDefault,
   type WorkspaceMobilePanel,
 } from '../components/notebook-workspace/layout/workspaceMobilePanel'
-import { workspaceSpace, workspaceRadius } from '../components/notebook-workspace/shared/ui/layoutTokens'
-import { workspaceType } from '../components/notebook-workspace/shared/ui/typeTokens'
+import { workspaceSpace } from '../components/notebook-workspace/shared/ui/layoutTokens'
 import {
   workspaceMotion,
   workspaceTransitionPresets,
 } from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
 import type { SaveMessageAsNoteParams } from '../components/notebook-workspace/panel/studio/types'
+import { NotebookNotFoundPage } from './NotebookNotFoundPage'
 import { resolveNotebookWorkspaceTitle } from './notebook-workspace/resolveNotebookWorkspaceTitle'
 
 const processingStatusSet = new Set<SourceStatus>(['uploading', 'preparing'])
@@ -177,8 +185,7 @@ export function NotebookWorkspacePage() {
   const [citationPreviewRequest, setCitationPreviewRequest] = useState<
     (ChatCitationJumpRequest & { requestId: number }) | null
   >(null)
-  const [sourceErrorToast, setSourceErrorToast] = useState<{ key: number; message: string } | null>(null)
-  const sourceErrorToastKeyRef = useRef(0)
+  const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false)
   const [isGeneratingNotebookDescription, setIsGeneratingNotebookDescription] = useState(false)
   const pendingNotebookDescGenerationRef = useRef(false)
   const notebookDescGenerationInFlightRef = useRef(false)
@@ -480,15 +487,33 @@ export function NotebookWorkspacePage() {
     queryKey: ['notebook', id],
     queryFn: () => getNotebook(id),
     enabled: !!id,
+    // 404 不重试：尽快进入专用页面；其他错误保留一次重试。
+    retry: (failureCount, error) =>
+      !isNotebookNotFoundError(error) && failureCount < 1,
   })
   const notebookChatQuery = useQuery({
     queryKey: ['notebook-chat', id],
     queryFn: () => getOrCreateNotebookChat(id),
-    enabled: Boolean(id),
+    // 笔记本还没确认可访问时不要额外创建/拉取对话，否则会重复触发 100001。
+    enabled: Boolean(id) && notebookQuery.isSuccess,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
+  const notebookNotFound = isNotebookNotFoundError(notebookQuery.error)
+
+  // 笔记本可访问后再取权限：不存在/无权限时不额外制造 100001 请求。
+  // 顶栏的分享入口只属于 owner，分享对话框复用同一份 access 缓存。
+  const notebookAccessQuery = useNotebookAccessQuery(
+    id,
+    Boolean(id) && notebookQuery.isSuccess,
+  )
+  const isNotebookOwner = resolveIsNotebookOwner(notebookAccessQuery.data)
+  // 无编辑权限时整个工作区进入只读：隐藏/禁用所有会写内容的入口。
+  const canManageContent =
+    notebookAccessQuery.data?.can_manage_content ?? false
+  const canManageNotebook =
+    notebookAccessQuery.data?.can_manage_notebook ?? false
 
   const notebookIdFromQuery = notebookQuery.data?.id
   const notebookNameFromQuery = notebookQuery.data?.name ?? ''
@@ -787,10 +812,9 @@ export function NotebookWorkspacePage() {
       if (createdSourceId) {
         setSourceStatus(createdSourceId, 'failed')
       } else {
-        sourceErrorToastKeyRef.current += 1
-        setSourceErrorToast({
-          key: sourceErrorToastKeyRef.current,
-          message: err instanceof Error ? err.message : i18n.t('workspace:error.addFileFailed'),
+        // 请求层已经提示过 API 错误；这里补上非 API 失败，同一段文案会自动去重。
+        showAppToast({
+          message: apiErrorMessage(err, 'workspace:error.addFileFailed'),
         })
       }
       console.warn('create file source failed', err)
@@ -982,6 +1006,17 @@ export function NotebookWorkspacePage() {
 
   const handleRefreshChat = useCallback(() => {
     chatPanelActionsRef.current?.refreshConversation()
+  }, [])
+
+  const handleOpenSharingDialog = useCallback(() => {
+    if (!isNotebookOwner) {
+      return
+    }
+    setIsSharingDialogOpen(true)
+  }, [isNotebookOwner])
+
+  const handleCloseSharingDialog = useCallback(() => {
+    setIsSharingDialogOpen(false)
   }, [])
 
   const chatMenu = useMemo<WorkspaceHeaderChatMenu>(
@@ -1419,6 +1454,17 @@ export function NotebookWorkspacePage() {
     await handler(params)
   }, [])
 
+  if (notebookNotFound) {
+    return (
+      <NotebookNotFoundPage
+        isRetrying={notebookQuery.isFetching}
+        onRetry={() => {
+          void notebookQuery.refetch()
+        }}
+      />
+    )
+  }
+
   return (
     <Box
       sx={{
@@ -1446,8 +1492,18 @@ export function NotebookWorkspacePage() {
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
         onNotebookNameCommit={handleNotebookNameCommit}
+        canRenameNotebook={canManageNotebook}
+        onShareNotebook={isNotebookOwner ? handleOpenSharingDialog : undefined}
         chatMenu={chatMenu}
       />
+      {isNotebookOwner ? (
+        <NotebookSharingDialog
+          notebookId={id}
+          notebookName={displayNotebookName}
+          open={isSharingDialogOpen}
+          onClose={handleCloseSharingDialog}
+        />
+      ) : null}
 
       <Box
         sx={{
@@ -1505,6 +1561,7 @@ export function NotebookWorkspacePage() {
               allSourcesChecked={allSourcesChecked}
               someSourcesChecked={someSourcesChecked}
               onCollapse={handleCollapseSourcesPanel}
+              canManageContent={canManageContent}
               onCreateFile={handleCreateFileSources}
               onCreateUrl={handleCreateUrlSource}
               onCreateText={handleCreateTextSource}
@@ -1578,7 +1635,9 @@ export function NotebookWorkspacePage() {
               onExpandSourcesPanel={handleExpandSourcesPanel}
               onExpandInsightsPanel={handleExpandInsightsPanel}
               onOpenCitationJump={handleOpenCitationJump}
-              onSaveMessageAsNote={handleSaveMessageAsNote}
+              onSaveMessageAsNote={
+                canManageContent ? handleSaveMessageAsNote : undefined
+              }
               actionsRef={chatPanelActionsRef}
               onActionStateChange={handleChatPanelActionStateChange}
             />
@@ -1641,6 +1700,7 @@ export function NotebookWorkspacePage() {
               notebookId={id}
               selectedSourceIds={deferredSelectedSourceIdList}
               readySourceIds={readySourceIdList}
+              canManageContent={canManageContent}
               onCollapse={handleCollapseInsightsPanel}
               onSourceCreated={handleSourceCreated}
               onRegisterSaveMessageAsNote={handleRegisterSaveMessageAsNote}
@@ -1652,43 +1712,6 @@ export function NotebookWorkspacePage() {
           value={mobileActivePanel}
           onChange={setMobileActivePanel}
         />
-        <Snackbar
-          key={sourceErrorToast?.key}
-          open={Boolean(sourceErrorToast)}
-          autoHideDuration={2400}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          onClose={(_, reason) => {
-            if (reason === 'clickaway') {
-              return
-            }
-            setSourceErrorToast(null)
-          }}
-        >
-          <Paper
-            elevation={2}
-            sx={{
-              px: workspaceSpace.md,
-              py: workspaceSpace.xxs,
-              borderRadius: workspaceRadius.md,
-              border: '1px solid',
-              borderColor: 'primary.main',
-              bgcolor: 'primary.dark',
-              maxWidth: 420,
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                fontSize: workspaceType.xs,
-                lineHeight: 1.35,
-                color: 'primary.contrastText',
-              }}
-            >
-              {sourceErrorToast?.message ?? ''}
-            </Typography>
-          </Paper>
-        </Snackbar>
       </Box>
     </Box>
   )

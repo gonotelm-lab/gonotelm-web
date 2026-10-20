@@ -1,4 +1,5 @@
 export { WorkspaceHeader, type WorkspaceHeaderChatMenu } from './layout'
+export { NotebookSharingDialog } from './layout'
 export { ChatPanel, type ChatPanelActions, type ChatPanelActionState } from './panel/chat/ChatPanel'
 export { SourcesPanel, SourceSelectionController } from './panel/sources'
 export { StudioPanel } from './panel/studio'

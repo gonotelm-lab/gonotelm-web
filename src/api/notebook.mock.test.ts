@@ -3,9 +3,14 @@ import { ApiError } from '@/lib/http'
 import {
   createNotebook,
   deleteNotebook,
+  deleteNotebookMember,
   getNotebook,
+  getNotebookAccess,
+  getNotebookSharing,
   getOrCreateNotebookChat,
   listNotebooks,
+  updateNotebookVisibility,
+  upsertNotebookMember,
 } from './notebook'
 import { setMockScenario } from '@/test/mocks'
 
@@ -54,6 +59,42 @@ describe('notebook api with msw mock', () => {
 
   it('deletes notebook successfully', async () => {
     await expect(deleteNotebook('notebook-1')).resolves.toBeNull()
+  })
+
+  it('returns notebook access and sharing settings', async () => {
+    const access = await getNotebookAccess('notebook-1')
+    const sharing = await getNotebookSharing('notebook-1')
+
+    expect(access.can_manage_sharing).toBe(true)
+    expect(sharing.visibility).toBe('restricted')
+    expect(sharing.members[0]).toMatchObject({
+      email: 'alice@example.com',
+      role: 'viewer',
+    })
+  })
+
+  it('updates visibility, adds a member, and removes a member', async () => {
+    await expect(updateNotebookVisibility('notebook-1', 'public')).resolves.toBeNull()
+
+    const member = await upsertNotebookMember('notebook-1', {
+      email: 'bob@example.com',
+      role: 'collaborator',
+    })
+    expect(member.role).toBe('collaborator')
+
+    await expect(
+      deleteNotebookMember('notebook-1', member.user_id),
+    ).resolves.toBeNull()
+  })
+
+  it('returns empty sharing members for empty scenario', async () => {
+    setMockScenario('notebook', 'empty')
+
+    const sharing = await getNotebookSharing('notebook-1')
+    const access = await getNotebookAccess('notebook-1')
+
+    expect(sharing.members).toEqual([])
+    expect(access.can_manage_sharing).toBe(false)
   })
 
   it('throws ApiError on server error scenario', async () => {

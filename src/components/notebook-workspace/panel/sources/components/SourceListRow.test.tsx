@@ -1,8 +1,30 @@
+import type { ReactNode } from 'react'
 import { Checkbox } from '@mui/material'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 import { SourceListRow } from './SourceListRow'
 import type { SourceListItem } from '../types/sourceTypes'
+
+vi.mock('@mui/material', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mui/material')>()
+  return {
+    ...actual,
+    Menu: ({ open, children }: { open?: boolean; children?: ReactNode }) =>
+      open ? <div data-testid="source-action-menu">{children}</div> : null,
+    MenuItem: ({
+      children,
+      ...props
+    }: { children?: ReactNode } & Record<string, unknown>) => {
+      const { sx: _sx, ...rest } = props
+      void _sx
+      return (
+        <button type="button" {...rest}>
+          {children}
+        </button>
+      )
+    },
+  }
+})
 
 // text 类型来源渲染的就是这个图标；用它当重渲染探针。
 const notesIconRenders = vi.hoisted(() => ({ count: 0 }))
@@ -36,7 +58,7 @@ const sourceItem: SourceListItem = {
   status: 'ready',
 }
 
-const createRenderer = () => {
+const createRenderer = (canManageContent = true) => {
   const onToggleItem = vi.fn()
   let renderer = null as unknown as ReactTestRenderer
   act(() => {
@@ -46,6 +68,7 @@ const createRenderer = () => {
         checked={false}
         removing={false}
         isBusy={false}
+        canManageContent={canManageContent}
         onToggleItem={onToggleItem}
         onDeleteItem={async () => undefined}
         onRetryItem={async () => undefined}
@@ -62,6 +85,48 @@ const createRenderer = () => {
 }
 
 describe('SourceListRow', () => {
+  const openActionMenu = (renderer: ReactTestRenderer) => {
+    act(() => {
+      renderer.root.findByProps({ 'data-testid': 'source-action-trigger' }).props.onClick({
+        stopPropagation: () => undefined,
+        currentTarget: {},
+      })
+    })
+  }
+
+  it('无编辑权限时操作菜单只保留只读项', () => {
+    const { renderer } = createRenderer(false)
+    openActionMenu(renderer)
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'source-action-menu' }),
+    ).toBeTruthy()
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-preview' }),
+    ).not.toHaveLength(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-edit' }),
+    ).toHaveLength(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-delete' }),
+    ).toHaveLength(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-retry' }),
+    ).toHaveLength(0)
+  })
+
+  it('有编辑权限时操作菜单包含改标题与删除', () => {
+    const { renderer } = createRenderer(true)
+    openActionMenu(renderer)
+
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-edit' }),
+    ).not.toHaveLength(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-action-delete' }),
+    ).not.toHaveLength(0)
+  })
+
   it('点击复选框后应通知父级切换勾选', () => {
     const { renderer, onToggleItem } = createRenderer()
 

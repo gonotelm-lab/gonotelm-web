@@ -1,5 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { HttpResponse, http } from 'msw'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/lib/http'
+import {
+  apiErrorToastStore,
+  resetApiErrorToastForTest,
+} from '@/lib/apiErrorToast'
+import { mockServer } from '@/test/mocks'
 import {
   createChatMessage,
   getChatRunningTask,
@@ -10,6 +16,10 @@ import {
 import { setMockScenario } from '@/test/mocks'
 
 describe('chat api with msw mock', () => {
+  beforeEach(() => {
+    resetApiErrorToastForTest()
+  })
+
   it('creates chat message task using mocked endpoint', async () => {
     const result = await createChatMessage({
       id: 'chat-1',
@@ -90,6 +100,28 @@ describe('chat api with msw mock', () => {
     const result = await getChatSuggestions({ id: 'chat-1', source_ids: ['source-1'] })
 
     expect(result.questions).toEqual([])
+  })
+
+  it('SSE 接口失败也走统一错误映射', async () => {
+    mockServer.use(
+      http.get(
+        'http://127.0.0.1:4173/api/v1/chats/:chatId/stream',
+        () =>
+          HttpResponse.json(
+            { code: -998, msg: 'INNER_ERROR', data: null },
+            { status: 500 },
+          ),
+      ),
+    )
+
+    await expect(
+      streamChatEvents({
+        id: 'chat-1',
+        task_id: 'task-1',
+        onEvent: vi.fn(),
+      }),
+    ).rejects.toMatchObject({ code: -998, status: 500 })
+    expect(apiErrorToastStore.getSnapshot()?.messageKey).toBe('apiError.server')
   })
 
   it('reports task-not-running end status when task already finished', async () => {

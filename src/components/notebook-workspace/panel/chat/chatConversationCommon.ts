@@ -1,5 +1,5 @@
 import i18n from '@/i18n'
-import { ApiError } from '@/lib/http'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import type { SourceDocPosition, StreamTaskEvent } from '@/types/api'
 import type {
   ChatCitationJumpRequest,
@@ -66,15 +66,8 @@ export const copyFeedbackVisibleMs = 1500
 
 export type StreamDisplayPhaseType = 'phase' | null
 
-export const getErrorMessage = (error: unknown) => {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (error instanceof Error) {
-    return error.message
-  }
-  return i18n.t('common:error.requestFailed')
-}
+export const getErrorMessage = (error: unknown) =>
+  apiErrorMessage(error, 'common:error.requestFailed')
 
 export const sleep = (ms: number) =>
   new Promise<void>((resolve) => {

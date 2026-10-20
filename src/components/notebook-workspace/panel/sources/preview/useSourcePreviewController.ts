@@ -4,7 +4,7 @@ import {
   buildSourceParsedContentUrlQueryOptions,
 } from '@/api/source'
 import i18n from '@/i18n'
-import { ApiError } from '@/lib/http'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import { useQueryClient } from '@tanstack/react-query'
 import type { ChatCitationJumpRequest } from '../../chat/types'
 import type { SourceListItem } from '../types/sourceTypes'
@@ -21,15 +21,8 @@ const sourceMarkdownHeavyCharThreshold = 6000
 
 const getSourcePreviewEmptyNotice = () => i18n.t('sources:preview.empty')
 
-const getSourcePreviewErrorMessage = (error: unknown) => {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (error instanceof Error) {
-    return error.message
-  }
-  return i18n.t('sources:preview.loadFailed')
-}
+const getSourcePreviewErrorMessage = (error: unknown) =>
+  apiErrorMessage(error, 'sources:preview.loadFailed')
 
 export interface SourcePreviewRequest extends ChatCitationJumpRequest {
   requestId: number

@@ -37,8 +37,6 @@ vi.mock('./hooks/useStudioArtifactTasks', () => ({
     artifactItems: [],
     historyLoading: false,
     historyError: '',
-    actionErrorToast: null,
-    clearActionErrorToast: vi.fn(),
     pendingActions: {},
     reloadHistoryArtifacts: reloadHistoryArtifactsMock,
     submitArtifactTask: submitArtifactTaskMock,
@@ -104,10 +102,12 @@ vi.mock('./hooks/useVideoOverviewVisualStyleResolver', () => ({
 vi.mock('./components/StudioToolCard', () => ({
   StudioToolCard: ({
     tool,
+    disabled,
     onClick,
     onAdvancedClick,
   }: {
     tool: { actionId?: string }
+    disabled?: boolean
     onClick?: () => void
     onAdvancedClick?: () => void
   }) => (
@@ -115,6 +115,7 @@ vi.mock('./components/StudioToolCard', () => ({
       {tool.actionId ? (
         <button
           data-testid={`tool-${tool.actionId}`}
+          disabled={disabled}
           onClick={onClick}
         >
           run
@@ -191,7 +192,7 @@ vi.mock('./components/StudioArtifactInlinePreview', () => ({
   StudioArtifactInlinePreview: () => null,
 }))
 
-const renderStudioPanel = () => {
+const renderStudioPanel = (canManageContent = true) => {
   let renderer = null as unknown as ReactTestRenderer
   act(() => {
     renderer = create(
@@ -199,6 +200,7 @@ const renderStudioPanel = () => {
         notebookId="notebook-1"
         selectedSourceIds={['source-1']}
         readySourceIds={['source-1']}
+        canManageContent={canManageContent}
         onCollapse={() => undefined}
       />,
     )
@@ -213,6 +215,17 @@ describe('StudioPanel 任务触发参数', () => {
     resolveSlidesVisualStyleParamsMock.mockClear()
     resolveInfoGraphicVisualStyleParamsMock.mockClear()
     resolveVideoOverviewVisualStyleParamsMock.mockClear()
+  })
+
+  it('无编辑权限时隐藏所有生成入口', () => {
+    const renderer = renderStudioPanel(false)
+
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'tool-generate-audio_overview' }),
+    ).toHaveLength(0)
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'tool-generate-info_graphic' }),
+    ).toHaveLength(0)
   })
 
   it('触发音频概览任务时携带默认参数', () => {

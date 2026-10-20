@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CloseIcon from '@mui/icons-material/Close'
 import {
@@ -6,12 +6,11 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
-  Snackbar,
   Stack,
   Typography,
 } from '@mui/material'
-import { workspaceType } from '../../../shared/ui/typeTokens'
+import { apiErrorMessage } from '@/lib/apiErrorMessage'
+import { showAppToast } from '@/lib/apiErrorToast'
 import { workspaceDialogLayout } from '../../../shared/ui/dialogLayoutTokens'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
 import { AddSourceDialogEditorView } from './AddSourceDialogEditorView'
@@ -46,8 +45,6 @@ export function AddSourceDialog({
   const [urlInput, setUrlInput] = useState('')
   const [textInput, setTextInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [errorToast, setErrorToast] = useState<{ key: number; message: string } | null>(null)
-  const errorToastKeyRef = useRef(0)
 
   const disabled = isBusy || submitting
   const textCharCount = useMemo(() => countTextSourceChars(textInput), [textInput])
@@ -78,10 +75,9 @@ export function AddSourceDialog({
       setUrlInput('')
       setTextInput('')
     } catch (err) {
-      errorToastKeyRef.current += 1
-      setErrorToast({
-        key: errorToastKeyRef.current,
-        message: err instanceof Error ? err.message : t('sources:dialog.addFailed'),
+      // 请求层已经提示过 API 错误；这里补上非 API 失败，同一段文案会自动去重。
+      showAppToast({
+        message: apiErrorMessage(err, 'sources:dialog.addFailed'),
       })
     } finally {
       setSubmitting(false)
@@ -164,43 +160,6 @@ export function AddSourceDialog({
           />
         )}
       </DialogContent>
-      <Snackbar
-        key={errorToast?.key}
-        open={Boolean(errorToast)}
-        autoHideDuration={2400}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        onClose={(_, reason) => {
-          if (reason === 'clickaway') {
-            return
-          }
-          setErrorToast(null)
-        }}
-      >
-        <Paper
-          elevation={2}
-          sx={{
-            px: workspaceSpace.md,
-            py: workspaceSpace.xxs,
-            borderRadius: workspaceRadius.md,
-            border: '1px solid',
-            borderColor: 'primary.main',
-            bgcolor: 'primary.dark',
-            maxWidth: 420,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              fontSize: workspaceType.xs,
-              lineHeight: 1.35,
-              color: 'primary.contrastText',
-            }}
-          >
-            {errorToast?.message ?? ''}
-          </Typography>
-        </Paper>
-      </Snackbar>
     </Dialog>
   )
 }

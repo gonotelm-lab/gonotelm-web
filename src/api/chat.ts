@@ -1,5 +1,9 @@
-import { ApiError, request } from '../lib/http'
-import { isNotLoginError, redirectToLogin } from '../lib/auth'
+import {
+  ApiError,
+  isRequestAbortError,
+  request,
+  throwApiError,
+} from '../lib/http'
 import type {
   ApiResult,
   ChatAbortStreamRequest,
@@ -185,44 +189,46 @@ function buildChatStreamUrl(params: BuildChatStreamUrlParams) {
 }
 
 export async function streamChatEvents(options: StreamChatEventsOptions): Promise<StreamChatEndStatus> {
-  const response = await fetch(buildChatStreamUrl(options), {
-    method: 'GET',
-    // 直通后端时属于跨源请求，必须显式带上 cookie
-    credentials: 'include',
-    headers: {
-      Accept: 'text/event-stream',
-    },
-    signal: options.signal,
-  })
+  let response: Response
+  try {
+    response = await fetch(buildChatStreamUrl(options), {
+      method: 'GET',
+      // 直通后端时属于跨源请求，必须显式带上 cookie
+      credentials: 'include',
+      headers: {
+        Accept: 'text/event-stream',
+      },
+      signal: options.signal,
+    })
+  } catch (error) {
+    if (isRequestAbortError(error)) {
+      throw error
+    }
+    throwApiError(new ApiError('Network request failed', -1, 0))
+  }
 
   if (!response.ok) {
     const body = await tryParseApiResult<unknown>(response)
-    const error = new ApiError(
-      body?.msg ?? `HTTP request failed: ${response.status}`,
-      body?.code ?? -1,
-      response.status,
+    throwApiError(
+      new ApiError(
+        body?.msg ?? `HTTP request failed: ${response.status}`,
+        body?.code ?? -1,
+        response.status,
+      ),
     )
-    if (isNotLoginError(error)) {
-      redirectToLogin()
-    }
-    throw error
   }
 
   const contentType = response.headers.get('content-type') ?? ''
   if (contentType.includes('application/json')) {
     const body = await tryParseApiResult<unknown>(response)
     if (body && body.code !== 0) {
-      const error = new ApiError(body.msg, body.code, response.status)
-      if (isNotLoginError(error)) {
-        redirectToLogin()
-      }
-      throw error
+      throwApiError(new ApiError(body.msg, body.code, response.status))
     }
     return 'task-not-running'
   }
 
   if (!response.body) {
-    throw new ApiError('SSE response body is empty', -1, response.status)
+    throwApiError(new ApiError('SSE response body is empty', -1, response.status))
   }
 
   const reader = response.body.getReader()

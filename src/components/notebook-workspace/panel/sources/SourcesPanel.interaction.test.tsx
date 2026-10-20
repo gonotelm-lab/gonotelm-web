@@ -6,6 +6,7 @@ import { SourcesPanel } from './SourcesPanel'
 import type { SourceListItem } from './types/sourceTypes'
 
 const overlaySpy = vi.hoisted(() => vi.fn())
+const addSourceDialogState = vi.hoisted(() => ({ open: false }))
 
 vi.mock('@/api/source', () => ({
   buildSourceParsedContentQueryOptions: (sourceId: string) => ({
@@ -26,7 +27,10 @@ vi.mock('@/api/source', () => ({
 }))
 
 vi.mock('./components/AddSourceDialog', () => ({
-  AddSourceDialog: () => null,
+  AddSourceDialog: ({ open }: { open: boolean }) => {
+    addSourceDialogState.open = open
+    return null
+  },
 }))
 
 vi.mock('./components/SourceListRow', () => ({
@@ -104,11 +108,12 @@ const sourceItem: SourceListItem = {
   status: 'ready',
 }
 
-const createPanelProps = () => ({
+const basePanelProps = () => ({
   collapsed: false,
   isBusy: false,
   isHydrating: false,
   loadingSkeletonCount: 0,
+  canManageContent: true,
   sourceListItems: [sourceItem],
   removingMap: {},
   allSourcesChecked: false,
@@ -126,7 +131,16 @@ const createPanelProps = () => ({
   previewRequest: null,
 })
 
-const renderSourcesPanel = async () => {
+const createPanelProps = (
+  overrides: Partial<ReturnType<typeof basePanelProps>> = {},
+) => ({
+  ...basePanelProps(),
+  ...overrides,
+})
+
+const renderSourcesPanel = async (
+  overrides: Partial<ReturnType<typeof basePanelProps>> = {},
+) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -138,7 +152,7 @@ const renderSourcesPanel = async () => {
   await act(async () => {
     renderer = create(
       <QueryClientProvider client={queryClient}>
-        <SourcesPanel {...createPanelProps()} />
+        <SourcesPanel {...createPanelProps(overrides)} />
       </QueryClientProvider>,
     )
   })
@@ -153,6 +167,33 @@ const flushMicrotasks = async () => {
 describe('SourcesPanel interaction', () => {
   beforeEach(() => {
     overlaySpy.mockReset()
+    addSourceDialogState.open = false
+  })
+
+  it('无编辑权限时隐藏添加来源入口', async () => {
+    const renderer = await renderSourcesPanel({ canManageContent: false })
+
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'sources-add' }),
+    ).toHaveLength(0)
+  })
+
+  it('有编辑权限时显示添加来源入口', async () => {
+    const renderer = await renderSourcesPanel()
+
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'sources-add' }),
+    ).toBeTruthy()
+  })
+
+  it('有编辑权限时点击添加来源会打开对话框', async () => {
+    const renderer = await renderSourcesPanel()
+
+    await act(async () => {
+      renderer.root.findByProps({ 'data-testid': 'sources-add' }).props.onClick()
+    })
+
+    expect(addSourceDialogState.open).toBe(true)
   })
 
   it('点击来源预览后打开内联子页', async () => {

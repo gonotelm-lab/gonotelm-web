@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { GlobalCallbackFailureToast } from '../components/auth/GlobalCallbackFailureToast'
+import { GlobalApiErrorToast } from '../components/notifications/GlobalApiErrorToast'
 
 /**
  * 根布局：渲染当前页面，并挂上与页面无关的全局提示。
@@ -12,6 +13,7 @@ export function AppRoot() {
     <>
       <Outlet />
       <GlobalCallbackFailureToast />
+      <GlobalApiErrorToast />
     </>
   )
 }

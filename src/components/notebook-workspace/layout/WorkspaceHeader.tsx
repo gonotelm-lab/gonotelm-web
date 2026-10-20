@@ -12,6 +12,7 @@ import {
   InputBase,
   Menu,
   MenuItem,
+  Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -45,8 +46,9 @@ import { workspaceIconSize, workspaceTypeRem } from '../shared/ui/typeTokens'
  * 一个重复的「回首页」控件，所以只留一个。图形保持装饰（`aria-hidden`），链接的
  * 无障碍名字由 IconButton 的 aria-label 提供。
  *
- * 「创建笔记本 / 分享」目前只是占位：按设计稿先把这两个入口放进尾部控件组，
- * 不接任何逻辑（无 onClick、无请求），等接口确定后再补行为。
+ * 「创建笔记本」仍是占位：按设计稿先放进尾部控件组，不接行为。
+ * 「分享」只对 owner 展示：页面确认权限后才传入回调，没有回调就不渲染按钮，
+ * 避免非 owner 点开后被后端拒绝。
  */
 const headerChrome = {
   rowMinHeight: 48,
@@ -98,8 +100,12 @@ interface WorkspaceHeaderProps {
   notebookName: string
   isFetching: boolean
   isUpdatingName: boolean
+  /** 仅 owner 可改名；没有权限时标题变成只读文本。 */
+  canRenameNotebook?: boolean
   /** Commit only on blur / Enter — keeps keystrokes out of the workspace page tree. */
   onNotebookNameCommit: (value: string) => void
+  /** 打开分享设置对话框；仅 owner 传入，省略时整个分享按钮不渲染。 */
+  onShareNotebook?: () => void
   /** 省略则不渲染“更多选项”入口，header 仍可单独使用。 */
   chatMenu?: WorkspaceHeaderChatMenu
 }
@@ -108,7 +114,9 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   notebookName,
   isFetching,
   isUpdatingName,
+  canRenameNotebook = true,
   onNotebookNameCommit,
+  onShareNotebook,
   chatMenu,
 }: WorkspaceHeaderProps) {
   const { t } = useTranslation('workspace')
@@ -127,6 +135,9 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
 
   const commitDraft = () => {
     setIsEditing(false)
+    if (!canRenameNotebook) {
+      return
+    }
     onNotebookNameCommit(draftName)
   }
 
@@ -191,59 +202,90 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
         >
           <BrandMark size={headerChrome.brandMarkSize} />
         </IconButton>
-        <InputBase
-          value={draftName}
-          placeholder={t('workspace:header.namePlaceholder')}
-          onChange={(event) => setDraftName(event.target.value)}
-          onFocus={() => {
-            setDraftName(notebookName)
-            setIsEditing(true)
-          }}
-          onBlur={commitDraft}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+        {canRenameNotebook ? (
+          <InputBase
+            value={draftName}
+            placeholder={t('workspace:header.namePlaceholder')}
+            onChange={(event) => setDraftName(event.target.value)}
+            onFocus={() => {
+              setDraftName(notebookName)
+              setIsEditing(true)
+            }}
+            onBlur={commitDraft}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') {
+                return
+              }
               event.preventDefault()
               const input = event.target as HTMLInputElement
               input.blur()
-            }
-          }}
-          inputProps={{
-            'aria-label': t('workspace:header.nameAria'),
-            maxLength: 128,
-          }}
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            maxWidth: { xs: '100%', md: 560 },
-            height: headerChrome.controlHeight,
-            px: workspaceSpace.md,
-            py: 0,
-            borderRadius: workspaceRadius.md,
-            border: 1,
-            borderColor: 'transparent',
-            bgcolor: 'background.paper',
-            cursor: 'text',
-            fontSize: headerChrome.titleFontSize,
-            lineHeight: 1.3,
-            fontWeight: 600,
-            letterSpacing: 0,
-            transition: workspaceTransitionPresets.borderBg,
-            '& input': {
-              cursor: 'text',
-              textOverflow: 'ellipsis',
+            }}
+            inputProps={{
+              'aria-label': t('workspace:header.nameAria'),
+              maxLength: 128,
+            }}
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              maxWidth: { xs: '100%', md: 560 },
+              height: headerChrome.controlHeight,
+              px: workspaceSpace.md,
               py: 0,
-              height: '100%',
-            },
-            '&:hover': {
-              bgcolor: 'background.default',
-              borderColor: 'divider',
-            },
-            '&.Mui-focused': {
-              bgcolor: 'action.selected',
-              borderColor: 'primary.main',
-            },
-          }}
-        />
+              borderRadius: workspaceRadius.md,
+              border: 1,
+              borderColor: 'transparent',
+              bgcolor: 'background.paper',
+              cursor: 'text',
+              fontSize: headerChrome.titleFontSize,
+              lineHeight: 1.3,
+              fontWeight: 600,
+              letterSpacing: 0,
+              transition: workspaceTransitionPresets.borderBg,
+              '& input': {
+                cursor: 'text',
+                textOverflow: 'ellipsis',
+                py: 0,
+                height: '100%',
+              },
+              '&:hover': {
+                bgcolor: 'background.default',
+                borderColor: 'divider',
+              },
+              '&.Mui-focused': {
+                bgcolor: 'action.selected',
+                borderColor: 'primary.main',
+              },
+            }}
+          />
+        ) : (
+          /*
+            无改名权限时直接渲染纯文本：编辑入口整体隐藏，而不是留一个只读输入框，
+            避免看起来仍可点、可改。
+          */
+          <Typography
+            component="h1"
+            data-testid="workspace-title"
+            title={notebookName}
+            noWrap
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              maxWidth: { xs: '100%', md: 560 },
+              height: headerChrome.controlHeight,
+              px: workspaceSpace.md,
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: headerChrome.titleFontSize,
+              lineHeight: 1.3,
+              fontWeight: 600,
+              letterSpacing: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {notebookName}
+          </Typography>
+        )}
         <Box
           sx={{
             ml: 'auto',
@@ -257,7 +299,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             flexShrink: 0,
           }}
         >
-          {/* 占位入口：先只出视觉，行为待接口确定后接。 */}
+          {/* 创建笔记本仍是占位；分享打开页面的分享设置对话框。 */}
           <Button
             data-testid="workspace-create-notebook"
             variant="text"
@@ -267,15 +309,18 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           >
             {t('workspace:header.createNotebook')}
           </Button>
-          <Button
-            data-testid="workspace-share-notebook"
-            variant="text"
-            color="inherit"
-            startIcon={<IosShareOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />}
-            sx={headerActionButtonSx}
-          >
-            {t('workspace:header.share')}
-          </Button>
+          {onShareNotebook ? (
+            <Button
+              data-testid="workspace-share-notebook"
+              variant="text"
+              color="inherit"
+              startIcon={<IosShareOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />}
+              onClick={onShareNotebook}
+              sx={headerActionButtonSx}
+            >
+              {t('workspace:header.share')}
+            </Button>
+          ) : null}
           {chatMenu ? (
             <IconButton
               data-testid="workspace-more-options"

@@ -14,6 +14,7 @@
   "error": {
     "clearWhileStreaming": "正在生成回复时不可清空上下文，请稍后再试。",
     "clearNoSession": "当前会话不可用，无法清空上下文。",
+    "generateFailed": "回答生成失败，请重试。",
     "saveNote": "保存笔记失败，请重试。"
   },
   "thinking": "思考中",

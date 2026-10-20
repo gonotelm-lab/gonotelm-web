@@ -297,27 +297,29 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               gap: workspaceSpace.sm,
             }}
           >
-            <Button
-              size="small"
-              variant="outlined"
-              aria-label={t('chat:message.saveNote')}
-              disabled={!canSaveAsNote}
-              startIcon={
-                savingAsNote ? (
-                  <CircularProgress size={actionIconSize} color="inherit" />
-                ) : (
-                  <PushPinOutlinedIcon sx={{ fontSize: actionIconSize }} />
-                )
-              }
-              onClick={(event) => {
-                event.stopPropagation()
-                if (!canSaveAsNote || !onSaveAsNote) return
-                onSaveAsNote(message.id)
-              }}
-              sx={saveAsNoteButtonSx}
-            >
-              {savingAsNote ? t('chat:message.saving') : t('chat:message.saveNote')}
-            </Button>
+            {onSaveAsNote ? (
+              <Button
+                size="small"
+                variant="outlined"
+                aria-label={t('chat:message.saveNote')}
+                disabled={!canSaveAsNote}
+                startIcon={
+                  savingAsNote ? (
+                    <CircularProgress size={actionIconSize} color="inherit" />
+                  ) : (
+                    <PushPinOutlinedIcon sx={{ fontSize: actionIconSize }} />
+                  )
+                }
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (!canSaveAsNote) return
+                  onSaveAsNote(message.id)
+                }}
+                sx={saveAsNoteButtonSx}
+              >
+                {savingAsNote ? t('chat:message.saving') : t('chat:message.saveNote')}
+              </Button>
+            ) : null}
             <Tooltip title={copied ? t('common:action.copied') : t('common:action.copy')}>
               <Box
                 component="span"

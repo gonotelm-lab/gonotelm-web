@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createPortal } from 'react-dom'
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import {
@@ -9,7 +8,6 @@ import {
   Divider,
   IconButton,
   Paper,
-  Snackbar,
   Stack,
   Tooltip,
   Typography,
@@ -26,7 +24,7 @@ import type {
   GenerateVideoOverviewParameters,
 } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
-import { workspaceLayout, workspaceRadius, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactInlinePreview } from './components/StudioArtifactInlinePreview'
@@ -60,12 +58,13 @@ import { useStudioPreviewController } from './preview/useStudioPreviewController
 import { getStudioToolCatalog } from './studioToolCatalog'
 import { studioToolGridContainerSx, studioToolGridSx } from './studioToolGridLayout'
 import type { SaveMessageAsNoteParams, StudioToolActionId } from './types'
-import { workspaceType } from '../../shared/ui/typeTokens'
 
 interface StudioPanelProps {
   notebookId: string
   selectedSourceIds: string[]
   readySourceIds: string[]
+  /** 无编辑权限时隐藏生成入口与删除 / 重试等写操作，只保留预览。 */
+  canManageContent?: boolean
   onCollapse: () => void
   onSourceCreated?: () => void
   onRegisterSaveMessageAsNote?: (
@@ -82,6 +81,7 @@ export const StudioPanel = memo(function StudioPanel({
   notebookId,
   selectedSourceIds,
   readySourceIds,
+  canManageContent = true,
   onCollapse,
   onSourceCreated,
   onRegisterSaveMessageAsNote,
@@ -100,8 +100,6 @@ export const StudioPanel = memo(function StudioPanel({
     artifactItems,
     historyLoading,
     historyError,
-    actionErrorToast,
-    clearActionErrorToast,
     pendingActions,
     reloadHistoryArtifacts,
     submitArtifactTask,
@@ -119,11 +117,15 @@ export const StudioPanel = memo(function StudioPanel({
     if (!onRegisterSaveMessageAsNote) {
       return
     }
+    if (!canManageContent) {
+      onRegisterSaveMessageAsNote(null)
+      return
+    }
     onRegisterSaveMessageAsNote(saveMessageAsNote)
     return () => {
       onRegisterSaveMessageAsNote(null)
     }
-  }, [onRegisterSaveMessageAsNote, saveMessageAsNote])
+  }, [canManageContent, onRegisterSaveMessageAsNote, saveMessageAsNote])
   const {
     previewState,
     previewTarget,
@@ -579,35 +581,39 @@ export const StudioPanel = memo(function StudioPanel({
         </IconButton>
       </Stack>
 
-      <Box
-        sx={{
-          mt: panelTitleToBodySpacing,
-          ...studioToolGridContainerSx,
-        }}
-      >
-        <Box sx={studioToolGridSx}>
-          {studioToolCatalog.map((tool) => {
-            const actionId = tool.actionId
-            const disabled =
-              tool.availability !== 'available'
-              || (Boolean(tool.artifactKind) && !canSubmitArtifactTask)
-            const pending = Boolean(actionId && pendingActions[actionId])
-            return (
-              <StudioToolCard
-                key={tool.id}
-                tool={tool}
-                selected={Boolean(previewTarget && tool.artifactKind === previewTarget.kind)}
-                disabled={disabled}
-                pending={pending}
-                onClick={actionId ? actionHandlers[actionId] : undefined}
-                onAdvancedClick={actionId ? advancedActionHandlers[actionId] : undefined}
-              />
-            )
-          })}
-        </Box>
-      </Box>
+      {canManageContent ? (
+        <>
+          <Box
+            sx={{
+              mt: panelTitleToBodySpacing,
+              ...studioToolGridContainerSx,
+            }}
+          >
+            <Box sx={studioToolGridSx}>
+              {studioToolCatalog.map((tool) => {
+                const actionId = tool.actionId
+                const disabled =
+                  tool.availability !== 'available'
+                  || (Boolean(tool.artifactKind) && !canSubmitArtifactTask)
+                const pending = Boolean(actionId && pendingActions[actionId])
+                return (
+                  <StudioToolCard
+                    key={tool.id}
+                    tool={tool}
+                    selected={Boolean(previewTarget && tool.artifactKind === previewTarget.kind)}
+                    disabled={disabled}
+                    pending={pending}
+                    onClick={actionId ? actionHandlers[actionId] : undefined}
+                    onAdvancedClick={actionId ? advancedActionHandlers[actionId] : undefined}
+                  />
+                )
+              })}
+            </Box>
+          </Box>
 
-      <Divider sx={studioListDividerSpacing} />
+          <Divider sx={studioListDividerSpacing} />
+        </>
+      ) : null}
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -651,7 +657,7 @@ export const StudioPanel = memo(function StudioPanel({
         ) : artifactItems.length === 0 ? (
           <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center' }}>
             <Typography variant="body2" color="text.secondary">
-              {t('studio:panel.empty')}
+              {canManageContent ? t('studio:panel.empty') : t('studio:panel.emptyReadOnly')}
             </Typography>
           </Stack>
         ) : (
@@ -666,6 +672,7 @@ export const StudioPanel = memo(function StudioPanel({
               >
                 <StudioArtifactListItem
                   item={item}
+                  canManageContent={canManageContent}
                   previewLoading={previewState.loading && previewState.targetId === item.id}
                   onPreview={openPreviewByItemClick}
                   retryPending={isArtifactActionPending(item.id, 'retry')}
@@ -710,7 +717,11 @@ export const StudioPanel = memo(function StudioPanel({
             onOpenOverlay={openOverlayFromInline}
             onDownload={downloadPreviewContent}
             onRetryLoad={retryPreviewLoad}
-            onRenameTitle={(title) => renameArtifactTitle(previewTarget.id, title)}
+            onRenameTitle={
+              canManageContent
+                ? (title) => renameArtifactTitle(previewTarget.id, title)
+                : undefined
+            }
             onContentUrlRefreshed={updatePreviewContentUrl}
           />
         ),
@@ -749,7 +760,7 @@ export const StudioPanel = memo(function StudioPanel({
         onClose={closeOverlayPreview}
         onRetryLoad={retryPreviewLoad}
         onRenameTitle={
-          previewTarget
+          canManageContent && previewTarget
             ? (title) => renameArtifactTitle(previewTarget.id, title)
             : undefined
         }
@@ -828,56 +839,6 @@ export const StudioPanel = memo(function StudioPanel({
         onGenerate={handleCreateVideoOverview}
       />
 
-      {typeof document !== 'undefined'
-        ? createPortal(
-            <Snackbar
-              key={actionErrorToast?.key}
-              open={Boolean(actionErrorToast)}
-              autoHideDuration={2400}
-              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-              // PanelSubpageLayout 有 transform，fixed 会相对右侧面板；挂到 body 才是视口正中
-              sx={{
-                top: '50%',
-                left: '50%',
-                right: 'auto',
-                bottom: 'auto',
-                transform: 'translate(-50%, -50%)',
-              }}
-              onClose={(_, reason) => {
-                if (reason === 'clickaway') {
-                  return
-                }
-                clearActionErrorToast()
-              }}
-            >
-              <Paper
-                elevation={2}
-                sx={{
-                  px: workspaceSpace.md,
-                  py: workspaceSpace.xxs,
-                  borderRadius: workspaceRadius.md,
-                  border: '1px solid',
-                  borderColor: 'primary.main',
-                  bgcolor: 'primary.dark',
-                  maxWidth: 420,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    fontSize: workspaceType.xs,
-                    lineHeight: 1.35,
-                    color: 'primary.contrastText',
-                  }}
-                >
-                  {actionErrorToast?.message ?? ''}
-                </Typography>
-              </Paper>
-            </Snackbar>,
-            document.body,
-          )
-        : null}
     </Paper>
   )
 })

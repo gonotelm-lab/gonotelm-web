@@ -9,6 +9,53 @@
     "configureChat": "配置对话",
     "refreshChat": "刷新对话"
   },
+  "sharing": {
+    "title": "分享笔记本",
+    "titleWithName": "分享“{{name}}”",
+    "visibility": {
+      "label": "笔记本访问权限",
+      "restricted": "受限",
+      "restrictedHint": "只有拥有访问权限的用户可以通过链接打开",
+      "public": "公开",
+      "publicHint": "任何获得链接的用户都可以查看"
+    },
+    "members": {
+      "title": "拥有访问权限的用户",
+      "removeAria": "移除 {{name}}"
+    },
+    "role": {
+      "aria": "{{name}} 的权限",
+      "owner": "所有者",
+      "viewer": "可查看",
+      "collaborator": "可编辑"
+    },
+    "add": {
+      "placeholder": "添加用户"
+    },
+    "link": {
+      "copy": "复制链接",
+      "copied": "已复制",
+      "copyFailed": "复制失败"
+    },
+    "error": {
+      "noPermission": "只有笔记本所有者可以管理分享。",
+      "userNotFound": "没有找到这个邮箱对应的账号。",
+      "userBanned": "该账号已被封禁，无法添加。",
+      "cannotShareWithOwner": "这是你自己的邮箱，无需添加。",
+      "invalidEmail": "请输入有效的邮箱地址。",
+      "memberExists": "该用户已在访问权限列表中。",
+      "loadFailed": "分享设置加载失败，请稍后重试。",
+      "updateFailed": "分享设置保存失败，请稍后重试。"
+    }
+  },
+  "notFound": {
+    "title": "找不到这个笔记本",
+    "description": "它可能已被删除，或你当前没有访问权限。",
+    "hint": "请检查链接是否完整，或返回首页打开其他笔记本。",
+    "backHome": "返回首页",
+    "retry": "重试",
+    "retrying": "重试中..."
+  },
   "mobile": {
     "tab": {
       "sources": "来源",

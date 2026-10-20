@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import { apiErrorMessage } from '../../lib/apiErrorMessage'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
 import {
   workspaceLayout,
@@ -92,11 +93,9 @@ export function NotebookCard({
         setDeleteDialogOpen(false)
       })
       .catch((error) => {
-        if (error instanceof Error && error.message.trim()) {
-          setDeleteErrorMessage(error.message)
-          return
-        }
-        setDeleteErrorMessage(t('common:error.deleteFailed'))
+        setDeleteErrorMessage(
+          apiErrorMessage(error, 'common:error.deleteFailed'),
+        )
       })
   }
 

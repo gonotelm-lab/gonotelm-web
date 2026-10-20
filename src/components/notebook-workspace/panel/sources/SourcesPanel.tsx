@@ -48,6 +48,8 @@ interface SourcesPanelProps {
   isBusy: boolean
   isHydrating: boolean
   loadingSkeletonCount: number
+  /** 无编辑权限时隐藏添加来源与所有写操作，只保留预览 / 下载 / 勾选。 */
+  canManageContent?: boolean
   sourceListItems: SourceListItem[]
   removingMap: Record<string, boolean>
   allSourcesChecked: boolean
@@ -110,6 +112,7 @@ function SourcesPanelLayout({
   const {
     collapsed,
     isBusy,
+    canManageContent = true,
     sourceListItems,
     removingMap,
     allSourcesChecked,
@@ -128,8 +131,13 @@ function SourcesPanelLayout({
 
   return (
     <>
+      {/*
+        对话框常驻挂载，只由 open 控制显隐：
+        —— 不再在布局层再判一次 canManageContent，避免「按钮可见但点击后因第二份
+        权限判断不一致而不弹窗」。权限只决定按钮是否渲染，以及这里 open 的最终值。
+      */}
       <AddSourceDialog
-        open={dialogOpen}
+        open={canManageContent && dialogOpen}
         isBusy={isBusy}
         onClose={onDialogClose}
         onCreateFile={onCreateFile}
@@ -196,20 +204,23 @@ function SourcesPanelLayout({
                   </IconButton>
                 </Stack>
 
-                <Stack
-                  spacing={workspaceSpace.md}
-                  sx={{ mt: panelTitleToBodySpacing, flexShrink: 0 }}
-                >
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={onDialogOpen}
-                    disabled={isBusy}
-                    sx={{ borderStyle: 'dashed', textTransform: 'none', justifyContent: 'center' }}
+                {canManageContent ? (
+                  <Stack
+                    spacing={workspaceSpace.md}
+                    sx={{ mt: panelTitleToBodySpacing, flexShrink: 0 }}
                   >
-                    {t('sources:panel.add')}
-                  </Button>
-                </Stack>
+                    <Button
+                      data-testid="sources-add"
+                      variant="outlined"
+                      fullWidth
+                      onClick={onDialogOpen}
+                      disabled={isBusy}
+                      sx={{ borderStyle: 'dashed', textTransform: 'none', justifyContent: 'center' }}
+                    >
+                      {t('sources:panel.add')}
+                    </Button>
+                  </Stack>
+                ) : null}
 
                 <Divider sx={{ my: workspaceLayout.panelPaddingY, flexShrink: 0 }} />
 
@@ -353,6 +364,7 @@ function SourcesPanelLayout({
                                 checked={Boolean(checkedMap[item.id])}
                                 removing={Boolean(removingMap[item.id])}
                                 isBusy={isBusy}
+                                canManageContent={canManageContent}
                                 onToggleItem={onToggleItem}
                                 onDeleteItem={onDeleteItem}
                                 onRetryItem={onRetryItem}
@@ -631,6 +643,8 @@ export const SourcesPanel = memo(function SourcesPanel(props: SourcesPanelProps)
   }, [openPreviewFromMenu])
 
   const handleDialogOpen = useCallback(() => {
+    // 按钮本身只在有编辑权限时渲染，这里不再重复判权限：
+    // 避免权限状态在两处判断不一致时出现「能点但没反应」。
     setDialogOpen(true)
   }, [])
 

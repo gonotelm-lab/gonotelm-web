@@ -37,6 +37,13 @@ vi.mock('@mui/material', () => ({
     </button>
   ),
   CircularProgress: () => <span data-testid="workspace-status-spinner" />,
+  Typography: ({
+    children,
+    sx: _sx,
+    noWrap: _noWrap,
+    component: _component,
+    ...props
+  }: { children?: ReactNode } & Record<string, unknown>) => <h1 {...props}>{children}</h1>,
 }))
 
 vi.mock('@mui/icons-material/AddOutlined', () => ({ default: () => null }))
@@ -50,7 +57,15 @@ vi.mock('../../auth/AccountMenu', () => ({ AccountMenu: () => <div data-testid="
 
 import { WorkspaceHeader, type WorkspaceHeaderChatMenu } from './WorkspaceHeader'
 
-const renderHeader = (chatMenu?: WorkspaceHeaderChatMenu, extra: { isFetching?: boolean } = {}) => {
+const renderHeader = (
+  chatMenu?: WorkspaceHeaderChatMenu,
+  extra: {
+    isFetching?: boolean
+    canRenameNotebook?: boolean
+    onNotebookNameCommit?: (value: string) => void
+    onShareNotebook?: () => void
+  } = {},
+) => {
   let renderer!: ReactTestRenderer
   act(() => {
     renderer = create(
@@ -58,7 +73,9 @@ const renderHeader = (chatMenu?: WorkspaceHeaderChatMenu, extra: { isFetching?: 
         notebookName="第三季度复盘"
         isFetching={extra.isFetching ?? false}
         isUpdatingName={false}
-        onNotebookNameCommit={() => undefined}
+        canRenameNotebook={extra.canRenameNotebook ?? true}
+        onNotebookNameCommit={extra.onNotebookNameCommit ?? (() => undefined)}
+        onShareNotebook={extra.onShareNotebook}
         chatMenu={chatMenu}
       />,
     )
@@ -157,8 +174,9 @@ describe('WorkspaceHeader', () => {
     ).toHaveLength(0)
   })
 
-  it('尾部“创建笔记本 / 分享”是占位：出中文文案，但不接任何行为', () => {
-    const renderer = renderHeader(buildChatMenu())
+  it('尾部“创建笔记本”仍是占位，“分享”接页面回调', () => {
+    const onShareNotebook = vi.fn()
+    const renderer = renderHeader(buildChatMenu(), { onShareNotebook })
 
     const createButton = renderer.root.findByProps({
       'data-testid': 'workspace-create-notebook',
@@ -169,13 +187,22 @@ describe('WorkspaceHeader', () => {
 
     expect(createButton.props.children).toBe('创建笔记本')
     expect(shareButton.props.children).toBe('分享')
-    // 占位阶段不接逻辑：没有 onClick，也就不会误触发请求 / 弹窗。
+    // 创建入口仍是占位：没有 onClick，也就不会误触发请求 / 弹窗。
     expect(createButton.props.onClick).toBeUndefined()
-    expect(shareButton.props.onClick).toBeUndefined()
+
+    act(() => shareButton.props.onClick())
+    expect(onShareNotebook).toHaveBeenCalledTimes(1)
   })
 
-  it('占位入口与“更多选项”解耦，无会话时也照样显示', () => {
+  it('非 owner 未传分享回调时不渲染分享按钮', () => {
     const renderer = renderHeader()
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'workspace-share-notebook' }),
+    ).toHaveLength(0)
+  })
+
+  it('分享入口由 owner 回调控制，不依赖“更多选项”', () => {
+    const renderer = renderHeader(undefined, { onShareNotebook: vi.fn() })
 
     expect(
       renderer.root.findByProps({ 'data-testid': 'workspace-create-notebook' }),
@@ -183,6 +210,9 @@ describe('WorkspaceHeader', () => {
     expect(
       renderer.root.findByProps({ 'data-testid': 'workspace-share-notebook' }),
     ).toBeTruthy()
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'workspace-more-options' }),
+    ).toHaveLength(0)
   })
 
   it('最左的品牌标记就是回首页入口：链接到 /，无障碍名字来自按钮而非图形', () => {
@@ -202,6 +232,23 @@ describe('WorkspaceHeader', () => {
     // 图形保持装饰：读屏念的只有按钮的 aria-label，不会重复念一遍图片。
     expect(mark.props.alt).toBe('')
     expect(mark.props['aria-hidden']).toBe(true)
+  })
+
+  it('没有改名权限时整体隐藏标题编辑入口，只展示纯文本标题', () => {
+    const onNotebookNameCommit = vi.fn()
+    const renderer = renderHeader(undefined, {
+      canRenameNotebook: false,
+      onNotebookNameCommit,
+    })
+
+    // 不再渲染输入框：没有权限的人看不到任何可编辑的入口。
+    expect(
+      renderer.root.findAllByProps({ 'data-testid': 'workspace-title-input' }),
+    ).toHaveLength(0)
+
+    const title = renderer.root.findByProps({ 'data-testid': 'workspace-title' })
+    expect(title.props.children).toBe('第三季度复盘')
+    expect(onNotebookNameCommit).not.toHaveBeenCalled()
   })
 
   it('标题放大到 20px，但控件盒与内边距不变（header 仍 48px）', () => {

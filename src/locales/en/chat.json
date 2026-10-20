@@ -14,6 +14,7 @@
   "error": {
     "clearWhileStreaming": "Cannot clear context while a reply is generating. Try again later.",
     "clearNoSession": "No active session. Cannot clear context.",
+    "generateFailed": "Failed to generate a response. Please try again.",
     "saveNote": "Failed to save note. Please retry."
   },
   "thinking": "Thinking",

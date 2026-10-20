@@ -1,9 +1,13 @@
 import type {
+  GetNotebookSharingResponse,
   ListNotebooksResponse,
   ListNotebookSourcesResponse,
   Notebook,
+  NotebookAccess,
+  NotebookSharingMember,
   NotebookSource,
   NotebookSummary,
+  UpsertNotebookMemberResponse,
 } from '@/types/api'
 
 export const createNotebookSummaryFixture = (
@@ -63,4 +67,42 @@ export const createListNotebookSourcesResponseFixture = (
   limit: 50,
   offset: 0,
   has_more: false,
+})
+
+export const createNotebookSharingMemberFixture = (
+  overrides: Partial<NotebookSharingMember> = {},
+): NotebookSharingMember => ({
+  user_id: 'user-2',
+  email: 'alice@example.com',
+  nickname: 'Alice',
+  avatar_url: '',
+  role: 'viewer',
+  ...overrides,
+})
+
+export const createGetNotebookSharingResponseFixture = (
+  overrides: Partial<GetNotebookSharingResponse> = {},
+): GetNotebookSharingResponse => ({
+  visibility: 'restricted',
+  members: [createNotebookSharingMemberFixture()],
+  ...overrides,
+})
+
+export const createNotebookAccessFixture = (
+  overrides: Partial<NotebookAccess> = {},
+): NotebookAccess => ({
+  role: 'owner',
+  can_view: true,
+  can_manage_content: true,
+  can_manage_notebook: true,
+  can_manage_sharing: true,
+  ...overrides,
+})
+
+export const createUpsertNotebookMemberResponseFixture = (
+  overrides: Partial<UpsertNotebookMemberResponse> = {},
+): UpsertNotebookMemberResponse => ({
+  user_id: 'user-2',
+  role: 'viewer',
+  ...overrides,
 })

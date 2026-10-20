@@ -77,6 +77,8 @@ interface SourceListRowProps {
   checked: boolean
   removing: boolean
   isBusy: boolean
+  /** 无编辑权限时菜单只保留预览 / 打开 / 下载。 */
+  canManageContent?: boolean
   onToggleItem: (id: string, checked: boolean) => void
   onDeleteItem: (id: string) => Promise<void>
   onRetryItem: (id: string) => Promise<void>
@@ -92,6 +94,7 @@ const areSourceListRowPropsEqual = (prev: SourceListRowProps, next: SourceListRo
   prev.checked === next.checked
   && prev.removing === next.removing
   && prev.isBusy === next.isBusy
+  && prev.canManageContent === next.canManageContent
   && prev.previewLoading === next.previewLoading
   && prev.selectionColumnWidth === next.selectionColumnWidth
   && prev.onToggleItem === next.onToggleItem
@@ -107,6 +110,7 @@ export const SourceListRow = memo(function SourceListRow({
   checked,
   removing,
   isBusy,
+  canManageContent = true,
   onToggleItem,
   onDeleteItem,
   onRetryItem,
@@ -163,11 +167,17 @@ export const SourceListRow = memo(function SourceListRow({
 
   const handleDeleteSource = () => {
     closeActionMenu()
+    if (!canManageContent) {
+      return
+    }
     void onDeleteItem(item.id)
   }
 
   const handleRetrySource = () => {
     closeActionMenu()
+    if (!canManageContent) {
+      return
+    }
     void onRetryItem(item.id)
   }
 
@@ -192,7 +202,7 @@ export const SourceListRow = memo(function SourceListRow({
 
   const handleOpenEditDialog = () => {
     closeActionMenu()
-    if (removing || isUpdatingTitle) {
+    if (!canManageContent || removing || isUpdatingTitle) {
       return
     }
     setTitleDraft(item.title)
@@ -341,6 +351,7 @@ export const SourceListRow = memo(function SourceListRow({
           </Box>
           <IconButton
             className="source-action-trigger"
+            data-testid="source-action-trigger"
             size="small"
             aria-label={t('sources:row.actionsAria')}
             onClick={openActionMenu}
@@ -407,6 +418,7 @@ export const SourceListRow = memo(function SourceListRow({
         onClick={(e) => e.stopPropagation()}
       >
         <MenuItem
+          data-testid="sources-action-preview"
           disabled={!isReady || isBusy || removing || previewLoading}
           onClick={handlePreviewSource}
           sx={actionMenuItemSx}
@@ -432,8 +444,9 @@ export const SourceListRow = memo(function SourceListRow({
           <DownloadOutlinedIcon sx={actionMenuIconSx} />
           <Typography sx={actionMenuTextSx}>{t('sources:row.download')}</Typography>
         </MenuItem>
-        {isFailed ? (
+        {canManageContent && isFailed ? (
           <MenuItem
+            data-testid="sources-action-retry"
             disabled={isBusy || removing}
             onClick={handleRetrySource}
             sx={actionMenuItemSx}
@@ -442,22 +455,28 @@ export const SourceListRow = memo(function SourceListRow({
             <Typography sx={actionMenuTextSx}>{t('sources:row.retry')}</Typography>
           </MenuItem>
         ) : null}
-        <MenuItem
-          disabled={removing || isUpdatingTitle}
-          onClick={handleOpenEditDialog}
-          sx={actionMenuItemSx}
-        >
-          <EditOutlinedIcon sx={actionMenuIconSx} />
-          <Typography sx={actionMenuTextSx}>{t('sources:row.edit')}</Typography>
-        </MenuItem>
-        <MenuItem
-          disabled={isBusy || removing}
-          onClick={handleDeleteSource}
-          sx={actionMenuItemSx}
-        >
-          <DeleteOutlineOutlinedIcon sx={actionMenuIconSx} />
-          <Typography sx={actionMenuTextSx}>{t('sources:row.delete')}</Typography>
-        </MenuItem>
+        {canManageContent ? (
+          <MenuItem
+            data-testid="sources-action-edit"
+            disabled={removing || isUpdatingTitle}
+            onClick={handleOpenEditDialog}
+            sx={actionMenuItemSx}
+          >
+            <EditOutlinedIcon sx={actionMenuIconSx} />
+            <Typography sx={actionMenuTextSx}>{t('sources:row.edit')}</Typography>
+          </MenuItem>
+        ) : null}
+        {canManageContent ? (
+          <MenuItem
+            data-testid="sources-action-delete"
+            disabled={isBusy || removing}
+            onClick={handleDeleteSource}
+            sx={actionMenuItemSx}
+          >
+            <DeleteOutlineOutlinedIcon sx={actionMenuIconSx} />
+            <Typography sx={actionMenuTextSx}>{t('sources:row.delete')}</Typography>
+          </MenuItem>
+        ) : null}
       </Menu>
       <Dialog
         open={editDialogOpen}

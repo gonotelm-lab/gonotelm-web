@@ -220,6 +220,51 @@ export interface NotebookSummary {
 
 export type ListNotebooksSortBy = 'last_active' | 'create_time'
 
+/** 笔记本可见性：仅受邀成员 / 任何拿到链接的人。 */
+export type NotebookVisibility = 'restricted' | 'public'
+
+/** 成员表只允许这两种角色；owner 不在成员表里。 */
+export type NotebookMemberRole = 'collaborator' | 'viewer'
+
+/** GET /api/v1/notebooks/:id/access —— 当前账号对该笔记本的能力集合。 */
+export interface NotebookAccess {
+  role: string
+  can_view: boolean
+  can_manage_content: boolean
+  can_manage_notebook: boolean
+  can_manage_sharing: boolean
+}
+
+export interface NotebookSharingMember {
+  user_id: string
+  email: string
+  nickname: string
+  avatar_url: string
+  role: NotebookMemberRole
+}
+
+/** GET /api/v1/notebooks/:id/sharing */
+export interface GetNotebookSharingResponse {
+  visibility: NotebookVisibility
+  members: NotebookSharingMember[]
+}
+
+/** PATCH /api/v1/notebooks/:id/visibility */
+export interface UpdateNotebookVisibilityRequest {
+  visibility: NotebookVisibility
+}
+
+/** PUT /api/v1/notebooks/:id/sharing/members */
+export interface UpsertNotebookMemberRequest {
+  email: string
+  role: NotebookMemberRole
+}
+
+export interface UpsertNotebookMemberResponse {
+  user_id: string
+  role: NotebookMemberRole
+}
+
 export interface NotebookSource {
   id: string
   kind: SourceKind

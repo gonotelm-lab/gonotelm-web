@@ -42,6 +42,8 @@ import { workspaceIconSize, workspaceType } from '@/components/notebook-workspac
 
 interface StudioArtifactListItemProps {
   item: StudioArtifactItem
+  /** 无编辑权限时不渲染重试 / 取消 / 删除 / 转来源菜单。 */
+  canManageContent?: boolean
   previewLoading: boolean
   retryPending: boolean
   cancelPending: boolean
@@ -134,6 +136,7 @@ const resolveListBorderTone = (
 
 export const StudioArtifactListItem = memo(function StudioArtifactListItem({
   item,
+  canManageContent = true,
   previewLoading,
   retryPending,
   cancelPending,
@@ -285,92 +288,96 @@ export const StudioArtifactListItem = memo(function StudioArtifactListItem({
             spacing={workspaceSpace.xxs}
             sx={{ alignItems: 'center', flexShrink: 0, ml: workspaceSpace.xxs }}
           >
-            <Tooltip title={t('studio:artifact.moreActions')}>
-              <span>
-                <IconButton
-                  size="small"
-                  color="default"
-                  aria-label={t('studio:artifact.moreActionsAria', { title: displayTitle })}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setActionMenuAnchorEl(event.currentTarget)
-                  }}
-                >
-                  <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Menu
-              anchorEl={actionMenuAnchorEl}
-              open={actionMenuOpen}
-              onClose={() => {
-                setActionMenuAnchorEl(null)
-              }}
-              onClick={(event) => event.stopPropagation()}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              <MenuItem
-                disabled={!canCancel || cancelPending}
-                sx={actionMenuItemSx}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setActionMenuAnchorEl(null)
-                  onCancel(item)
-                }}
-              >
-                <CancelOutlinedIcon sx={actionMenuIconSx} />
-                <Typography sx={actionMenuTextSx}>
-                  {cancelPending ? t('studio:artifact.cancelling') : t('studio:artifact.cancel')}
-                </Typography>
-              </MenuItem>
-              {item.kind !== 'note' ? (
-                <MenuItem
-                  disabled={!canRetry || retryPending}
-                  sx={actionMenuItemSx}
-                  onClick={(event) => {
-                    event.stopPropagation()
+            {canManageContent ? (
+              <>
+                <Tooltip title={t('studio:artifact.moreActions')}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      color="default"
+                      aria-label={t('studio:artifact.moreActionsAria', { title: displayTitle })}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setActionMenuAnchorEl(event.currentTarget)
+                      }}
+                    >
+                      <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Menu
+                  anchorEl={actionMenuAnchorEl}
+                  open={actionMenuOpen}
+                  onClose={() => {
                     setActionMenuAnchorEl(null)
-                    onRetry(item)
                   }}
+                  onClick={(event) => event.stopPropagation()}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 >
-                  <ReplayOutlinedIcon sx={actionMenuIconSx} />
-                  <Typography sx={actionMenuTextSx}>
-                    {retryPending ? t('common:action.retrying') : t('common:action.retry')}
-                  </Typography>
-                </MenuItem>
-              ) : null}
-              {item.kind === 'note' && canConvert ? (
-                <MenuItem
-                  disabled={convertPending}
-                  sx={actionMenuItemSx}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setActionMenuAnchorEl(null)
-                    onConvertToSource(item)
-                  }}
-                >
-                  <SourceOutlinedIcon sx={actionMenuIconSx} />
-                  <Typography sx={actionMenuTextSx}>
-                    {convertPending ? t('studio:artifact.converting') : t('studio:artifact.convertToSource')}
-                  </Typography>
-                </MenuItem>
-              ) : null}
-              <MenuItem
-                disabled={!canDelete || deletePending}
-                sx={actionMenuItemSx}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setActionMenuAnchorEl(null)
-                  onDelete(item)
-                }}
-              >
-                <DeleteOutlineOutlinedIcon sx={actionMenuIconSx} />
-                <Typography sx={actionMenuTextSx}>
-                  {deletePending ? t('common:action.deleting') : t('common:action.delete')}
-                </Typography>
-              </MenuItem>
-            </Menu>
+                  <MenuItem
+                    disabled={!canCancel || cancelPending}
+                    sx={actionMenuItemSx}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setActionMenuAnchorEl(null)
+                      onCancel(item)
+                    }}
+                  >
+                    <CancelOutlinedIcon sx={actionMenuIconSx} />
+                    <Typography sx={actionMenuTextSx}>
+                      {cancelPending ? t('studio:artifact.cancelling') : t('studio:artifact.cancel')}
+                    </Typography>
+                  </MenuItem>
+                  {item.kind !== 'note' ? (
+                    <MenuItem
+                      disabled={!canRetry || retryPending}
+                      sx={actionMenuItemSx}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setActionMenuAnchorEl(null)
+                        onRetry(item)
+                      }}
+                    >
+                      <ReplayOutlinedIcon sx={actionMenuIconSx} />
+                      <Typography sx={actionMenuTextSx}>
+                        {retryPending ? t('common:action.retrying') : t('common:action.retry')}
+                      </Typography>
+                    </MenuItem>
+                  ) : null}
+                  {item.kind === 'note' && canConvert ? (
+                    <MenuItem
+                      disabled={convertPending}
+                      sx={actionMenuItemSx}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setActionMenuAnchorEl(null)
+                        onConvertToSource(item)
+                      }}
+                    >
+                      <SourceOutlinedIcon sx={actionMenuIconSx} />
+                      <Typography sx={actionMenuTextSx}>
+                        {convertPending ? t('studio:artifact.converting') : t('studio:artifact.convertToSource')}
+                      </Typography>
+                    </MenuItem>
+                  ) : null}
+                  <MenuItem
+                    disabled={!canDelete || deletePending}
+                    sx={actionMenuItemSx}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setActionMenuAnchorEl(null)
+                      onDelete(item)
+                    }}
+                  >
+                    <DeleteOutlineOutlinedIcon sx={actionMenuIconSx} />
+                    <Typography sx={actionMenuTextSx}>
+                      {deletePending ? t('common:action.deleting') : t('common:action.delete')}
+                    </Typography>
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : null}
           </Stack>
         </Stack>
       </Stack>

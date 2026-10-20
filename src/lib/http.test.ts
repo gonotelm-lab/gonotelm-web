@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetAuthRedirectForTest } from './auth'
+import { apiErrorToastStore, resetApiErrorToastForTest } from './apiErrorToast'
 import { request } from './http'
 
 const jsonResponse = (status: number, body: unknown) =>
@@ -11,6 +12,7 @@ const jsonResponse = (status: number, body: unknown) =>
 describe('request csrf & auth handling', () => {
   beforeEach(() => {
     resetAuthRedirectForTest()
+    resetApiErrorToastForTest()
     vi.stubGlobal('document', { cookie: 'gnlm_csrf=tok' })
   })
   afterEach(() => {
@@ -19,9 +21,11 @@ describe('request csrf & auth handling', () => {
   })
 
   it('非安全方法带上 X-CSRF-Token', async () => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse(200, { code: 0, msg: 'ok', data: null }),
-    )
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      void input
+      void init
+      return jsonResponse(200, { code: 0, msg: 'ok', data: null })
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     await request('/api/v1/notebooks', { method: 'POST', body: '{}' })
@@ -33,7 +37,7 @@ describe('request csrf & auth handling', () => {
   it('2003 刷新 token 后重试一次', async () => {
     vi.stubGlobal('document', { cookie: '' })
     let calls = 0
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith('/api/v1/auth/providers')) {
         vi.stubGlobal('document', { cookie: 'gnlm_csrf=refreshed' })
@@ -58,7 +62,7 @@ describe('request csrf & auth handling', () => {
   it('连续 2003 只刷新重试一次后上抛', async () => {
     vi.stubGlobal('document', { cookie: '' })
     let endpointCalls = 0
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.endsWith('/api/v1/auth/providers')) {
         vi.stubGlobal('document', { cookie: 'gnlm_csrf=refreshed' })
@@ -86,5 +90,65 @@ describe('request csrf & auth handling', () => {
 
     await expect(request('/api/v1/user/me')).rejects.toMatchObject({ code: 2002 })
     expect(assign).toHaveBeenCalledWith('/login?return_to=http%3A%2F%2Flocalhost%2F')
+    expect(apiErrorToastStore.getSnapshot()).toBeNull()
+  })
+
+  it('HTTP 200 里的业务错误码映射成前端文案', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse(200, { code: 100002, msg: 'invalid name', data: null }),
+    ))
+
+    await expect(request('/api/v1/notebooks/n-1')).rejects.toMatchObject({
+      code: 100002,
+      status: 200,
+    })
+    expect(apiErrorToastStore.getSnapshot()?.messageKey).toBe(
+      'apiError.notebookNameInvalid',
+    )
+  })
+
+  it('没有业务码时按 HTTP 状态映射', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse(500, { code: 0, msg: 'DATABASE_ERROR', data: null }),
+    ))
+
+    await expect(request('/api/v1/notebooks')).rejects.toMatchObject({
+      status: 500,
+    })
+    expect(apiErrorToastStore.getSnapshot()?.messageKey).toBe('apiError.server')
+  })
+
+  it('笔记本不存在不弹 toast，交给专用页面', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse(404, { code: 100001, msg: 'notebook not found', data: null }),
+    ))
+
+    await expect(request('/api/v1/notebooks/n-1')).rejects.toMatchObject({
+      code: 100001,
+    })
+    expect(apiErrorToastStore.getSnapshot()).toBeNull()
+  })
+
+  it('网络异常转成 ApiError 并提示网络失败', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Failed to fetch')
+    }))
+
+    await expect(request('/api/v1/notebooks')).rejects.toMatchObject({
+      code: -1,
+      status: 0,
+    })
+    expect(apiErrorToastStore.getSnapshot()?.messageKey).toBe('apiError.network')
+  })
+
+  it('主动取消请求不提示', async () => {
+    const abortError = new Error('aborted')
+    abortError.name = 'AbortError'
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw abortError
+    }))
+
+    await expect(request('/api/v1/notebooks')).rejects.toBe(abortError)
+    expect(apiErrorToastStore.getSnapshot()).toBeNull()
   })
 })

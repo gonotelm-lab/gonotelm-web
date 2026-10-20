@@ -7,7 +7,8 @@
     "refreshing": "刷新中",
     "refreshAria": "刷新产物列表",
     "loading": "正在加载产物列表...",
-    "empty": "暂无产物，点击上方按钮开始生成。"
+    "empty": "暂无产物，点击上方按钮开始生成。",
+    "emptyReadOnly": "暂无产物。"
   },
   "preview": {
     "closeInlineAria": "关闭内联预览",

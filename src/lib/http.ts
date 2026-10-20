@@ -1,5 +1,6 @@
 import type { ApiResult } from '../types/api'
 import { CSRF_CODE, isNotLoginError, redirectToLogin } from './auth'
+import { reportApiError } from './apiErrorToast'
 import { attachCsrfHeader, ensureCsrfToken, isSafeMethod, refreshCsrfToken } from './csrf'
 
 export class ApiError extends Error {
@@ -24,6 +25,28 @@ const parseBody = async <T>(response: Response): Promise<ApiResult<T> | null> =>
   }
 }
 
+export const isRequestAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError'
+
+/**
+ * 统一的上抛路径：登录失效先跳转，其余错误交给全局 toast。
+ * 返回 `never`，方便在 if/else 里直接 `throw`。
+ */
+export function throwApiError(error: ApiError): never {
+  if (isNotLoginError(error)) {
+    redirectToLogin()
+  }
+  reportApiError(error)
+  throw error
+}
+
+const toNetworkError = (error: unknown): never => {
+  if (isRequestAbortError(error)) {
+    throw error
+  }
+  return throwApiError(new ApiError('Network request failed', -1, 0))
+}
+
 export async function request<T>(
   path: string,
   init?: RequestInit,
@@ -31,7 +54,7 @@ export async function request<T>(
   const method = (init?.method ?? 'GET').toUpperCase()
   const unsafe = !isSafeMethod(method)
 
-  const send = async (): Promise<Response> => {
+  const sendOnce = async (): Promise<Response> => {
     if (unsafe) {
       await ensureCsrfToken()
     }
@@ -51,25 +74,35 @@ export async function request<T>(
     })
   }
 
+  const send = async (): Promise<Response> => {
+    try {
+      return await sendOnce()
+    } catch (error) {
+      return toNetworkError(error)
+    }
+  }
+
   let response = await send()
   let body = await parseBody<T>(response)
 
   if (unsafe && response.status === 403 && body?.code === CSRF_CODE) {
-    await refreshCsrfToken()
+    try {
+      await refreshCsrfToken()
+    } catch (error) {
+      toNetworkError(error)
+    }
     response = await send()
     body = await parseBody<T>(response)
   }
 
   if (!response.ok) {
-    const error = new ApiError(
-      body?.msg ?? `HTTP request failed: ${response.status}`,
-      body?.code ?? -1,
-      response.status,
+    throwApiError(
+      new ApiError(
+        body?.msg ?? `HTTP request failed: ${response.status}`,
+        body?.code ?? -1,
+        response.status,
+      ),
     )
-    if (isNotLoginError(error)) {
-      redirectToLogin()
-    }
-    throw error
   }
 
   if (response.status === 204) {
@@ -77,15 +110,11 @@ export async function request<T>(
   }
 
   if (!body) {
-    throw new ApiError('Empty response body', -1, response.status)
+    throwApiError(new ApiError('Empty response body', -1, response.status))
   }
 
   if (body.code !== 0) {
-    const error = new ApiError(body.msg, body.code, response.status)
-    if (isNotLoginError(error)) {
-      redirectToLogin()
-    }
-    throw error
+    throwApiError(new ApiError(body.msg, body.code, response.status))
   }
 
   return body.data

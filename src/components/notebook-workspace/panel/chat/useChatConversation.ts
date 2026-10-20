@@ -509,7 +509,8 @@ export function useChatConversation({
 
               const streamEvent = event as StreamTaskEvent
               if (streamEvent.error?.message) {
-                setErrorText(streamEvent.error.message)
+                // 流式错误事件只有后端原文，没有业务码；统一换成前端文案。
+                setErrorText(i18n.t('chat:error.generateFailed'))
               }
               if (isStreamTerminalEvent(streamEvent)) {
                 if (streamEvent.id) {

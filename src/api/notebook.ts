@@ -3,10 +3,15 @@ import type {
   CreateNotebookRequest,
   CreateNotebookResponse,
   GetNotebookChatResponse,
+  GetNotebookSharingResponse,
   ListNotebookSourcesResponse,
   ListNotebooksResponse,
   ListNotebooksSortBy,
   Notebook,
+  NotebookAccess,
+  NotebookVisibility,
+  UpsertNotebookMemberRequest,
+  UpsertNotebookMemberResponse,
 } from '../types/api'
 
 export function createNotebook(payload: CreateNotebookRequest) {
@@ -98,6 +103,54 @@ export function generateNotebookDescription(id: string) {
     `/api/v1/notebooks/${encodeURIComponent(id)}/description/generation`,
     {
       method: 'POST',
+    },
+  )
+}
+
+/** 当前账号对这个笔记本能做什么（分享入口用它判断是否可管理）。 */
+export function getNotebookAccess(id: string) {
+  return request<NotebookAccess>(
+    `/api/v1/notebooks/${encodeURIComponent(id)}/access`,
+  )
+}
+
+export function getNotebookSharing(id: string) {
+  return request<GetNotebookSharingResponse>(
+    `/api/v1/notebooks/${encodeURIComponent(id)}/sharing`,
+  )
+}
+
+export function updateNotebookVisibility(
+  id: string,
+  visibility: NotebookVisibility,
+) {
+  return request<null>(
+    `/api/v1/notebooks/${encodeURIComponent(id)}/visibility`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ visibility }),
+    },
+  )
+}
+
+export function upsertNotebookMember(
+  id: string,
+  payload: UpsertNotebookMemberRequest,
+) {
+  return request<UpsertNotebookMemberResponse>(
+    `/api/v1/notebooks/${encodeURIComponent(id)}/sharing/members`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export function deleteNotebookMember(id: string, userId: string) {
+  return request<null>(
+    `/api/v1/notebooks/${encodeURIComponent(id)}/sharing/members/${encodeURIComponent(userId)}`,
+    {
+      method: 'DELETE',
     },
   )
 }
