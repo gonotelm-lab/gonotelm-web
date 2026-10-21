@@ -216,9 +216,21 @@ export interface NotebookSummary {
   desc: string
   source_count: number
   updated_at: number
+  /** 列表接口附带；shared 列表用它展示分享者。 */
+  owner?: NotebookOwnerSummary
 }
 
 export type ListNotebooksSortBy = 'last_active' | 'create_time'
+
+/** 首页列表范围：owned 与 shared 互斥（后端一次只返回一边）。 */
+export type ListNotebooksScope = 'owned' | 'shared'
+
+/** 列表项附带的 owner 概要；旧后端缺字段时为 undefined。 */
+export interface NotebookOwnerSummary {
+  user_id: string
+  nickname: string
+  avatar_url: string
+}
 
 /** 笔记本可见性：仅受邀成员 / 任何拿到链接的人。 */
 export type NotebookVisibility = 'restricted' | 'public'

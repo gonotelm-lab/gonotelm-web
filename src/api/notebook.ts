@@ -6,6 +6,7 @@ import type {
   GetNotebookSharingResponse,
   ListNotebookSourcesResponse,
   ListNotebooksResponse,
+  ListNotebooksScope,
   ListNotebooksSortBy,
   Notebook,
   NotebookAccess,
@@ -55,6 +56,7 @@ interface ListNotebooksParams {
   limit?: number
   offset?: number
   sortBy?: ListNotebooksSortBy
+  scope?: ListNotebooksScope
 }
 
 export function listNotebooks(params: ListNotebooksParams = {}) {
@@ -67,6 +69,9 @@ export function listNotebooks(params: ListNotebooksParams = {}) {
   }
   if (typeof params.sortBy === 'string') {
     query.set('sort_by', params.sortBy)
+  }
+  if (typeof params.scope === 'string') {
+    query.set('scope', params.scope)
   }
 
   const suffix = query.toString()

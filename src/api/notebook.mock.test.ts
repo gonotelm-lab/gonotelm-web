@@ -33,6 +33,31 @@ describe('notebook api with msw mock', () => {
     expect(result.notebooks[0]?.id).toBe('notebook-2')
   })
 
+  it('defaults to owned scope and excludes shared notebooks', async () => {
+    const result = await listNotebooks({ limit: 50, offset: 0 })
+
+    expect(result.notebooks.map((notebook) => notebook.id)).toEqual([
+      'notebook-3',
+      'notebook-1',
+      'notebook-2',
+    ])
+    expect(result.notebooks[0]?.owner).toBeUndefined()
+  })
+
+  it('supports shared scope and includes the owner summary', async () => {
+    const result = await listNotebooks({ limit: 50, offset: 0, scope: 'shared' })
+
+    expect(result.notebooks.map((notebook) => notebook.id)).toEqual([
+      'notebook-shared-2',
+      'notebook-shared-1',
+    ])
+    expect(result.notebooks[0]?.owner).toMatchObject({
+      user_id: 'user-bob',
+      nickname: 'Bob',
+      avatar_url: '',
+    })
+  })
+
   it('returns empty notebooks for empty scenario', async () => {
     setMockScenario('notebook', 'empty')
 

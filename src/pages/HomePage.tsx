@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Box,
   CircularProgress,
@@ -8,19 +8,22 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import type { ListNotebooksSortBy } from '@/types/api'
+import { useTranslation } from 'react-i18next'
+import type { ListNotebooksScope, ListNotebooksSortBy } from '@/types/api'
 import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
 import { apiErrorMessage } from '../lib/apiErrorMessage'
 import { AccountMenu } from '../components/auth/AccountMenu'
 import { BrandMark } from '../components/brand/BrandMark'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
+import { HomeScopeSelector } from '../components/home/HomeScopeSelector'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
 import { NotebookCard } from '../components/home/NotebookCard'
 import {
   workspaceLayout,
   workspaceSpace,
 } from '../components/notebook-workspace/shared/ui/layoutTokens'
+import { workspaceTransitionPresets } from '../components/notebook-workspace/shared/ui/motionTokens'
 import { buildCreateNotebookRequest } from './home/createNotebookRequest'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
 
@@ -34,6 +37,8 @@ const homeHeaderChrome = {
 export function HomePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation('home')
+  const [scope, setScope] = useState<ListNotebooksScope>('owned')
   const [sortBy, setSortBy] = useState<ListNotebooksSortBy>('create_time')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [createDialogState, setCreateDialogState] = useState<{
@@ -46,8 +51,10 @@ export function HomePage() {
   const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null)
 
   const notebooksQuery = useQuery({
-    queryKey: ['notebooks', 'home', { sortBy }],
-    queryFn: () => listNotebooks({ limit: 50, offset: 0, sortBy }),
+    queryKey: ['notebooks', 'home', { sortBy, scope }],
+    queryFn: () => listNotebooks({ limit: 50, offset: 0, sortBy, scope }),
+    // 切换范围时保留上一份列表，避免列表区域先塌陷成 loading 再展开。
+    placeholderData: keepPreviousData,
   })
 
   const createNotebookMutation = useMutation({
@@ -137,10 +144,21 @@ export function HomePage() {
             disabled={createNotebookMutation.isPending}
             size="small"
           />
+        </Stack>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: workspaceLayout.listInlineGap,
+          }}
+        >
+          <HomeScopeSelector value={scope} onChange={setScope} />
           <Stack
             direction="row"
             spacing={workspaceLayout.listInlineGap}
-            sx={{ alignItems: 'center' }}
+            sx={{ alignItems: 'center', ml: 'auto' }}
           >
             {notebooksQuery.isFetching && <CircularProgress size={14} color="primary" />}
             <HomeSortSelector value={sortBy} onChange={setSortBy} />
@@ -151,8 +169,17 @@ export function HomePage() {
           <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
             <CircularProgress size={20} />
           </Stack>
-        ) : notebookItems.length === 0 ? null : (
+        ) : notebookItems.length === 0 ? (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ py: workspaceLayout.panelPaddingY, textAlign: 'center' }}
+          >
+            {t(scope === 'shared' ? 'empty.shared' : 'empty.owned')}
+          </Typography>
+        ) : (
           <Box
+            aria-busy={notebooksQuery.isFetching}
             sx={{
               display: 'grid',
               gap: workspaceLayout.listRowGap,
@@ -162,6 +189,9 @@ export function HomePage() {
                 md: 'repeat(3, minmax(0, 1fr))',
                 lg: 'repeat(4, minmax(0, 1fr))',
               },
+              opacity: notebooksQuery.isPlaceholderData ? 0.55 : 1,
+              pointerEvents: notebooksQuery.isPlaceholderData ? 'none' : undefined,
+              transition: workspaceTransitionPresets.opacityOnly,
             }}
           >
             {notebookItems.map((notebook) => {
@@ -174,8 +204,13 @@ export function HomePage() {
                   description={viewModel.description}
                   sourceCount={viewModel.sourceCount}
                   dateLabel={viewModel.dateLabel}
+                  owner={scope === 'shared' ? viewModel.owner : undefined}
                   onOpen={() => navigate(notebookPath)}
-                  onDelete={() => handleDeleteNotebook(viewModel.id)}
+                  onDelete={
+                    scope === 'shared'
+                      ? undefined
+                      : () => handleDeleteNotebook(viewModel.id)
+                  }
                   deleting={deleteNotebookMutation.isPending && deletingNotebookId === viewModel.id}
                 />
               )

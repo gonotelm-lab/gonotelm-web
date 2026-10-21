@@ -3,6 +3,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
 import {
+  Avatar,
   Button,
   Box,
   Card,
@@ -15,6 +16,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
@@ -31,11 +33,18 @@ import {
 } from '../notebook-workspace/shared/ui/motionTokens'
 import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
 
+export interface NotebookCardOwner {
+  nickname: string
+  avatarUrl: string
+}
+
 interface NotebookCardProps {
   title: string
   description: string
   dateLabel: string
   sourceCount: number
+  /** 共享列表里展示分享者；owned 列表不传。 */
+  owner?: NotebookCardOwner
   onOpen: () => void
   onDelete?: () => Promise<void>
   deleting?: boolean
@@ -46,6 +55,7 @@ export function NotebookCard({
   description,
   dateLabel,
   sourceCount,
+  owner,
   onOpen,
   onDelete,
   deleting = false,
@@ -56,6 +66,10 @@ export function NotebookCard({
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
   const actionMenuOpen = Boolean(actionAnchorEl)
   const canDelete = typeof onDelete === 'function'
+  const showOwner = Boolean(owner) && !canDelete
+  const ownerInitial = owner
+    ? (Array.from(owner.nickname.trim())[0]?.toUpperCase() ?? '?')
+    : ''
 
   const handleOpenActionMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation()
@@ -136,7 +150,7 @@ export function NotebookCard({
             alignItems: 'start',
           }}
         >
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'start', minWidth: 0 }}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
             <Box
               sx={{
                 width: 32,
@@ -153,7 +167,30 @@ export function NotebookCard({
             >
               <MenuBookOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
             </Box>
-            <Box sx={{ width: 28, height: 28, flexShrink: 0, visibility: canDelete ? 'hidden' : 'visible' }} />
+            {showOwner && owner ? (
+              <Tooltip title={owner.nickname} placement="top">
+                <Avatar
+                  src={owner.avatarUrl?.trim() || undefined}
+                  alt=""
+                  aria-label={t('home:card.sharedBy', { nickname: owner.nickname })}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    flexShrink: 0,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.default',
+                    color: 'text.secondary',
+                    fontSize: workspaceType.xs,
+                    fontWeight: 600,
+                  }}
+                >
+                  {ownerInitial}
+                </Avatar>
+              </Tooltip>
+            ) : (
+              <Box sx={{ width: 28, height: 28, flexShrink: 0, visibility: canDelete ? 'hidden' : 'visible' }} />
+            )}
           </Stack>
           <Typography
             variant="subtitle1"

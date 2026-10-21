@@ -14,7 +14,7 @@ import { createSuccessResponse, resolveNoContentScenarioResponse, resolveScenari
 
 const apiBaseUrl = 'http://127.0.0.1:4173'
 
-const notebookSummaries = [
+const ownedNotebookSummaries = [
   createNotebookSummaryFixture({
     id: 'notebook-1',
     name: 'Rust 入门',
@@ -34,6 +34,33 @@ const notebookSummaries = [
     source_count: 3,
     desc: '借用检查与生命周期',
     updated_at: Date.UTC(2025, 6, 16, 9),
+  }),
+]
+
+const sharedNotebookSummaries = [
+  createNotebookSummaryFixture({
+    id: 'notebook-shared-1',
+    name: '团队 Rust 指南',
+    source_count: 4,
+    desc: '团队共享的 Rust 实践',
+    updated_at: Date.UTC(2025, 6, 20, 10),
+    owner: {
+      user_id: 'user-alice',
+      nickname: 'Alice',
+      avatar_url: '',
+    },
+  }),
+  createNotebookSummaryFixture({
+    id: 'notebook-shared-2',
+    name: 'Async Patterns',
+    source_count: 2,
+    desc: '异步模式速查',
+    updated_at: Date.UTC(2025, 6, 15, 10),
+    owner: {
+      user_id: 'user-bob',
+      nickname: 'Bob',
+      avatar_url: '',
+    },
   }),
 ]
 
@@ -58,8 +85,11 @@ const notebookSources = [
 export const notebookHandlers = [
   http.get(`${apiBaseUrl}/api/v1/notebooks`, async ({ request }) => {
     const scenario = getMockScenario('notebook')
-    const sortBy = new URL(request.url).searchParams.get('sort_by')
-    const sortedNotebooks = [...notebookSummaries].sort((a, b) => {
+    const requestUrl = new URL(request.url)
+    const sortBy = requestUrl.searchParams.get('sort_by')
+    const scope = requestUrl.searchParams.get('scope') ?? 'owned'
+    const source = scope === 'shared' ? sharedNotebookSummaries : ownedNotebookSummaries
+    const sortedNotebooks = [...source].sort((a, b) => {
       if (sortBy === 'last_active') {
         return b.updated_at - a.updated_at
       }

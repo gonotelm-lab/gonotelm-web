@@ -6,6 +6,15 @@
     "submit": "创建",
     "failed": "创建失败，请稍后重试"
   },
+  "scope": {
+    "aria": "笔记本范围",
+    "owned": "我的",
+    "shared": "共享给我"
+  },
+  "empty": {
+    "owned": "还没有笔记本，点击上方「新建笔记本」开始。",
+    "shared": "还没有人分享笔记本给你。"
+  },
   "sort": {
     "aria": "笔记本排序方式",
     "lastActive": "最近活跃",
@@ -16,6 +25,7 @@
     "deleteTitle": "删除笔记本",
     "deleteBody": "删除后将移除聊天与来源数据，且不可恢复。",
     "noDescription": "无描述",
-    "unknownDate": "未知日期"
+    "unknownDate": "未知日期",
+    "sharedBy": "由 {{nickname}} 分享"
   }
 }
