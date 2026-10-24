@@ -6,22 +6,22 @@
     "refresh": "刷新列表",
     "refreshing": "刷新中",
     "refreshAria": "刷新产物列表",
-    "loading": "正在加载产物列表...",
-    "empty": "暂无产物，点击上方按钮开始生成。",
-    "emptyReadOnly": "暂无产物。"
+    "loading": "正在加载产物列表",
+    "empty": "暂无产物，点击上方按钮开始生成",
+    "emptyReadOnly": "暂无产物"
   },
   "preview": {
     "closeInlineAria": "关闭内联预览",
     "basedOnSources": "基于 {{count}} 个来源",
     "overlayTitle": "产物预览",
     "noSourceInfo": "暂无来源信息",
-    "empty": "暂无可预览内容。",
-    "emptyArtifact": "当前产物没有可预览内容。",
-    "emptyDisplay": "当前产物没有可展示内容。",
+    "empty": "暂无可预览内容",
+    "emptyArtifact": "当前产物没有可预览内容",
+    "emptyDisplay": "当前产物没有可展示内容",
     "infoGraphicAlt": "信息图预览",
-    "loadFailed": "加载预览内容失败，请重试。",
-    "taskNotDone": "任务尚未完成，请稍后再试。",
-    "urlExpired": "预览链接已过期，请重试以获取新链接。"
+    "loadFailed": "加载预览内容失败，请重试",
+    "taskNotDone": "任务尚未完成，请稍后再试",
+    "urlExpired": "预览链接已过期，请重试以获取新链接"
   },
   "kind": {
     "mindmap": "思维导图",
@@ -49,7 +49,7 @@
       "comingSoon": "即将支持"
     },
     "status": {
-      "pending": "处理中...",
+      "pending": "处理中",
       "available": "已接入",
       "comingSoon": "即将支持"
     },
@@ -74,28 +74,28 @@
     "moreActions": "更多操作",
     "moreActionsAria": "更多操作 {{title}}",
     "cancel": "取消",
-    "cancelling": "取消中...",
+    "cancelling": "取消中",
     "convertToSource": "转换成来源",
-    "converting": "转换中...",
+    "converting": "转换中",
     "titleAria": "产物标题"
   },
   "mindmap": {
     "reset": "重置到初始视图",
     "resetAria": "重置思维导图视图",
-    "empty": "思维导图内容为空。",
-    "invalid": "未解析到有效节点，请确认 Mermaid mindmap 语法。"
+    "empty": "思维导图内容为空",
+    "invalid": "未解析到有效节点，请确认 Mermaid mindmap 语法"
   },
   "audio": {
     "interrupted": "播放中断",
     "reload": "重新加载",
-    "loading": "加载中…",
+    "loading": "加载中",
     "download": "下载音频",
     "unmute": "取消静音",
     "volume": "音量"
   },
   "video": {
-    "loading": "加载中…",
-    "unsupported": "当前浏览器不支持视频播放。",
+    "loading": "加载中",
+    "unsupported": "当前浏览器不支持视频播放",
     "interrupted": "播放中断",
     "reload": "重新加载",
     "play": "播放",
@@ -133,79 +133,97 @@
     "contentFailed": "产物内容读取失败，HTTP {{status}}"
   },
   "error": {
-    "requestFailed": "Studio 请求失败，请稍后重试。",
-    "fetchResult": "拉取任务结果失败，请重试。",
-    "pollStatus": "轮询任务状态失败，请重试。",
-    "loadHistory": "加载产物列表失败，请重试。",
-    "createTask": "创建产物任务失败，请重试。",
-    "saveNote": "保存笔记失败，请重试。",
-    "retryTask": "重试任务失败，请稍后重试。",
-    "cancelTask": "取消任务失败，请稍后重试。",
-    "deleteArtifact": "删除产物失败，请稍后重试。",
-    "convertToSource": "转换为来源失败，请稍后重试。",
+    "requestFailed": "Studio 请求失败，请稍后重试",
+    "fetchResult": "拉取任务结果失败，请重试",
+    "pollStatus": "轮询任务状态失败，请重试",
+    "loadHistory": "加载产物列表失败，请重试",
+    "createTask": "创建产物任务失败，请重试",
+    "saveNote": "保存笔记失败，请重试",
+    "retryTask": "重试任务失败，请稍后重试",
+    "cancelTask": "取消任务失败，请稍后重试",
+    "deleteArtifact": "删除产物失败，请稍后重试",
+    "convertToSource": "转换为来源失败，请稍后重试",
     "updateTitle": "更新标题失败，请重试",
-    "taskCancelled": "任务已取消，请重试。",
-    "taskExpired": "任务已过期，请重新生成。",
-    "taskFailed": "任务执行失败，请重试。"
+    "taskCancelled": "任务已取消，请重试",
+    "taskExpired": "任务已过期，请重新生成",
+    "taskFailed": "任务执行失败，请重试"
   },
   "settings": {
-    "report": { "title": "生成报告" },
-    "audio": { "title": "生成音频概览" },
-    "mindmap": { "title": "生成思维导图" },
-    "infoGraphic": { "title": "生成信息图" },
-    "flashcard": { "title": "生成闪卡" },
-    "quiz": { "title": "生成测验" },
-    "dataTable": { "title": "生成数据表" },
-    "slides": { "title": "生成幻灯片" },
-    "videoOverview": { "title": "生成视频概览" },
+    "report": {
+      "title": "生成报告"
+    },
+    "audio": {
+      "title": "生成音频概览"
+    },
+    "mindmap": {
+      "title": "生成思维导图"
+    },
+    "infoGraphic": {
+      "title": "生成信息图"
+    },
+    "flashcard": {
+      "title": "生成闪卡"
+    },
+    "quiz": {
+      "title": "生成测验"
+    },
+    "dataTable": {
+      "title": "生成数据表"
+    },
+    "slides": {
+      "title": "生成幻灯片"
+    },
+    "videoOverview": {
+      "title": "生成视频概览"
+    },
     "language": "选择语言",
     "languageHelp": {
-      "report": "控制报告输出的语言。",
-      "audio": "控制音频概览输出文本的语言。",
-      "infoGraphic": "控制信息图中可见文字的语言。",
-      "slides": "控制幻灯片正文与标题的语言。",
-      "videoOverview": "控制视频旁白与字幕文案的语言。"
+      "report": "控制报告输出的语言",
+      "audio": "控制音频概览输出文本的语言",
+      "infoGraphic": "控制信息图中可见文字的语言",
+      "slides": "控制幻灯片正文与标题的语言",
+      "videoOverview": "控制视频旁白与字幕文案的语言"
     },
     "style": "生成风格",
     "styleHelp": {
-      "report": "控制报告的组织方式和内容侧重。",
-      "audio": "控制音频概览的表达方式和内容组织。"
+      "report": "控制报告的组织方式和内容侧重",
+      "audio": "控制音频概览的表达方式和内容组织"
     },
     "tip": "附加提示",
     "tipPlaceholder": {
-      "generic": "可补充强调重点、受众或表达要求。",
-      "mindmap": "例如：请侧重'实施路径'和'风险'两个分支。",
-      "dataTable": "例如：按概念对比定义、适用场景与注意事项。",
-      "slides": "例如：侧重核心结论、面向受众或指定页结构。",
-      "videoOverview": "例如：侧重核心结论、目标受众或讲解节奏。"
+      "generic": "可补充强调重点、受众或表达要求",
+      "mindmap": "例如：请侧重'实施路径'和'风险'两个分支",
+      "dataTable": "例如：按概念对比定义、适用场景与注意事项",
+      "slides": "例如：侧重核心结论、面向受众或指定页结构",
+      "videoOverview": "例如：侧重核心结论、目标受众或讲解节奏"
     },
     "tipHelp": {
-      "mindmap": "可补充强调重点、指定层级偏好或结构要求。",
-      "dataTable": "可补充希望提取的字段、对比维度或表格侧重点。",
-      "slides": "可补充强调重点、受众或大纲结构偏好。",
-      "videoOverview": "可补充强调重点、受众或旁白表达偏好。"
+      "mindmap": "可补充强调重点、指定层级偏好或结构要求",
+      "dataTable": "可补充希望提取的字段、对比维度或表格侧重点",
+      "slides": "可补充强调重点、受众或大纲结构偏好",
+      "videoOverview": "可补充强调重点、受众或旁白表达偏好"
     },
     "detailLevel": "探索深度",
-    "detailLevelHelp": "控制信息图内容的详略程度。",
+    "detailLevelHelp": "控制信息图内容的详略程度",
     "visualStyle": "视觉风格",
     "visualStyleHelp": {
-      "infoGraphic": "控制信息图的视觉表现风格。",
-      "slides": "控制幻灯片的配色与版式气质。",
-      "videoOverview": "控制视频讲解语气与表达气质。"
+      "infoGraphic": "控制信息图的视觉表现风格",
+      "slides": "控制幻灯片的配色与版式气质",
+      "videoOverview": "控制视频讲解语气与表达气质"
     },
     "orientation": "选择方向",
-    "orientationHelp": "控制信息图的画面比例。",
+    "orientationHelp": "控制信息图的画面比例",
     "prompt": "描述你想要的信息图",
-    "promptPlaceholder": "例如：用时间线展示关键里程碑与影响。",
+    "promptPlaceholder": "例如：用时间线展示关键里程碑与影响",
     "countStyle": "数量风格",
     "countStyleHelp": {
-      "flashcard": "控制生成闪卡的数量倾向。",
-      "quiz": "控制生成题目的数量倾向。"
+      "flashcard": "控制生成闪卡的数量倾向",
+      "quiz": "控制生成题目的数量倾向"
     },
     "difficulty": "难度",
     "difficultyHelp": {
-      "flashcard": "控制闪卡内容的难度。",
-      "quiz": "控制测验题目的难度。"
+      "flashcard": "控制闪卡内容的难度",
+      "quiz": "控制测验题目的难度"
     }
   },
   "lang": {
@@ -214,26 +232,68 @@
   },
   "style": {
     "report": {
-      "default": { "label": "默认", "description": "证据驱动报告，结论先行，按主题聚合来源要点。" },
-      "brief": { "label": "简报文档", "description": "分析师式要点速读，提炼核心洞见与关键引文。" },
-      "studyGuide": { "label": "学习指南", "description": "分层思考问题 + 术语词汇 + 自测清单，引导主动学习。" },
-      "detailed": { "label": "深度解读", "description": "融汇来源要点为叙事感长文，深入浅出，有层次有节奏。" }
+      "default": {
+        "label": "默认",
+        "description": "证据驱动报告，结论先行，按主题聚合来源要点"
+      },
+      "brief": {
+        "label": "简报文档",
+        "description": "分析师式要点速读，提炼核心洞见与关键引文"
+      },
+      "studyGuide": {
+        "label": "学习指南",
+        "description": "分层思考问题 + 术语词汇 + 自测清单，引导主动学习"
+      },
+      "detailed": {
+        "label": "深度解读",
+        "description": "融汇来源要点为叙事感长文，深入浅出，有层次有节奏"
+      }
     },
     "audio": {
-      "abstract": { "label": "摘要", "description": "快速提炼核心观点，适合短时收听。" },
-      "deepResearch": { "label": "深度研究", "description": "深入展开背景与细节，适合系统理解。" },
-      "discussion": { "label": "讨论", "description": "以对谈方式串联观点，增强代入感。" },
-      "debate": { "label": "辩论", "description": "强调观点碰撞与多角度对照。" }
+      "abstract": {
+        "label": "摘要",
+        "description": "快速提炼核心观点，适合短时收听"
+      },
+      "deepResearch": {
+        "label": "深度研究",
+        "description": "深入展开背景与细节，适合系统理解"
+      },
+      "discussion": {
+        "label": "讨论",
+        "description": "以对谈方式串联观点，增强代入感"
+      },
+      "debate": {
+        "label": "辩论",
+        "description": "强调观点碰撞与多角度对照"
+      }
     },
     "slides": {
-      "default": { "label": "默认", "description": "温暖教育向：扁平手绘感，米色纸张底。" },
-      "educational": { "label": "教学科普", "description": "教科书风格：高对比、几何分区清晰、冷静易读。" },
-      "cute": { "label": "可爱", "description": "粉嫩柔和：圆润留白，治愈轻松。" }
+      "default": {
+        "label": "默认",
+        "description": "温暖教育向：扁平手绘感，米色纸张底"
+      },
+      "educational": {
+        "label": "教学科普",
+        "description": "教科书风格：高对比、几何分区清晰、冷静易读"
+      },
+      "cute": {
+        "label": "可爱",
+        "description": "粉嫩柔和：圆润留白，治愈轻松"
+      }
     },
     "videoOverview": {
-      "default": { "label": "默认", "description": "简洁专业，信息密度适中，逻辑顺畅，适合通用知识讲解。" },
-      "educational": { "label": "教学科普", "description": "面向学习者，结构清晰，重点突出，讲解耐心，适合知识科普。" },
-      "cute": { "label": "可爱", "description": "轻松活泼，语言亲切，多用比喻和趣味表达，适合入门介绍。" }
+      "default": {
+        "label": "默认",
+        "description": "简洁专业，信息密度适中，逻辑顺畅，适合通用知识讲解"
+      },
+      "educational": {
+        "label": "教学科普",
+        "description": "面向学习者，结构清晰，重点突出，讲解耐心，适合知识科普"
+      },
+      "cute": {
+        "label": "可爱",
+        "description": "轻松活泼，语言亲切，多用比喻和趣味表达，适合入门介绍"
+      }
     }
   },
   "infoGraphic": {
@@ -243,31 +303,82 @@
       "square": "方图"
     },
     "detail": {
-      "concise": { "label": "简略", "description": "突出关键信息，适合快速扫读。" },
-      "standard": { "label": "标准", "description": "平衡覆盖面与细节。" },
-      "detailed": { "label": "详细", "description": "尽量展开要点与关系。" }
+      "concise": {
+        "label": "简略",
+        "description": "突出关键信息，适合快速扫读"
+      },
+      "standard": {
+        "label": "标准",
+        "description": "平衡覆盖面与细节"
+      },
+      "detailed": {
+        "label": "详细",
+        "description": "尽量展开要点与关系"
+      }
     },
     "visual": {
-      "default": { "label": "默认", "description": "清晰通用的信息图风格。" },
-      "handDrawn": { "label": "手绘", "description": "手绘感线条与标注。" },
-      "anime": { "label": "动漫", "description": "更活泼的插画表达。" },
-      "cute": { "label": "可爱", "description": "柔和轻松的视觉氛围。" },
-      "educational": { "label": "教学科普", "description": "适合讲解与科普的清晰构图。" },
-      "minimal25d": { "label": "极简2.5D", "description": "简洁立体感的现代风格。" }
+      "default": {
+        "label": "默认",
+        "description": "清晰通用的信息图风格"
+      },
+      "handDrawn": {
+        "label": "手绘",
+        "description": "手绘感线条与标注"
+      },
+      "anime": {
+        "label": "动漫",
+        "description": "更活泼的插画表达"
+      },
+      "cute": {
+        "label": "可爱",
+        "description": "柔和轻松的视觉氛围"
+      },
+      "educational": {
+        "label": "教学科普",
+        "description": "适合讲解与科普的清晰构图"
+      },
+      "minimal25d": {
+        "label": "极简2.5D",
+        "description": "简洁立体感的现代风格"
+      }
     }
   },
   "count": {
-    "few": { "label": "少", "descriptionFlashcard": "生成较少闪卡，聚焦核心。", "descriptionQuiz": "生成较少题目，聚焦核心。" },
-    "default": { "label": "默认", "descriptionFlashcard": "适中数量，覆盖主要知识点。", "descriptionQuiz": "适中数量，覆盖主要知识点。" },
-    "many": { "label": "多", "descriptionFlashcard": "更多闪卡，覆盖更广。", "descriptionQuiz": "更多题目，覆盖更广。" }
+    "few": {
+      "label": "少",
+      "descriptionFlashcard": "生成较少闪卡，聚焦核心",
+      "descriptionQuiz": "生成较少题目，聚焦核心"
+    },
+    "default": {
+      "label": "默认",
+      "descriptionFlashcard": "适中数量，覆盖主要知识点",
+      "descriptionQuiz": "适中数量，覆盖主要知识点"
+    },
+    "many": {
+      "label": "多",
+      "descriptionFlashcard": "更多闪卡，覆盖更广",
+      "descriptionQuiz": "更多题目，覆盖更广"
+    }
   },
   "difficulty": {
-    "easy": { "label": "简单", "descriptionFlashcard": "基础概念与记忆型内容。", "descriptionQuiz": "基础概念与记忆型题目。" },
-    "medium": { "label": "中等", "descriptionFlashcard": "理解与应用并重。", "descriptionQuiz": "理解与应用并重。" },
-    "hard": { "label": "困难", "descriptionFlashcard": "更深入、更具挑战性。", "descriptionQuiz": "更深入、更具挑战性。" }
+    "easy": {
+      "label": "简单",
+      "descriptionFlashcard": "基础概念与记忆型内容",
+      "descriptionQuiz": "基础概念与记忆型题目"
+    },
+    "medium": {
+      "label": "中等",
+      "descriptionFlashcard": "理解与应用并重",
+      "descriptionQuiz": "理解与应用并重"
+    },
+    "hard": {
+      "label": "困难",
+      "descriptionFlashcard": "更深入、更具挑战性",
+      "descriptionQuiz": "更深入、更具挑战性"
+    }
   },
   "quiz": {
-    "parseError": "测验内容无法解析，请确认产物 JSON 格式包含 questions / themes / follow_up_hint。",
+    "parseError": "测验内容无法解析，请确认产物 JSON 格式包含 questions / themes / follow_up_hint",
     "resultTitle": "测验结果",
     "score": "答对 {{correct}} / {{total}} 题",
     "accuracy": "（正确率 {{percent}}%）",
@@ -297,12 +408,12 @@
     "yourAnswer": "你的答案：{{labels}}",
     "correctAnswer": "正确答案：{{labels}}",
     "unanswered": "未作答",
-    "noExplanation": "本题暂无文字解析（旧产物可能缺少 explanation 字段）。",
+    "noExplanation": "本题暂无文字解析（旧产物可能缺少 explanation 字段）",
     "prevAria": "上一题",
     "nextAria": "下一题"
   },
   "flashcard": {
-    "parseError": "闪卡内容无法解析，请确认产物 JSON 格式为 `{ cards: [{ front, back, hint }] }`。",
+    "parseError": "闪卡内容无法解析，请确认产物 JSON 格式为 `{ cards: [{ front, back, hint }] }`",
     "frontAria": "闪卡正面，点击翻转",
     "backAria": "闪卡背面，点击翻转",
     "hintAria": "查看提示",
@@ -311,11 +422,11 @@
   },
   "slides": {
     "title": "幻灯片",
-    "downloadHint": "幻灯片已导出为 PowerPoint 文件。",
+    "downloadHint": "幻灯片已导出为 PowerPoint 文件",
     "download": "下载幻灯片",
-    "loading": "正在解析幻灯片…",
-    "parseFailed": "无法解析幻灯片，请重试或下载原文件。",
-    "emptyUrl": "暂无幻灯片文件地址。",
+    "loading": "正在解析幻灯片",
+    "parseFailed": "无法解析幻灯片，请重试或下载原文件",
+    "emptyUrl": "暂无幻灯片文件地址",
     "openSlideAria": "打开第 {{n}} 页放大预览"
   }
 }

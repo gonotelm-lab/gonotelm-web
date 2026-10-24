@@ -33,7 +33,7 @@ describe('apiErrorMessage', () => {
 
   it('未知错误使用调用方给的兜底文案', () => {
     expect(apiErrorMessage(null, 'common:error.requestFailed')).toBe(
-      '请求失败，请稍后重试。',
+      '请求失败，请稍后重试',
     )
   })
 })

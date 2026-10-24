@@ -2,11 +2,11 @@
   "action": {
     "cancel": "取消",
     "save": "保存",
-    "saving": "保存中...",
+    "saving": "保存中",
     "delete": "删除",
-    "deleting": "删除中...",
+    "deleting": "删除中",
     "retry": "重试",
-    "retrying": "重试中...",
+    "retrying": "重试中",
     "copy": "复制",
     "copied": "已复制",
     "back": "返回",
@@ -21,11 +21,11 @@
   },
   "error": {
     "deleteFailed": "删除失败，请稍后重试",
-    "requestFailed": "请求失败，请稍后重试。",
-    "copyFailed": "复制失败，请手动复制。"
+    "requestFailed": "请求失败，请稍后重试",
+    "copyFailed": "复制失败，请手动复制"
   },
   "preview": {
-    "loading": "正在加载预览内容...",
+    "loading": "正在加载预览内容",
     "retryLoad": "重试加载",
     "expand": "放大预览",
     "download": "下载预览内容",
@@ -37,7 +37,7 @@
   "sourceCount": "{{count}} 个来源",
   "routeError": {
     "title": "页面出错了",
-    "description": "刚才的操作没能完成，可以重试一次。",
+    "description": "刚才的操作没能完成，可以重试一次",
     "reload": "重新加载"
   },
   "apiError": {

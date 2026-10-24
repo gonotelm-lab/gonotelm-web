@@ -150,7 +150,7 @@ describe('HomePage · 笔记本范围筛选', () => {
     expect(renderer.root.findAllByType(NotebookCard)).toHaveLength(0)
     const emptyState = renderer.root
       .findAllByType(Typography)
-      .find((node) => node.props.children === '还没有人分享笔记本给你。')
+      .find((node) => node.props.children === '还没有人分享笔记本给你')
     expect(emptyState).toBeTruthy()
   })
 })

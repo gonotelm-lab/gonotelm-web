@@ -6,22 +6,22 @@
     "scrollBottomAria": "回到底部"
   },
   "input": {
-    "placeholder": "输入你的问题..."
+    "placeholder": "输入你的问题"
   },
   "stream": {
-    "aborting": "正在终止..."
+    "aborting": "正在终止"
   },
   "error": {
-    "clearWhileStreaming": "正在生成回复时不可清空上下文，请稍后再试。",
-    "clearNoSession": "当前会话不可用，无法清空上下文。",
-    "generateFailed": "回答生成失败，请重试。",
-    "saveNote": "保存笔记失败，请重试。"
+    "clearWhileStreaming": "正在生成回复时不可清空上下文，请稍后再试",
+    "clearNoSession": "当前会话不可用，无法清空上下文",
+    "generateFailed": "回答生成失败，请重试",
+    "saveNote": "保存笔记失败，请重试"
   },
   "thinking": "思考中",
-  "thinkingPhase": "思考中...",
+  "thinkingPhase": "思考中",
   "message": {
     "saveNote": "保存到笔记",
-    "saving": "正在保存…"
+    "saving": "正在保存"
   },
   "citation": {
     "info": "引用信息 {{index}}",
@@ -32,13 +32,13 @@
     "position": "位置: {{text}}",
     "positionSummary": "无原文定位（总结性引用）",
     "jump": "跳转到来源预览",
-    "loading": "正在加载引用内容...",
+    "loading": "正在加载引用内容",
     "empty": "暂无内容",
-    "notFoundSource": "未找到引用来源。",
-    "notFoundDoc": "未找到引用文档。",
-    "loadFailed": "加载引用内容失败，请稍后重试。",
-    "invalidIndex": "引用编号无效。",
-    "missMapping": "未命中引用映射。"
+    "notFoundSource": "未找到引用来源",
+    "notFoundDoc": "未找到引用文档",
+    "loadFailed": "加载引用内容失败，请稍后重试",
+    "invalidIndex": "引用编号无效",
+    "missMapping": "未命中引用映射"
   },
   "markdown": {
     "openCitationAria": "打开引用 {{index}}",
@@ -52,11 +52,11 @@
   "settings": {
     "title": "对话设置",
     "style": "对话风格",
-    "styleHelp": "控制回答语气与组织方式。",
+    "styleHelp": "控制回答语气与组织方式",
     "length": "回答长度",
-    "lengthHelp": "控制回答的详略程度。",
+    "lengthHelp": "控制回答的详略程度",
     "deepThink": "深度思考",
-    "deepThinkHelp": "开启后回答会更慢，但推理更充分。",
+    "deepThinkHelp": "开启后回答会更慢，但推理更充分",
     "deepThinkOff": "关闭",
     "deepThinkOn": "开启",
     "styleDefault": "默认",

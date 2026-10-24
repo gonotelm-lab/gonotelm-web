@@ -138,13 +138,6 @@ export function HomePage() {
             borderColor: 'divider',
           }}
         />
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <CreateNotebookEntry
-            onClick={handleOpenCreateDialog}
-            disabled={createNotebookMutation.isPending}
-            size="small"
-          />
-        </Stack>
         <Stack
           direction="row"
           sx={{
@@ -162,6 +155,11 @@ export function HomePage() {
           >
             {notebooksQuery.isFetching && <CircularProgress size={14} color="primary" />}
             <HomeSortSelector value={sortBy} onChange={setSortBy} />
+            <CreateNotebookEntry
+              onClick={handleOpenCreateDialog}
+              disabled={createNotebookMutation.isPending}
+              size="small"
+            />
           </Stack>
         </Stack>
 

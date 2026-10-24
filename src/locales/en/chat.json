@@ -6,22 +6,22 @@
     "scrollBottomAria": "Scroll to bottom"
   },
   "input": {
-    "placeholder": "Ask a question..."
+    "placeholder": "Ask a question"
   },
   "stream": {
-    "aborting": "Stopping..."
+    "aborting": "Stopping"
   },
   "error": {
-    "clearWhileStreaming": "Cannot clear context while a reply is generating. Try again later.",
-    "clearNoSession": "No active session. Cannot clear context.",
-    "generateFailed": "Failed to generate a response. Please try again.",
-    "saveNote": "Failed to save note. Please retry."
+    "clearWhileStreaming": "Cannot clear context while a reply is generating. Try again later",
+    "clearNoSession": "No active session. Cannot clear context",
+    "generateFailed": "Failed to generate a response. Please try again",
+    "saveNote": "Failed to save note. Please retry"
   },
   "thinking": "Thinking",
-  "thinkingPhase": "Thinking...",
+  "thinkingPhase": "Thinking",
   "message": {
     "saveNote": "Save to note",
-    "saving": "Saving…"
+    "saving": "Saving"
   },
   "citation": {
     "info": "Citation {{index}}",
@@ -32,13 +32,13 @@
     "position": "Position: {{text}}",
     "positionSummary": "No source location (summary citation)",
     "jump": "Jump to source preview",
-    "loading": "Loading citation...",
+    "loading": "Loading citation",
     "empty": "No content",
-    "notFoundSource": "Citation source not found.",
-    "notFoundDoc": "Citation document not found.",
-    "loadFailed": "Failed to load citation. Please try again later.",
-    "invalidIndex": "Invalid citation index.",
-    "missMapping": "Citation mapping not found."
+    "notFoundSource": "Citation source not found",
+    "notFoundDoc": "Citation document not found",
+    "loadFailed": "Failed to load citation. Please try again later",
+    "invalidIndex": "Invalid citation index",
+    "missMapping": "Citation mapping not found"
   },
   "markdown": {
     "openCitationAria": "Open citation {{index}}",
@@ -52,11 +52,11 @@
   "settings": {
     "title": "Chat settings",
     "style": "Chat style",
-    "styleHelp": "Controls tone and organization of answers.",
+    "styleHelp": "Controls tone and organization of answers",
     "length": "Answer length",
-    "lengthHelp": "Controls how detailed answers are.",
+    "lengthHelp": "Controls how detailed answers are",
     "deepThink": "Deep thinking",
-    "deepThinkHelp": "Slower answers with more thorough reasoning.",
+    "deepThinkHelp": "Slower answers with more thorough reasoning",
     "deepThinkOff": "Off",
     "deepThinkOn": "On",
     "styleDefault": "Default",

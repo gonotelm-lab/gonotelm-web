@@ -1,50 +1,51 @@
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
-import { Button } from '@mui/material'
+import { IconButton, Tooltip } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import {
-  workspaceRadius,
-  workspaceSpace,
-} from '../notebook-workspace/shared/ui/layoutTokens'
-import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
+import { workspaceRadius } from '../notebook-workspace/shared/ui/layoutTokens'
+import { workspaceIconSize } from '../notebook-workspace/shared/ui/typeTokens'
 
 interface CreateNotebookEntryProps {
   onClick: () => void
   disabled?: boolean
+  /** @deprecated Kept for call-site compatibility; icon button ignores size. */
   size?: 'small' | 'medium' | 'large'
+  /** @deprecated Kept for call-site compatibility; create is always a primary icon. */
   variant?: 'contained' | 'outlined' | 'text'
 }
 
 export function CreateNotebookEntry({
   onClick,
   disabled = false,
-  size = 'medium',
-  variant = 'contained',
 }: CreateNotebookEntryProps) {
   const { t } = useTranslation('home')
+  const label = t('create.entry')
 
   return (
-    <Button
-      onClick={onClick}
-      disabled={disabled}
-      size={size}
-      variant={variant}
-      startIcon={<AddOutlinedIcon sx={{ fontSize: workspaceIconSize.sm }} />}
-      sx={{
-        minWidth: 80,
-        height: 34,
-        px: workspaceSpace.md,
-        borderRadius: workspaceRadius.md,
-        fontSize: workspaceType.sm,
-        lineHeight: 1.2,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        '& .MuiButton-startIcon': {
-          marginRight: workspaceSpace.xxs,
-          marginLeft: 0,
-        },
-      }}
-    >
-      {t('create.entry')}
-    </Button>
+    <Tooltip title={label} arrow placement="top" enterDelay={240}>
+      <span>
+        <IconButton
+          onClick={onClick}
+          disabled={disabled}
+          aria-label={label}
+          data-testid="home-create-notebook"
+          sx={{
+            width: 34,
+            height: 34,
+            borderRadius: workspaceRadius.md,
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            },
+            '&.Mui-disabled': {
+              bgcolor: 'action.disabledBackground',
+              color: 'action.disabled',
+            },
+          }}
+        >
+          <AddOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+        </IconButton>
+      </span>
+    </Tooltip>
   )
 }

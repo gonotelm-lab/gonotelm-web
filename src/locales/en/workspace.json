@@ -15,9 +15,9 @@
     "visibility": {
       "label": "Notebook access",
       "restricted": "Restricted",
-      "restrictedHint": "Only people with access can open this notebook via the link.",
+      "restrictedHint": "Only people with access can open this notebook via the link",
       "public": "Public",
-      "publicHint": "Anyone with the link can view this notebook."
+      "publicHint": "Anyone with the link can view this notebook"
     },
     "members": {
       "title": "People with access",
@@ -38,23 +38,23 @@
       "copyFailed": "Copy failed"
     },
     "error": {
-      "noPermission": "Only the notebook owner can manage sharing.",
-      "userNotFound": "No account matches that email.",
-      "userBanned": "That account is suspended and cannot be added.",
-      "cannotShareWithOwner": "That is your own email. You already have access.",
-      "invalidEmail": "Enter a valid email address.",
-      "memberExists": "This person already has access.",
-      "loadFailed": "Could not load sharing settings. Please try again.",
-      "updateFailed": "Could not save sharing settings. Please try again."
+      "noPermission": "Only the notebook owner can manage sharing",
+      "userNotFound": "No account matches that email",
+      "userBanned": "That account is suspended and cannot be added",
+      "cannotShareWithOwner": "That is your own email. You already have access",
+      "invalidEmail": "Enter a valid email address",
+      "memberExists": "This person already has access",
+      "loadFailed": "Could not load sharing settings. Please try again",
+      "updateFailed": "Could not save sharing settings. Please try again"
     }
   },
   "notFound": {
     "title": "Notebook not found",
-    "description": "It may have been deleted, or you may not have access to it.",
-    "hint": "Check the link, or go back home to open another notebook.",
+    "description": "It may have been deleted, or you may not have access to it",
+    "hint": "Check the link, or go back home to open another notebook",
     "backHome": "Back to home",
     "retry": "Try again",
-    "retrying": "Trying..."
+    "retrying": "Trying"
   },
   "mobile": {
     "tab": {
@@ -68,7 +68,7 @@
     "rightAria": "Resize right panel"
   },
   "error": {
-    "addFileFailed": "Failed to add file. Please try again later.",
-    "notReady": "Workspace is not ready yet. Please try again later."
+    "addFileFailed": "Failed to add file. Please try again later",
+    "notReady": "Workspace is not ready yet. Please try again later"
   }
 }

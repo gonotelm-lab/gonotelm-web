@@ -381,7 +381,7 @@ describe('NotebookSharingDialog', () => {
     expect(findAllByTestId(renderer, 'sharing-member-user-2')).toHaveLength(0)
     expect(findAllByTestId(renderer, 'sharing-add-member-input')).toHaveLength(0)
     expect(JSON.stringify(renderer.toJSON())).toContain(
-      '只有笔记本所有者可以管理分享。',
+      '只有笔记本所有者可以管理分享',
     )
   })
 })

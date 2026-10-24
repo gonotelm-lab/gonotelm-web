@@ -4,7 +4,7 @@
     "dialogTitle": "New notebook",
     "nameLabel": "Notebook name (optional)",
     "submit": "Create",
-    "failed": "Failed to create. Please try again later."
+    "failed": "Failed to create. Please try again later"
   },
   "scope": {
     "aria": "Notebook scope",
@@ -12,8 +12,8 @@
     "shared": "Shared with me"
   },
   "empty": {
-    "owned": "No notebooks yet. Use “New notebook” above to start.",
-    "shared": "No one has shared a notebook with you yet."
+    "owned": "No notebooks yet. Use “New notebook” above to start",
+    "shared": "No one has shared a notebook with you yet"
   },
   "sort": {
     "aria": "Notebook sort order",
@@ -23,7 +23,7 @@
   "card": {
     "actionsAria": "Notebook actions",
     "deleteTitle": "Delete notebook",
-    "deleteBody": "This will remove chat and source data permanently.",
+    "deleteBody": "This will remove chat and source data permanently",
     "noDescription": "No description",
     "unknownDate": "Unknown date",
     "sharedBy": "Shared by {{nickname}}"

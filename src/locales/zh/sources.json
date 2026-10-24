@@ -15,14 +15,14 @@
     "title": "预览",
     "parentTitle": "来源",
     "closeAria": "关闭预览",
-    "empty": "当前来源暂无可展示的解析内容。",
-    "loadFailed": "预览加载失败，请稍后重试。"
+    "empty": "当前来源暂无可展示的解析内容",
+    "loadFailed": "预览加载失败，请稍后重试"
   },
   "dialog": {
     "title": "添加来源",
     "closeAria": "关闭",
     "addFailed": "添加失败，请稍后重试",
-    "intro": "添加来源后，系统能够基于这些对您重要的信息提供回答。"
+    "intro": "添加来源后，系统能够基于这些对您重要的信息提供回答"
   },
   "upload": {
     "title": "上传来源",
@@ -31,7 +31,7 @@
     "maxSize": "单个文件最大 100MB",
     "maxBatchHint": "一次最多选择 20 个文件",
     "inputAria": "选择要上传的来源文件",
-    "checking": "正在检查文件…",
+    "checking": "正在检查文件",
     "unsupportedType": "仅支持 pdf、txt、markdown、csv、docx、epub、xlsx、pptx、jpeg、png、webp 文件",
     "emptyFile": "文件不能为空",
     "fileTooLarge": "文件大小不能超过 100MB",
@@ -52,7 +52,7 @@
     "urlTitle": "链接",
     "textTitle": "粘贴文字",
     "urlHelper": "支持公开可访问的网页链接",
-    "textPlaceholder": "粘贴你要添加的文本内容...",
+    "textPlaceholder": "粘贴你要添加的文本内容",
     "submit": "添加来源"
   },
   "row": {
