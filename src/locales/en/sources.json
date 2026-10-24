@@ -2,6 +2,7 @@
   "panel": {
     "title": "Sources",
     "collapseAria": "Collapse sources panel",
+    "expandAria": "Expand sources panel",
     "add": "+ Add source",
     "all": "All sources",
     "sort": {

@@ -28,9 +28,11 @@ import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceInlinePreview } from './components/SourceInlinePreview'
 import { SourceListRow } from './components/SourceListRow'
 import { SourcePreviewOverlay } from './components/SourcePreviewOverlay'
+import { SourcesCollapsedRail } from './components/SourcesCollapsedRail'
 import { SourceSortMenu } from './components/SourceSortMenu'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { workspaceMotion } from '../../shared/ui/motionTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { hiddenScrollbarSx } from '../../shared/ui/scrollbar'
 import type { SourceListItem } from './types/sourceTypes'
@@ -60,6 +62,7 @@ interface SourcesPanelProps {
   allSourcesChecked: boolean
   someSourcesChecked: boolean
   onCollapse: () => void
+  onExpand?: () => void
   onCreateFile: (files: File[]) => Promise<void>
   onCreateUrl: (url: string) => Promise<void>
   onCreateText: (text: string) => Promise<void>
@@ -90,6 +93,7 @@ interface SourcesPanelLayoutProps {
   showListLoadingSkeleton: boolean
   skeletonItemCount: number
   openPreviewFromMenu: (item: SourceListItem) => void
+  openPreviewAsOverlay: (item: SourceListItem) => void
   previewBodyRef: RefObject<HTMLDivElement | null>
   closeOverlayPreview: () => void
 }
@@ -110,6 +114,7 @@ function SourcesPanelLayout({
   showListLoadingSkeleton,
   skeletonItemCount,
   openPreviewFromMenu,
+  openPreviewAsOverlay,
   previewBodyRef,
   closeOverlayPreview,
 }: SourcesPanelLayoutProps) {
@@ -127,6 +132,7 @@ function SourcesPanelLayout({
     allSourcesChecked,
     someSourcesChecked,
     onCollapse,
+    onExpand,
     onCreateFile,
     onCreateUrl,
     onCreateText,
@@ -161,13 +167,15 @@ function SourcesPanelLayout({
           minWidth: 0,
           minHeight: 0,
           overflow: 'hidden',
-          pointerEvents: collapsed ? 'none' : 'auto',
+          pointerEvents: 'auto',
         }}
       >
         <Paper
           variant="outlined"
           sx={{
-            px: { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
+            px: collapsed
+              ? workspaceSpace.xxs
+              : { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
             py: workspaceLayout.panelPaddingY,
             width: '100%',
             height: '100%',
@@ -178,8 +186,23 @@ function SourcesPanelLayout({
             overflow: 'hidden',
             bgcolor: 'background.paper',
             position: 'relative',
+            transition:
+              `padding ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}`,
           }}
         >
+          {collapsed ? (
+            <Box sx={{ flex: 1, minHeight: 0, height: '100%' }}>
+              <SourcesCollapsedRail
+                canManageContent={canManageContent}
+                sources={sortedSourceListItems}
+                selectedSourceId={previewState.sourceId || undefined}
+                addDisabled={isBusy}
+                onExpand={() => onExpand?.()}
+                onAddSource={onDialogOpen}
+                onSourceClick={openPreviewAsOverlay}
+              />
+            </Box>
+          ) : (
           <PanelSubpageLayout
             primaryContent={(
               <Stack
@@ -425,6 +448,7 @@ function SourcesPanelLayout({
               overflow: 'hidden',
             }}
           />
+          )}
         </Paper>
       </Box>
       <SourcePreviewOverlay
@@ -556,6 +580,7 @@ export const SourcesPanel = memo(function SourcesPanel(props: SourcesPanelProps)
     previewState,
     activeCapability,
     openPreviewFromMenu,
+    openPreviewAsOverlay,
     openPreviewFromCitation,
     closeInlinePreview,
     closeOverlayPreview,
@@ -698,6 +723,7 @@ export const SourcesPanel = memo(function SourcesPanel(props: SourcesPanelProps)
       showListLoadingSkeleton={showListLoadingSkeleton}
       skeletonItemCount={skeletonItemCount}
       openPreviewFromMenu={handleOpenPreviewFromMenu}
+      openPreviewAsOverlay={openPreviewAsOverlay}
       previewBodyRef={previewBodyRef}
       closeOverlayPreview={closeOverlayPreview}
     />

@@ -150,10 +150,10 @@ export const SourceListRow = memo(function SourceListRow({
     onToggleItem(item.id, nextChecked)
   }
 
-  const handleToggleRow = () => {
-    if (editDialogOpen) return
-    if (!rowSelectable) return
-    commitToggleSelection(!checked)
+  /** 单击行打开预览；勾选只走复选框，避免点行误切选中态。 */
+  const handleRowClick = () => {
+    if (editDialogOpen || removing || isBusy || isProcessing) return
+    void onPreviewItem(item)
   }
 
   const openActionMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -279,7 +279,7 @@ export const SourceListRow = memo(function SourceListRow({
 
   return (
     <Box
-      onClick={handleToggleRow}
+      onClick={handleRowClick}
       sx={{
         boxSizing: 'border-box',
         height: removing ? 0 : sourceListRowHeightPx,
@@ -291,7 +291,9 @@ export const SourceListRow = memo(function SourceListRow({
         overflow: 'hidden',
         borderRadius: workspaceRadius.md,
         bgcolor: 'transparent',
-        cursor: rowSelectable ? workspaceInteraction.cursorPointer : 'default',
+        cursor: !removing && !isBusy && !isProcessing
+          ? workspaceInteraction.cursorPointer
+          : 'default',
         display: 'flex',
         alignItems: 'center',
         columnGap: workspaceLayout.listInlineGap,
@@ -406,12 +408,16 @@ export const SourceListRow = memo(function SourceListRow({
           <Checkbox
             size="small"
             checked={checked}
+            disabled={!rowSelectable}
             disableRipple
             icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: workspaceIconSize.md }} />}
             checkedIcon={<CheckBoxIcon sx={{ fontSize: workspaceIconSize.md }} />}
             sx={{ p: 0, m: 0 }}
             onClick={(e) => e.stopPropagation()}
-            onChange={(e) => commitToggleSelection(e.target.checked)}
+            onChange={(e) => {
+              if (!rowSelectable) return
+              commitToggleSelection(e.target.checked)
+            }}
           />
         )}
       </Box>

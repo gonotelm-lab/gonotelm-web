@@ -145,6 +145,38 @@ describe('SourceListRow', () => {
     expect(onToggleItem).toHaveBeenCalledWith('source-1', true)
   })
 
+  it('单击行打开预览，不切换勾选', () => {
+    const onToggleItem = vi.fn()
+    const onPreviewItem = vi.fn()
+    let renderer = null as unknown as ReactTestRenderer
+    act(() => {
+      renderer = create(
+        <SourceListRow
+          item={sourceItem}
+          checked={false}
+          removing={false}
+          isBusy={false}
+          onToggleItem={onToggleItem}
+          onDeleteItem={async () => undefined}
+          onRetryItem={async () => undefined}
+          onRenameItem={async () => undefined}
+          onPreviewItem={onPreviewItem}
+          previewLoading={false}
+        />,
+      )
+    })
+
+    const rowWithClick = renderer.root.find(
+      (node) => typeof node.props.onClick === 'function' && node.type !== 'button',
+    )
+    act(() => {
+      rowWithClick.props.onClick()
+    })
+
+    expect(onPreviewItem).toHaveBeenCalledWith(sourceItem)
+    expect(onToggleItem).not.toHaveBeenCalled()
+  })
+
   it('等价的新 item 对象不重渲染整行，字段真正变化才重渲染', () => {
     const rowProps = {
       checked: false,

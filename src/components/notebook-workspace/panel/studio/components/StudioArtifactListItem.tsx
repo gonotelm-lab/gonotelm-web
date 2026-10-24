@@ -3,19 +3,9 @@ import { useTranslation } from 'react-i18next'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
-import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
-import GraphicEqOutlinedIcon from '@mui/icons-material/GraphicEqOutlined'
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined'
-import StickyNote2OutlinedIcon from '@mui/icons-material/StickyNote2Outlined'
 import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined'
 import SourceOutlinedIcon from '@mui/icons-material/SourceOutlined'
-import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined'
-import StyleOutlinedIcon from '@mui/icons-material/StyleOutlined'
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
-import SlideshowOutlinedIcon from '@mui/icons-material/SlideshowOutlined'
-import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
-import type { SvgIconComponent } from '@mui/icons-material'
 import i18n from '@/i18n'
 import type { StudioArtifactKind } from '@/types/api'
 import { IconButton, Menu, MenuItem, Paper, Stack, Tooltip, Typography } from '@mui/material'
@@ -35,6 +25,7 @@ import {
   toArtifactVisualStatus,
   type StudioArtifactVisualStatus,
 } from '../artifactStatus'
+import { artifactKindIconMap } from '../artifactKindIcons'
 import { getStudioArtifactPreviewCapability } from '../preview/previewCapabilities'
 import { resolveStudioArtifactDisplayTitle } from '../resolveStudioArtifactKind'
 import type { StudioArtifactItem } from '../types'
@@ -97,19 +88,6 @@ const formatArtifactRelativeTime = (createdAt: number) => {
     return i18n.t('studio:artifact.time.daysAgo', { n: Math.floor(elapsed / dayMs) })
   }
   return i18n.t('studio:artifact.time.weeksAgo', { n: Math.floor(elapsed / weekMs) })
-}
-
-const artifactKindIconMap: Record<StudioArtifactKind, SvgIconComponent> = {
-  mindmap: AccountTreeOutlinedIcon,
-  report: MenuBookOutlinedIcon,
-  info_graphic: ImageOutlinedIcon,
-  audio_overview: GraphicEqOutlinedIcon,
-  video_overview: VideocamOutlinedIcon,
-  flashcard: StyleOutlinedIcon,
-  quiz: QuizOutlinedIcon,
-  data_table: TableChartOutlinedIcon,
-  note: StickyNote2OutlinedIcon,
-  slides: SlideshowOutlinedIcon,
 }
 
 const resolveListBorderTone = (

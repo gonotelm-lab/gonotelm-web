@@ -2,6 +2,7 @@
   "panel": {
     "title": "Studio",
     "collapseAria": "Collapse right panel",
+    "expandAria": "Expand right panel",
     "artifactList": "Artifacts",
     "refresh": "Refresh list",
     "refreshing": "Refreshing",

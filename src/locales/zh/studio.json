@@ -2,6 +2,7 @@
   "panel": {
     "title": "工作区",
     "collapseAria": "收起右侧面板",
+    "expandAria": "展开右侧面板",
     "artifactList": "产物列表",
     "refresh": "刷新列表",
     "refreshing": "刷新中",

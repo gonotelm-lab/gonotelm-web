@@ -7,6 +7,7 @@ import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import type { StudioArtifactTaskStatus } from '@/types/api'
 import {
   buildTaskFailedMessage,
+  isStudioTaskCompleted,
   shouldStudioTaskKeepPolling,
   toArtifactVisualStatus,
 } from '../artifactStatus'
@@ -212,6 +213,14 @@ export function useStudioPreviewController({
     }
   }, [loadPreviewForItem])
 
+  /** 折叠 rail 等场景：强制对话框预览，不打开内联页、不依赖默认 entry mode。 */
+  const openPreviewAsOverlay = useCallback((item: StudioArtifactItem) => {
+    if (!isStudioTaskCompleted(item.status)) {
+      return
+    }
+    void loadPreviewForItem(item, { inlineOpen: false, overlayOpen: true })
+  }, [loadPreviewForItem])
+
   const openOverlayFromInline = useCallback((slideIndex?: number) => {
     if (!previewTarget || !previewCapability?.overlay) {
       return
@@ -360,6 +369,7 @@ export function useStudioPreviewController({
     previewTarget,
     previewCapability,
     openPreviewByItemClick,
+    openPreviewAsOverlay,
     openOverlayFromInline,
     closeInlinePreview,
     closeOverlayPreview,

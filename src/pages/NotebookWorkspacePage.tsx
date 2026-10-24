@@ -62,6 +62,7 @@ import {
   workspaceTransitionPresets,
 } from '../components/notebook-workspace/shared/ui/motionTokens'
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
+import { collapsedPanelRailWidthPx } from '../components/notebook-workspace/shared/ui/collapsedPanelRailLayout'
 import type { SaveMessageAsNoteParams } from '../components/notebook-workspace/panel/studio/types'
 import { NotebookNotFoundPage } from './NotebookNotFoundPage'
 import { resolveNotebookWorkspaceTitle } from './notebook-workspace/resolveNotebookWorkspaceTitle'
@@ -144,11 +145,15 @@ const applyWorkspacePanelGridColumns = (
 ) => {
   container.style.setProperty(
     workspaceSourcesColumnVar,
-    sourcesCollapsed ? '0px' : `${sourcesWidth}px`,
+    sourcesCollapsed
+      ? `${collapsedPanelRailWidthPx}px`
+      : `${sourcesWidth}px`,
   )
   container.style.setProperty(
     workspaceInsightsColumnVar,
-    insightsCollapsed ? '0px' : `${insightsWidth}px`,
+    insightsCollapsed
+      ? `${collapsedPanelRailWidthPx}px`
+      : `${insightsWidth}px`,
   )
   container.style.setProperty(
     workspaceLeftHandleColumnVar,
@@ -1035,7 +1040,9 @@ export function NotebookWorkspacePage() {
   const getLeftPanelWidthBounds = useCallback(
     (containerWidth: number, rightPanelWidth: number, rightPanelCollapsed: boolean) => {
       const maxByRatio = Math.floor(containerWidth * workspacePanelMaxWidthRatio)
-      const rightVisibleWidth = rightPanelCollapsed ? 0 : rightPanelWidth
+      const rightVisibleWidth = rightPanelCollapsed
+        ? collapsedPanelRailWidthPx
+        : rightPanelWidth
       const rightHandleWidth = rightPanelCollapsed ? 0 : workspaceResizeHandleWidthPx
       const maxByCenter =
         containerWidth -
@@ -1053,7 +1060,9 @@ export function NotebookWorkspacePage() {
   const getRightPanelWidthBounds = useCallback(
     (containerWidth: number, leftPanelWidth: number, leftPanelCollapsed: boolean) => {
       const maxByRatio = Math.floor(containerWidth * workspacePanelMaxWidthRatio)
-      const leftVisibleWidth = leftPanelCollapsed ? 0 : leftPanelWidth
+      const leftVisibleWidth = leftPanelCollapsed
+        ? collapsedPanelRailWidthPx
+        : leftPanelWidth
       const leftHandleWidth = leftPanelCollapsed ? 0 : workspaceResizeHandleWidthPx
       const maxByCenter =
         containerWidth -
@@ -1561,6 +1570,7 @@ export function NotebookWorkspacePage() {
               allSourcesChecked={allSourcesChecked}
               someSourcesChecked={someSourcesChecked}
               onCollapse={handleCollapseSourcesPanel}
+              onExpand={handleExpandSourcesPanel}
               canManageContent={canManageContent}
               onCreateFile={handleCreateFileSources}
               onCreateUrl={handleCreateUrlSource}
@@ -1690,10 +1700,7 @@ export function NotebookWorkspacePage() {
               minWidth: 0,
               overflow: 'hidden',
               contain: 'layout paint',
-              pointerEvents: {
-                xs: 'auto',
-                md: isInsightsPanelCollapsed ? 'none' : 'auto',
-              },
+              pointerEvents: 'auto',
             }}
           >
             <StudioPanel
@@ -1701,7 +1708,9 @@ export function NotebookWorkspacePage() {
               selectedSourceIds={deferredSelectedSourceIdList}
               readySourceIds={readySourceIdList}
               canManageContent={canManageContent}
+              collapsed={!isMobileWorkspace && isInsightsPanelCollapsed}
               onCollapse={handleCollapseInsightsPanel}
+              onExpand={handleExpandInsightsPanel}
               onSourceCreated={handleSourceCreated}
               onRegisterSaveMessageAsNote={handleRegisterSaveMessageAsNote}
             />

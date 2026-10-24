@@ -220,6 +220,23 @@ export function useSourcePreviewController({
     })
   }, [loadSourcePreview])
 
+  /** 折叠 rail：强制对话框预览，关闭后保持折叠。 */
+  const openPreviewAsOverlay = useCallback((item: SourceListItem) => {
+    const entryMode = resolveSourcePreviewEntryMode({
+      viewType: 'content',
+      status: item.status,
+    })
+    if (entryMode === 'none') {
+      return
+    }
+    void loadSourcePreview({
+      item,
+      viewType: 'content',
+      inlineOpen: false,
+      overlayOpen: true,
+    })
+  }, [loadSourcePreview])
+
   const openPreviewFromCitation = useCallback((item: SourceListItem, locator: ChatCitationJumpRequest) => {
     void loadSourcePreview({
       item,
@@ -319,6 +336,7 @@ export function useSourcePreviewController({
     previewState,
     activeCapability,
     openPreviewFromMenu,
+    openPreviewAsOverlay,
     openPreviewFromCitation,
     closeInlinePreview,
     closeOverlayPreview,

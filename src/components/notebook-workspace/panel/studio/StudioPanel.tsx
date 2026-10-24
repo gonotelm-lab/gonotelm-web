@@ -25,6 +25,7 @@ import type {
 } from '@/types/api'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { workspaceMotion } from '../../shared/ui/motionTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { StudioArtifactInlinePreview } from './components/StudioArtifactInlinePreview'
@@ -49,6 +50,7 @@ import { defaultQuizParameters } from './quizSettings'
 import { getDefaultReportParameters } from './reportSettings'
 import { getDefaultSlidesParameters } from './slidesSettings'
 import { getDefaultVideoOverviewParameters } from './videoOverviewSettings'
+import { StudioCollapsedRail } from './components/StudioCollapsedRail'
 import { StudioToolCard } from './components/StudioToolCard'
 import { useInfoGraphicVisualStyleResolver } from './hooks/useInfoGraphicVisualStyleResolver'
 import { useSlidesVisualStyleResolver } from './hooks/useSlidesVisualStyleResolver'
@@ -65,7 +67,10 @@ interface StudioPanelProps {
   readySourceIds: string[]
   /** 无编辑权限时隐藏生成入口与删除 / 重试等写操作，只保留预览。 */
   canManageContent?: boolean
+  /** md+ 折叠为右侧固定宽度竖条；xs 不使用折叠 rail。 */
+  collapsed?: boolean
   onCollapse: () => void
+  onExpand?: () => void
   onSourceCreated?: () => void
   onRegisterSaveMessageAsNote?: (
     handler: ((params: SaveMessageAsNoteParams) => Promise<void>) | null,
@@ -82,7 +87,9 @@ export const StudioPanel = memo(function StudioPanel({
   selectedSourceIds,
   readySourceIds,
   canManageContent = true,
+  collapsed = false,
   onCollapse,
+  onExpand,
   onSourceCreated,
   onRegisterSaveMessageAsNote,
 }: StudioPanelProps) {
@@ -131,6 +138,7 @@ export const StudioPanel = memo(function StudioPanel({
     previewTarget,
     previewCapability,
     openPreviewByItemClick,
+    openPreviewAsOverlay,
     openOverlayFromInline,
     closeInlinePreview,
     closeOverlayPreview,
@@ -730,11 +738,35 @@ export const StudioPanel = memo(function StudioPanel({
       }
     : null
 
+  const handleCollapsedToolClick = useCallback(
+    (tool: (typeof studioToolCatalog)[number]) => {
+      const actionId = tool.actionId
+      if (!actionId) return
+      const openAdvanced = advancedActionHandlers[actionId]
+      if (openAdvanced) {
+        openAdvanced()
+        return
+      }
+      actionHandlers[actionId]?.()
+    },
+    [actionHandlers, advancedActionHandlers],
+  )
+
+  const handleCollapsedArtifactClick = useCallback(
+    (item: (typeof artifactItems)[number]) => {
+      // 折叠态只开对话框，不展开面板；关闭后保持折叠。
+      openPreviewAsOverlay(item)
+    },
+    [openPreviewAsOverlay],
+  )
+
   return (
     <Paper
       variant="outlined"
       sx={{
-        px: { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
+        px: collapsed
+          ? workspaceSpace.xxs
+          : { xs: workspaceSpace.lg, md: workspaceLayout.panelPaddingX },
         py: workspaceLayout.panelPaddingY,
         height: '100%',
         minHeight: 0,
@@ -742,13 +774,35 @@ export const StudioPanel = memo(function StudioPanel({
         flexDirection: 'column',
         overflow: 'hidden',
         bgcolor: 'background.paper',
+        transition:
+          `padding ${workspaceMotion.durationPanelMs}ms ${workspaceMotion.easingStandard}`,
       }}
     >
-      <PanelSubpageLayout
-        primaryContent={primaryContent}
-        subpage={inlineSubpage}
-        subpageBodySx={{ overflow: 'hidden' }}
-      />
+      {/*
+        不用 absolute 叠层：绝对定位子项不参与高度计算时，PanelSubpageLayout 会塌成空白。
+        顺滑感交给外层 grid 列宽过渡 + padding 过渡。
+      */}
+      <Box sx={{ flex: 1, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {collapsed ? (
+          <StudioCollapsedRail
+            canManageContent={canManageContent}
+            tools={studioToolCatalog}
+            artifacts={artifactItems}
+            pendingActionIds={pendingActions}
+            selectedArtifactId={previewState.targetId || undefined}
+            canSubmitArtifactTask={canSubmitArtifactTask}
+            onExpand={() => onExpand?.()}
+            onToolClick={handleCollapsedToolClick}
+            onArtifactClick={handleCollapsedArtifactClick}
+          />
+        ) : (
+          <PanelSubpageLayout
+            primaryContent={primaryContent}
+            subpage={inlineSubpage}
+            subpageBodySx={{ overflow: 'hidden' }}
+          />
+        )}
+      </Box>
 
       <StudioArtifactPreviewOverlay
         open={previewState.overlayOpen}

@@ -2,6 +2,7 @@
   "panel": {
     "title": "来源",
     "collapseAria": "收起来源面板",
+    "expandAria": "展开来源面板",
     "add": "+ 添加来源",
     "all": "所有来源",
     "sort": {
