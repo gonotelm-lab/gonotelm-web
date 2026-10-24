@@ -10,7 +10,6 @@ export interface ChatUiCitationDetail {
   citationIndex: number
   docId: string
   sourceId?: string
-  isSummary?: boolean
   position?: ChatUiCitationPosition
 }
 

@@ -345,7 +345,8 @@ function ChatPanelContent({
       variant="outlined"
       sx={{
         px: 0,
-        py: chatPanelLayoutTokens.verticalPadding,
+        pt: chatPanelLayoutTokens.verticalPadding,
+        pb: chatPanelLayoutTokens.bottomPadding,
         height: '100%',
         minHeight: 0,
         position: 'relative',

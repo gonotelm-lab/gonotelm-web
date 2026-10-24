@@ -65,10 +65,6 @@ export interface WorkspaceColorPalette {
   sourceType: Record<SourceIconType | 'default', StudioSemanticTone>
   /** Per artifact / tool-type tones. */
   artifactKind: Record<StudioToolToneKey, StudioSemanticTone>
-  citation: {
-    summaryType: string
-    originalType: string
-  }
   status: {
     success: string
     warning: string
@@ -269,10 +265,6 @@ export const workspaceColorPalette: WorkspaceColorPalette = {
       icon: '#2f6b4f',
       surface: 'rgba(47, 107, 79, 0.06)',
     },
-  },
-  citation: {
-    summaryType: 'primary.main',
-    originalType: 'text.secondary',
   },
   status: {
     success: 'success.main',
@@ -566,10 +558,6 @@ export const workspaceDarkColorPalette: WorkspaceColorPalette = {
       icon: '#7fb89a',
       surface: 'rgba(127, 184, 154, 0.14)',
     },
-  },
-  citation: {
-    summaryType: 'primary.main',
-    originalType: 'text.secondary',
   },
   status: {
     success: 'success.main',

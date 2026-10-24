@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { Box, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import CheckIcon from '@mui/icons-material/Check'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
@@ -17,6 +17,22 @@ interface StylePreviewPickerProps {
   options: StylePreviewOption[]
   onChange: (value: string) => void
   ariaLabel?: string
+}
+
+/** 纵向滚轮主导时映射为横向滚动；触控板横向手势交给浏览器原生处理。 */
+export const applyVerticalWheelToHorizontalScroll = (
+  scroller: Pick<HTMLElement, 'scrollWidth' | 'clientWidth' | 'scrollLeft'>,
+  event: Pick<WheelEvent, 'deltaX' | 'deltaY' | 'preventDefault'>,
+): boolean => {
+  if (scroller.scrollWidth <= scroller.clientWidth) {
+    return false
+  }
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+    return false
+  }
+  event.preventDefault()
+  scroller.scrollLeft += event.deltaY
+  return true
 }
 
 /** Wide enough to read a 16:9 style thumbnail; 3 fit a `sm` dialog without scroll. */
@@ -38,7 +54,25 @@ export const StylePreviewPicker = memo(function StylePreviewPicker({
   ariaLabel,
 }: StylePreviewPickerProps) {
   const theme = useTheme()
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
   const hasPreviewImages = options.some((option) => !!option.previewUrl)
+
+  useEffect(() => {
+    if (!hasPreviewImages) {
+      return
+    }
+    const scroller = scrollerRef.current
+    if (!scroller || typeof scroller.addEventListener !== 'function') {
+      return
+    }
+    const onWheel = (event: WheelEvent) => {
+      applyVerticalWheelToHorizontalScroll(scroller, event)
+    }
+    scroller.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      scroller.removeEventListener('wheel', onWheel)
+    }
+  }, [hasPreviewImages])
 
   const handleChange = (_event: React.MouseEvent<HTMLElement>, nextValue: string | null) => {
     if (nextValue) {
@@ -71,6 +105,7 @@ export const StylePreviewPicker = memo(function StylePreviewPicker({
 
   return (
     <ToggleButtonGroup
+      ref={scrollerRef}
       exclusive
       value={value}
       onChange={handleChange}

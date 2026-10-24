@@ -6,7 +6,8 @@
     "scrollBottomAria": "Scroll to bottom"
   },
   "input": {
-    "placeholder": "Ask a question"
+    "placeholder": "Ask a question",
+    "aiDisclaimer": "AI-generated content. Please verify carefully."
   },
   "stream": {
     "aborting": "Stopping"
@@ -26,11 +27,7 @@
   "citation": {
     "info": "Citation {{index}}",
     "sourceTitle": "Source title: {{title}}",
-    "type": "Citation type: {{type}}",
-    "typeSummary": "Summary citation",
-    "typeOriginal": "Original excerpt citation",
     "position": "Position: {{text}}",
-    "positionSummary": "No source location (summary citation)",
     "jump": "Jump to source preview",
     "loading": "Loading citation",
     "empty": "No content",

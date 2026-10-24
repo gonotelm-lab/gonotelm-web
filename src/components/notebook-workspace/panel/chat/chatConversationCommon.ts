@@ -1,4 +1,3 @@
-import i18n from '@/i18n'
 import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import type { SourceDocPosition, StreamTaskEvent } from '@/types/api'
 import type {
@@ -144,22 +143,14 @@ export const normalizeCitationPosition = (
   }
 }
 
-export const isSummaryCitationPosition = (position: ChatUiCitationPosition | null) =>
-  !position || (position.start === 0 && position.end === 0)
+/** 可定位：有有效区间，且不是历史上用 0-0 表示“无定位”的占位。 */
+export const isLocatableCitationPosition = (position: ChatUiCitationPosition | null) =>
+  Boolean(position && !(position.start === 0 && position.end === 0))
 
-export const resolveCitationTypeLabel = (isSummary?: boolean) =>
-  isSummary ? i18n.t('chat:citation.typeSummary') : i18n.t('chat:citation.typeOriginal')
-
-export const formatCitationPositionText = (
-  position: CitationPositionLike,
-  isSummary?: boolean,
-) => {
+export const formatCitationPositionText = (position: CitationPositionLike) => {
   const normalizedPosition = normalizeCitationPosition(position)
-  if (!normalizedPosition) {
+  if (!normalizedPosition || !isLocatableCitationPosition(normalizedPosition)) {
     return '-'
-  }
-  if (isSummary && normalizedPosition.start === 0 && normalizedPosition.end === 0) {
-    return i18n.t('chat:citation.positionSummary')
   }
   return `${normalizedPosition.start} - ${normalizedPosition.end}`
 }
@@ -168,13 +159,11 @@ interface CitationJumpButtonVisibilityInput {
   onOpenCitationJump?: (request: ChatCitationJumpRequest) => void
   sourceId?: string
   position?: ChatUiCitationPosition | null
-  isOriginalCitation: boolean
 }
 
 export const canShowCitationJumpButton = ({
   onOpenCitationJump,
   sourceId,
   position,
-  isOriginalCitation,
 }: CitationJumpButtonVisibilityInput) =>
-  Boolean(onOpenCitationJump && sourceId && position && isOriginalCitation)
+  Boolean(onOpenCitationJump && sourceId && isLocatableCitationPosition(position ?? null))

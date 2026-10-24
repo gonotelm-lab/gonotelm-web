@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react'
-import { Box } from '@mui/material'
-import { workspaceLayout } from '../../shared/ui/layoutTokens'
+import { Box, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
+import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
+import { workspaceType } from '../../shared/ui/typeTokens'
 import { ChatInputBox, type ChatInputInteractionState } from './ChatInputBox'
 
 const composerMarginTop = workspaceLayout.panelPaddingY
+const disclaimerMarginTop = workspaceSpace.xxs
+const disclaimerFontSize = workspaceType.xs
 
 interface ChatComposerProps {
   inputRef?: Ref<HTMLInputElement | HTMLTextAreaElement>
@@ -41,6 +45,7 @@ export function ChatComposer({
   onAbort,
   onSuggestionSelect,
 }: ChatComposerProps) {
+  const { t } = useTranslation('chat')
   const [value, setValue] = useState('')
 
   useEffect(() => {
@@ -97,6 +102,19 @@ export function ChatComposer({
         onAbort={onAbort}
         onSuggestionSelect={onSuggestionSelect}
       />
+      <Typography
+        component="p"
+        sx={{
+          mt: disclaimerMarginTop,
+          mb: 0,
+          fontSize: disclaimerFontSize,
+          lineHeight: 1.4,
+          color: 'text.disabled',
+          textAlign: 'center',
+        }}
+      >
+        {t('input.aiDisclaimer')}
+      </Typography>
     </Box>
   )
 }

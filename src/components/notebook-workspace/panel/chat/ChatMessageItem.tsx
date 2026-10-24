@@ -24,9 +24,8 @@ import { getCachedSourceIdForDoc, rememberSourceDocMapping } from './citationRes
 import {
   canShowCitationJumpButton,
   formatCitationPositionText,
-  isSummaryCitationPosition,
+  isLocatableCitationPosition,
   normalizeCitationPosition,
-  resolveCitationTypeLabel,
 } from './chatConversationCommon'
 import { extractResponseText } from './streamEventReducer'
 import { chatMessageContentTokens } from './layoutTokens'
@@ -161,32 +160,39 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   const userText = message.fragments.find((f) => f.type === 'REQUEST')?.request?.content ?? ''
   const activeCitationSourceId = activeCitationDoc?.source_id
   const activeCitationPosition = normalizeCitationPosition(activeCitationDoc?.position)
-  const citationSummary = isSummaryCitationPosition(activeCitationPosition)
-  const isOriginalCitation = Boolean(activeCitationPosition && !citationSummary)
   const citationPositionText = useMemo(
-    () => formatCitationPositionText(activeCitationPosition, citationSummary),
-    [activeCitationPosition, citationSummary],
+    () => formatCitationPositionText(activeCitationPosition),
+    [activeCitationPosition],
   )
   const canJumpToSourcePreview = canShowCitationJumpButton({
     onOpenCitationJump,
     sourceId: activeCitationSourceId,
     position: activeCitationPosition,
-    isOriginalCitation,
   })
 
-  const fetchCitationDoc = useCallback(async (docId: string, sourceId: string, fetchSeq: number) => {
+  const resetCitationCard = useCallback(() => {
+    setCitationAnchorPosition(null)
+    setActiveCitationIndex(null)
+    setActiveCitationDoc(null)
+    setCitationLoadError('')
+    setIsCitationLoading(false)
+  }, [])
+
+  const fetchCitationDoc = useCallback(async (
+    docId: string,
+    sourceId: string,
+    fetchSeq: number,
+  ): Promise<GetSourceDocResponse | null> => {
     try {
-      if (citationFetchSeqRef.current !== fetchSeq) return
+      if (citationFetchSeqRef.current !== fetchSeq) return null
 
       const resolvedSourceId =
         sourceId.trim() || getCachedSourceIdForDoc(docId) || selectedSourceIds[0]?.trim()
       if (!resolvedSourceId) {
         if (citationFetchSeqRef.current === fetchSeq) {
-          setActiveCitationDoc(null)
           setCitationLoadError(t('chat:citation.notFoundSource'))
-          setIsCitationLoading(false)
         }
-        return
+        return null
       }
 
       const sourceDoc = await queryClient.fetchQuery(
@@ -198,17 +204,16 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         queryClient.setQueryData(['source-doc', sourceDoc.source_id, docId], sourceDoc)
       }
 
-      if (citationFetchSeqRef.current === fetchSeq) {
-        setActiveCitationDoc(sourceDoc)
-        setCitationLoadError(sourceDoc ? '' : t('chat:citation.notFoundDoc'))
+      if (citationFetchSeqRef.current !== fetchSeq) return null
+      if (!sourceDoc) {
+        setCitationLoadError(t('chat:citation.notFoundDoc'))
+        return null
       }
+      return sourceDoc
     } catch {
-      if (citationFetchSeqRef.current !== fetchSeq) return
+      if (citationFetchSeqRef.current !== fetchSeq) return null
       setCitationLoadError(t('chat:citation.loadFailed'))
-    } finally {
-      if (citationFetchSeqRef.current === fetchSeq) {
-        setIsCitationLoading(false)
-      }
+      return null
     }
   }, [queryClient, selectedSourceIds, t])
 
@@ -217,42 +222,65 @@ export const ChatMessageItem = memo(function ChatMessageItem({
       const citationIndex = target.citationIndex ?? ''
       const index = Number.parseInt(citationIndex, 10)
       const citation = message.citations[index - 1]
-      setCitationAnchorPosition({ left: event.clientX + citationCardOffsetPx, top: event.clientY })
-      setActiveCitationIndex(Number.isFinite(index) ? index : null)
-      setActiveCitationDoc(null)
-      setCitationLoadError('')
+      const clickAnchor = {
+        left: event.clientX + citationCardOffsetPx,
+        top: event.clientY,
+      }
+
       citationFetchSeqRef.current += 1
       const fetchSeq = citationFetchSeqRef.current
+      resetCitationCard()
 
-      if (!Number.isFinite(index) || index <= 0) {
-        setIsCitationLoading(false)
-        setCitationLoadError(t('chat:citation.invalidIndex'))
+      if (!Number.isFinite(index) || index <= 0 || !citation?.docId?.trim()) {
         return
       }
 
-      if (!citation?.docId?.trim()) {
-        setIsCitationLoading(false)
-        setCitationLoadError(t('chat:citation.missMapping'))
-        return
-      }
-
+      setActiveCitationIndex(index)
       setIsCitationLoading(true)
-      void fetchCitationDoc(citation.docId.trim(), citation.sourceId ?? '', fetchSeq)
+      void (async () => {
+        const sourceDoc = await fetchCitationDoc(
+          citation.docId.trim(),
+          citation.sourceId ?? '',
+          fetchSeq,
+        )
+        if (citationFetchSeqRef.current !== fetchSeq) return
+
+        if (!sourceDoc) {
+          // 加载失败时打开卡片展示错误，避免点击无反馈
+          setActiveCitationDoc(null)
+          setCitationAnchorPosition(clickAnchor)
+          setIsCitationLoading(false)
+          return
+        }
+
+        const position = normalizeCitationPosition(sourceDoc.position)
+        if (!isLocatableCitationPosition(position)) {
+          // 不可定位：不打开引用卡片
+          resetCitationCard()
+          return
+        }
+
+        setActiveCitationDoc(sourceDoc)
+        setCitationLoadError('')
+        setCitationAnchorPosition(clickAnchor)
+        setIsCitationLoading(false)
+      })()
     },
-    [fetchCitationDoc, message.citations, t],
+    [fetchCitationDoc, message.citations, resetCitationCard],
   )
 
   const handleCloseCitationCard = useCallback(() => {
     citationFetchSeqRef.current += 1
-    setCitationAnchorPosition(null)
-    setActiveCitationIndex(null)
-    setActiveCitationDoc(null)
-    setCitationLoadError('')
-    setIsCitationLoading(false)
-  }, [])
+    resetCitationCard()
+  }, [resetCitationCard])
 
   const handleJumpToSourcePreview = useCallback(() => {
-    if (!onOpenCitationJump || !activeCitationSourceId || !isOriginalCitation || !activeCitationPosition) {
+    if (
+      !onOpenCitationJump
+      || !activeCitationSourceId
+      || !isLocatableCitationPosition(activeCitationPosition)
+      || !activeCitationPosition
+    ) {
       return
     }
     onOpenCitationJump({
@@ -268,7 +296,6 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     activeCitationPosition,
     activeCitationSourceId,
     handleCloseCitationCard,
-    isOriginalCitation,
     onOpenCitationJump,
   ])
 
@@ -385,18 +412,8 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 gap: workspaceSpace.xxs,
               }}
             >
-              <Typography
-                variant="body2"
-                sx={(theme) => ({
-                  fontWeight: 600,
-                  color: citationSummary
-                    ? theme.workspacePalette.citation.summaryType
-                    : theme.workspacePalette.citation.originalType,
-                })}
-              >
-                {t('chat:citation.type', {
-                  type: resolveCitationTypeLabel(citationSummary),
-                })}
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('chat:citation.position', { text: citationPositionText })}
               </Typography>
               {canJumpToSourcePreview ? (
                 <Tooltip title={t('chat:citation.jump')}>
@@ -408,9 +425,6 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 </Tooltip>
               ) : null}
             </Box>
-            <Typography variant="body2" sx={{ mt: workspaceSpace.xxs, color: 'text.secondary' }}>
-              {t('chat:citation.position', { text: citationPositionText })}
-            </Typography>
             <Box
               sx={(theme) => ({
                 mt: citationCardTokens.contentMarginTop,

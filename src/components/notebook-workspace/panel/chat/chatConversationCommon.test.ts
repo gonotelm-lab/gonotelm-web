@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyStickToBottomScroll,
+  canShowCitationJumpButton,
+  formatCitationPositionText,
+  isLocatableCitationPosition,
   isNearBottom,
   isStreamTerminalEvent,
   resolveMessageItemContentVisibility,
@@ -140,5 +143,40 @@ describe('resolveMessageItemContentVisibility', () => {
   it('keeps the last message fully measured so completed answers can pin to the real bottom', () => {
     expect(resolveMessageItemContentVisibility(true)).toBeUndefined()
     expect(resolveMessageItemContentVisibility(false)).toBe('auto')
+  })
+})
+
+describe('citation position locatability', () => {
+  it('treats missing or 0-0 positions as non-locatable', () => {
+    expect(isLocatableCitationPosition(null)).toBe(false)
+    expect(isLocatableCitationPosition({ start: 0, end: 0 })).toBe(false)
+  })
+
+  it('treats a real span as locatable', () => {
+    expect(isLocatableCitationPosition({ start: 12, end: 48 })).toBe(true)
+    expect(isLocatableCitationPosition({ start: 0, end: 10 })).toBe(true)
+  })
+
+  it('formats only locatable positions', () => {
+    expect(formatCitationPositionText(null)).toBe('-')
+    expect(formatCitationPositionText({ start: 0, end: 0 })).toBe('-')
+    expect(formatCitationPositionText({ start: 12, end: 48 })).toBe('12 - 48')
+  })
+
+  it('shows jump only for locatable citations with a source', () => {
+    expect(
+      canShowCitationJumpButton({
+        onOpenCitationJump: () => undefined,
+        sourceId: 'src-1',
+        position: { start: 1, end: 8 },
+      }),
+    ).toBe(true)
+    expect(
+      canShowCitationJumpButton({
+        onOpenCitationJump: () => undefined,
+        sourceId: 'src-1',
+        position: { start: 0, end: 0 },
+      }),
+    ).toBe(false)
   })
 })

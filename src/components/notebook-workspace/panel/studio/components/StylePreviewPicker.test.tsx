@@ -1,7 +1,11 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { ToggleButton, ToggleButtonGroup } from '@mui/material'
 import { describe, expect, it, vi } from 'vitest'
-import { StylePreviewPicker, type StylePreviewOption } from './StylePreviewPicker'
+import {
+  StylePreviewPicker,
+  applyVerticalWheelToHorizontalScroll,
+  type StylePreviewOption,
+} from './StylePreviewPicker'
 
 const optionsWithPreviews: StylePreviewOption[] = [
   { value: 'default', label: '默认', previewUrl: 'https://cdn.example.com/default.webp' },
@@ -67,5 +71,35 @@ describe('StylePreviewPicker', () => {
     })
 
     expect(onChange).toHaveBeenCalledWith('cute')
+  })
+
+  it('maps a vertical wheel delta onto horizontal scroll when the row overflows', () => {
+    const scroller = { scrollWidth: 800, clientWidth: 320, scrollLeft: 40 }
+    const preventDefault = vi.fn()
+
+    expect(
+      applyVerticalWheelToHorizontalScroll(scroller, {
+        deltaX: 0,
+        deltaY: 60,
+        preventDefault,
+      }),
+    ).toBe(true)
+    expect(preventDefault).toHaveBeenCalledOnce()
+    expect(scroller.scrollLeft).toBe(100)
+  })
+
+  it('leaves horizontal trackpad gestures to the browser', () => {
+    const scroller = { scrollWidth: 800, clientWidth: 320, scrollLeft: 40 }
+    const preventDefault = vi.fn()
+
+    expect(
+      applyVerticalWheelToHorizontalScroll(scroller, {
+        deltaX: 80,
+        deltaY: 10,
+        preventDefault,
+      }),
+    ).toBe(false)
+    expect(preventDefault).not.toHaveBeenCalled()
+    expect(scroller.scrollLeft).toBe(40)
   })
 })
