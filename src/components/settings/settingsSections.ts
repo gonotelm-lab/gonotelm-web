@@ -1,10 +1,11 @@
 import type { ComponentType } from 'react'
 import type { SvgIconProps } from '@mui/material/SvgIcon'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 
-export type SettingsSectionId = 'profile' | 'account' | 'general'
+export type SettingsSectionId = 'profile' | 'account' | 'general' | 'notifications'
 
 export interface SettingsSectionDefinition {
   id: SettingsSectionId
@@ -22,4 +23,5 @@ export const SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
   // 对外地址是 `?settings=account`（内容文案仍在 `settings:security.*` 命名空间下）。
   { id: 'account', labelKey: 'nav.security', Icon: LockOutlinedIcon },
   { id: 'general', labelKey: 'nav.general', Icon: TuneOutlinedIcon },
+  { id: 'notifications', labelKey: 'nav.notifications', Icon: NotificationsNoneOutlinedIcon },
 ]

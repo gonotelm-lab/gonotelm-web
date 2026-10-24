@@ -133,6 +133,10 @@
   "api": {
     "contentFailed": "Failed to read artifact content, HTTP {{status}}"
   },
+  "notification": {
+    "completedTitle": "{{kind}} finished",
+    "completedBody": "\"{{title}}\" finished generating"
+  },
   "error": {
     "requestFailed": "Studio request failed. Please try again later",
     "fetchResult": "Failed to fetch task result. Please retry",

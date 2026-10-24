@@ -133,6 +133,10 @@
   "api": {
     "contentFailed": "产物内容读取失败，HTTP {{status}}"
   },
+  "notification": {
+    "completedTitle": "{{kind}}生成完成",
+    "completedBody": "「{{title}}」已生成完成"
+  },
   "error": {
     "requestFailed": "Studio 请求失败，请稍后重试",
     "fetchResult": "拉取任务结果失败，请重试",

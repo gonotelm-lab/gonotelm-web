@@ -4,7 +4,8 @@
     "aria": "Settings navigation",
     "profile": "Profile",
     "general": "General",
-    "security": "Security"
+    "security": "Security",
+    "notifications": "Notifications"
   },
   "profile": {
     "title": "Profile",
@@ -49,6 +50,15 @@
     "colorModeDark": "Dark",
     "colorModeSystem": "System",
     "colorModeSystemHint": "Following your system: {{mode}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "switchLabel": "Notify when tasks finish",
+    "granted": "Notifications are allowed",
+    "needPermission": "The browser will ask for permission when you turn this on",
+    "denied": "Notifications are blocked by this browser. Allow them for this site in the site settings, then re-check",
+    "unsupported": "This browser does not support web notifications",
+    "recheck": "Re-check"
   },
   "security": {
     "title": "Sign-in password",

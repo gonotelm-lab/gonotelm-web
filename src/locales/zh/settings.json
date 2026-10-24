@@ -4,7 +4,8 @@
     "aria": "设置导航",
     "profile": "个人资料",
     "general": "通用",
-    "security": "账号安全"
+    "security": "账号安全",
+    "notifications": "通知"
   },
   "profile": {
     "title": "个人资料",
@@ -49,6 +50,15 @@
     "colorModeDark": "深色",
     "colorModeSystem": "跟随系统",
     "colorModeSystemHint": "当前跟随系统：{{mode}}"
+  },
+  "notifications": {
+    "title": "通知",
+    "switchLabel": "任务完成时通知",
+    "granted": "已允许通知",
+    "needPermission": "打开开关后将向浏览器请求授权",
+    "denied": "通知权限已被浏览器禁用，请在站点设置中允许后重新检测",
+    "unsupported": "当前浏览器不支持网页通知",
+    "recheck": "重新检测"
   },
   "security": {
     "title": "登录密码",

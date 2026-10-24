@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { SourceKind, SourceStatus } from '../types/api'
+import { notifyReadyTransitions } from './sourceCompletionNotification'
 
 export interface SourceCard {
   id: string
@@ -111,6 +112,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
       }
       const sources = state.sources.slice()
       sources[index] = next
+      notifyReadyTransitions(state.sources, sources)
       return { sources }
     }),
   removeSource: (id) =>
@@ -125,7 +127,12 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   setSources: (sources) =>
     set((state) => {
       const nextSources = ensureSourceCardIdentity(state.sources, sources)
-      return nextSources === state.sources ? state : { sources: nextSources }
+      if (nextSources === state.sources) {
+        return state
+      }
+      // ready 可能绕过轮询（列表刷新/水合覆盖），所以通知在状态转换的汇聚点做。
+      notifyReadyTransitions(state.sources, nextSources)
+      return { sources: nextSources }
     }),
   setSourceStatus: (id, status) =>
     set((state) => {
@@ -139,6 +146,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
       }
       const sources = state.sources.slice()
       sources[index] = { ...current, status }
+      notifyReadyTransitions(state.sources, sources)
       return { sources }
     }),
   setNotebookMeta: (notebookMeta) =>

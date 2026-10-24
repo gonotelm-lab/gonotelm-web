@@ -76,6 +76,7 @@ export function useSourcePolling({
           }
           // Skip no-op writes; store also short-circuits, but avoid the call when unchanged.
           if (source.status !== status.status) {
+            // 完成通知在 store 的状态转换汇聚点触发（覆盖水合等其它路径）。
             setSourceStatusRef.current(source.id, status.status)
           }
         } catch (error) {

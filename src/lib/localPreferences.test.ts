@@ -5,8 +5,10 @@ import {
   parseLocalPreferences,
   patchHomePreferences,
   patchLocalPreferences,
+  patchNotificationPreferences,
   readHomePreferences,
   readLocalPreferences,
+  readNotificationPreferences,
   writeLocalPreferences,
 } from './localPreferences'
 
@@ -36,18 +38,21 @@ describe('localPreferences', () => {
     expect(readLocalPreferences()).toEqual(DEFAULT_LOCAL_PREFERENCES)
   })
 
-  it('整份读写语言 / 颜色 / 首页筛选', () => {
+  it('整份读写语言 / 颜色 / 首页筛选 / 通知', () => {
     writeLocalPreferences({
       locale: 'en',
       colorMode: 'dark',
       home: { scope: 'shared', sortBy: 'last_active' },
+      notifications: { taskCompleted: true },
     })
     expect(readLocalPreferences()).toEqual({
       locale: 'en',
       colorMode: 'dark',
       home: { scope: 'shared', sortBy: 'last_active' },
+      notifications: { taskCompleted: true },
     })
     expect(localStorage.getItem(LOCAL_PREFERENCES_STORAGE_KEY)).toContain('"locale":"en"')
+    expect(localStorage.getItem(LOCAL_PREFERENCES_STORAGE_KEY)).toContain('"taskCompleted":true')
   })
 
   it('patch 局部字段并保留其余', () => {
@@ -55,6 +60,7 @@ describe('localPreferences', () => {
       locale: 'zh',
       colorMode: 'system',
       home: { scope: 'owned', sortBy: 'create_time' },
+      notifications: { taskCompleted: false },
     })
     expect(patchLocalPreferences({ colorMode: 'dark' }).colorMode).toBe('dark')
     expect(readLocalPreferences().locale).toBe('zh')
@@ -63,6 +69,11 @@ describe('localPreferences', () => {
       sortBy: 'create_time',
     })
     expect(readHomePreferences().scope).toBe('shared')
+    expect(patchNotificationPreferences({ taskCompleted: true })).toEqual({
+      taskCompleted: true,
+    })
+    expect(readNotificationPreferences()).toEqual({ taskCompleted: true })
+    expect(readLocalPreferences().locale).toBe('zh')
   })
 
   it('脏 JSON / 非法枚举回落默认字段', () => {
@@ -71,6 +82,9 @@ describe('localPreferences', () => {
       parseLocalPreferences(
         JSON.stringify({ locale: 'fr', colorMode: 'neon', home: { scope: 'x' } }),
       ),
+    ).toEqual(DEFAULT_LOCAL_PREFERENCES)
+    expect(
+      parseLocalPreferences(JSON.stringify({ notifications: { taskCompleted: 'yes' } })),
     ).toEqual(DEFAULT_LOCAL_PREFERENCES)
   })
 
@@ -82,6 +96,7 @@ describe('localPreferences', () => {
         locale: 'en',
         colorMode: 'dark',
         home: { scope: 'shared', sortBy: 'last_active' },
+        notifications: { taskCompleted: false },
       }),
     ).not.toThrow()
   })

@@ -53,6 +53,7 @@ import {
   resolveStudioArtifactFallbackTitle,
   resolveStudioArtifactKind,
 } from '../resolveStudioArtifactKind'
+import { notifyStudioArtifactCompleted } from '../studioCompletionNotification'
 
 const studioArtifactPollBaseIntervalMs = 1_000
 const studioArtifactPollMaxIntervalMs = 10_000
@@ -273,6 +274,8 @@ export function useStudioArtifactTasks({
         const hasResultKind = typeof result.kind === 'string' && result.kind.trim().length > 0
         const resultKind = hasResultKind ? resolveStudioArtifactKind(result.kind) : null
         const resultTitle = String(result.title ?? '').trim()
+        // 通知文案需要旧 item 的 kind/title 兜底（后端 result 可能为空）。
+        const previousItem = artifactItemsRef.current.find((item) => item.id === taskId)
         if (activeNotebookIdRef.current === notebookSnapshot) {
           const itemStatus = toArtifactVisualStatus(result.status)
           setArtifactItems((prev) =>
@@ -303,6 +306,14 @@ export function useStudioArtifactTasks({
               }
             }),
           )
+          if (itemStatus === 'succeeded') {
+            // 生成完成的即时提醒；通知自身的授权/支持检查在 notify… 内部完成。
+            void notifyStudioArtifactCompleted({
+              kind: resultKind ?? previousItem?.kind ?? 'report',
+              title: resultTitle || previousItem?.title || '',
+              taskId,
+            })
+          }
         }
       } catch (error) {
         if (activeNotebookIdRef.current !== notebookSnapshot) {

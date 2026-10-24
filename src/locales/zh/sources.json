@@ -1,4 +1,9 @@
 {
+  "notification": {
+    "completedTitle": "来源处理完成",
+    "completedBody": "「{{title}}」已处理完成",
+    "untitled": "未命名来源"
+  },
   "panel": {
     "title": "来源",
     "collapseAria": "收起来源面板",

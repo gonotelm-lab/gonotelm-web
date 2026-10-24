@@ -20,10 +20,16 @@ export interface HomeListPreferences {
   sortBy: ListNotebooksSortBy
 }
 
+export interface NotificationPreferences {
+  /** 长任务完成（Studio 产物生成、来源处理）时用浏览器 Web Notification 提醒。默认关闭（opt-in）。 */
+  taskCompleted: boolean
+}
+
 export interface LocalPreferences {
   locale: AppLocale
   colorMode: ColorMode
   home: HomeListPreferences
+  notifications: NotificationPreferences
 }
 
 export const DEFAULT_HOME_LIST_PREFERENCES: HomeListPreferences = {
@@ -31,10 +37,15 @@ export const DEFAULT_HOME_LIST_PREFERENCES: HomeListPreferences = {
   sortBy: 'create_time',
 }
 
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  taskCompleted: false,
+}
+
 export const DEFAULT_LOCAL_PREFERENCES: LocalPreferences = {
   locale: DEFAULT_LOCALE,
   colorMode: DEFAULT_COLOR_MODE,
   home: { ...DEFAULT_HOME_LIST_PREFERENCES },
+  notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },
 }
 
 const SCOPES: readonly ListNotebooksScope[] = ['owned', 'shared']
@@ -48,6 +59,16 @@ const isSortBy = (value: unknown): value is ListNotebooksSortBy =>
 
 const isLocale = (value: unknown): value is AppLocale =>
   typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value)
+
+const parseNotificationPreferences = (raw: unknown): NotificationPreferences => {
+  if (!raw || typeof raw !== 'object') {
+    return { ...DEFAULT_NOTIFICATION_PREFERENCES }
+  }
+  const value = raw as Partial<NotificationPreferences>
+  return {
+    taskCompleted: value.taskCompleted === true,
+  }
+}
 
 export const parseLocale = (raw: string | null | undefined): AppLocale => {
   if (!raw) {
@@ -77,8 +98,13 @@ export const parseHomeListPreferences = (
 }
 
 export const parseLocalPreferences = (raw: string | null | undefined): LocalPreferences => {
+  const fallback: LocalPreferences = {
+    ...DEFAULT_LOCAL_PREFERENCES,
+    home: { ...DEFAULT_HOME_LIST_PREFERENCES },
+    notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },
+  }
   if (!raw) {
-    return { ...DEFAULT_LOCAL_PREFERENCES, home: { ...DEFAULT_HOME_LIST_PREFERENCES } }
+    return fallback
   }
   try {
     const parsed = JSON.parse(raw) as Partial<LocalPreferences>
@@ -86,9 +112,10 @@ export const parseLocalPreferences = (raw: string | null | undefined): LocalPref
       locale: parseLocale(typeof parsed.locale === 'string' ? parsed.locale : null),
       colorMode: isColorMode(parsed.colorMode) ? parsed.colorMode : DEFAULT_COLOR_MODE,
       home: parseHomeListPreferences(parsed.home),
+      notifications: parseNotificationPreferences(parsed.notifications),
     }
   } catch {
-    return { ...DEFAULT_LOCAL_PREFERENCES, home: { ...DEFAULT_HOME_LIST_PREFERENCES } }
+    return fallback
   }
 }
 
@@ -96,7 +123,11 @@ export const readLocalPreferences = (): LocalPreferences => {
   try {
     return parseLocalPreferences(globalThis.localStorage?.getItem(LOCAL_PREFERENCES_STORAGE_KEY))
   } catch {
-    return { ...DEFAULT_LOCAL_PREFERENCES, home: { ...DEFAULT_HOME_LIST_PREFERENCES } }
+    return {
+      ...DEFAULT_LOCAL_PREFERENCES,
+      home: { ...DEFAULT_HOME_LIST_PREFERENCES },
+      notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },
+    }
   }
 }
 
@@ -105,6 +136,7 @@ export const writeLocalPreferences = (prefs: LocalPreferences): void => {
     locale: parseLocale(prefs.locale),
     colorMode: isColorMode(prefs.colorMode) ? prefs.colorMode : DEFAULT_COLOR_MODE,
     home: parseHomeListPreferences(prefs.home),
+    notifications: parseNotificationPreferences(prefs.notifications),
   }
   try {
     globalThis.localStorage?.setItem(LOCAL_PREFERENCES_STORAGE_KEY, JSON.stringify(next))
@@ -118,6 +150,7 @@ export const patchLocalPreferences = (patch: {
   locale?: AppLocale
   colorMode?: ColorMode
   home?: Partial<HomeListPreferences>
+  notifications?: Partial<NotificationPreferences>
 }): LocalPreferences => {
   const current = readLocalPreferences()
   const next: LocalPreferences = {
@@ -126,6 +159,10 @@ export const patchLocalPreferences = (patch: {
     home: parseHomeListPreferences({
       ...current.home,
       ...patch.home,
+    }),
+    notifications: parseNotificationPreferences({
+      ...current.notifications,
+      ...patch.notifications,
     }),
   }
   writeLocalPreferences(next)
@@ -138,3 +175,11 @@ export const readHomePreferences = (): HomeListPreferences => readLocalPreferenc
 export const patchHomePreferences = (
   patch: Partial<HomeListPreferences>,
 ): HomeListPreferences => patchLocalPreferences({ home: patch }).home
+
+/** 浏览器通知偏好的便捷读写（仍落在同一份 LocalPreferences）。 */
+export const readNotificationPreferences = (): NotificationPreferences =>
+  readLocalPreferences().notifications
+
+export const patchNotificationPreferences = (
+  patch: Partial<NotificationPreferences>,
+): NotificationPreferences => patchLocalPreferences({ notifications: patch }).notifications

@@ -1,4 +1,9 @@
 {
+  "notification": {
+    "completedTitle": "Source processing finished",
+    "completedBody": "\"{{title}}\" finished processing",
+    "untitled": "Untitled source"
+  },
   "panel": {
     "title": "Sources",
     "collapseAria": "Collapse sources panel",
