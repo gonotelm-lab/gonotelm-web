@@ -28,6 +28,7 @@ import { AddSourceDialog } from './components/AddSourceDialog'
 import { SourceInlinePreview } from './components/SourceInlinePreview'
 import { SourceListRow } from './components/SourceListRow'
 import { SourcePreviewOverlay } from './components/SourcePreviewOverlay'
+import { SourceSortMenu } from './components/SourceSortMenu'
 import { PanelSubpageLayout } from '../../shared/ui/PanelSubpageLayout'
 import { workspaceLayout, workspaceSpace } from '../../shared/ui/layoutTokens'
 import { panelTitleSx, panelTitleToBodySpacing, panelTitleVariant } from '../../shared/ui/panelStyles'
@@ -40,6 +41,10 @@ import {
   sourceSelectionColumnWidthPx,
   sourceTypeIconBoxPx,
 } from './sourceListLayout'
+import {
+  sortSourceListItems,
+  type SourceSortBy,
+} from './sortSourceListItems'
 
 const sourceSkeletonNameWidthPattern = ['62%', '78%', '69%', '84%', '58%', '73%'] as const
 
@@ -109,11 +114,15 @@ function SourcesPanelLayout({
   closeOverlayPreview,
 }: SourcesPanelLayoutProps) {
   const { t } = useTranslation(['sources', 'common'])
+  const [sortBy, setSortBy] = useState<SourceSortBy>('recent')
+  const sortedSourceListItems = useMemo(
+    () => sortSourceListItems(panelProps.sourceListItems, sortBy),
+    [panelProps.sourceListItems, sortBy],
+  )
   const {
     collapsed,
     isBusy,
     canManageContent = true,
-    sourceListItems,
     removingMap,
     allSourcesChecked,
     someSourcesChecked,
@@ -255,6 +264,7 @@ function SourcesPanelLayout({
                         bgcolor: 'background.paper',
                       }}
                     >
+                      <SourceSortMenu value={sortBy} onChange={setSortBy} />
                       <Typography
                         variant="subtitle2"
                         sx={{
@@ -350,8 +360,8 @@ function SourcesPanelLayout({
                             </Box>
                           </Box>
                         ))
-                      : sourceListItems.length > 0
-                        ? sourceListItems.map((item) => (
+                      : sortedSourceListItems.length > 0
+                        ? sortedSourceListItems.map((item) => (
                             <Box
                               key={item.id}
                               sx={{

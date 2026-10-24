@@ -52,7 +52,8 @@
       "pending": "处理中...",
       "available": "已接入",
       "comingSoon": "即将支持"
-    }
+    },
+    "openSettingsAria": "打开{{title}}设置"
   },
   "artifact": {
     "status": {

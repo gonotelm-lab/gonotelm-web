@@ -3,7 +3,13 @@
     "title": "Sources",
     "collapseAria": "Collapse sources panel",
     "add": "+ Add source",
-    "all": "All sources"
+    "all": "All sources",
+    "sort": {
+      "aria": "Sort sources",
+      "recent": "Recent",
+      "title": "Title",
+      "type": "Type"
+    }
   },
   "preview": {
     "title": "Preview",

@@ -86,10 +86,13 @@ const createRenderer = (canManageContent = true) => {
 
 describe('SourceListRow', () => {
   const openActionMenu = (renderer: ReactTestRenderer) => {
+    // MUI 会把 data-testid 透传多层，按 props 计数不可靠；
+    // 直接调用真实触发器（button）的 onClick 打开菜单。
+    const button = renderer.root.findByType('button')
     act(() => {
-      renderer.root.findByProps({ 'data-testid': 'source-action-trigger' }).props.onClick({
+      button.props.onClick({
         stopPropagation: () => undefined,
-        currentTarget: {},
+        currentTarget: button,
       })
     })
   }

@@ -308,7 +308,8 @@ export const SourceListRow = memo(function SourceListRow({
         '&:hover .source-type-icon, &:focus-within .source-type-icon': {
           opacity: { xs: 1, md: 0 },
         },
-        '&:hover .source-action-trigger, &:focus-within .source-action-trigger': {
+        // 操作触发器放在勾选框左侧：默认隐藏，hover 行、菜单打开、或焦点在触发器上时显示。
+        '&:hover .source-action-trigger, .source-action-menu-open .source-action-trigger, .source-action-trigger:focus, .source-action-trigger:focus-visible': {
           opacity: 1,
           pointerEvents: 'auto',
         },
@@ -349,23 +350,6 @@ export const SourceListRow = memo(function SourceListRow({
           >
             {sourceTypeIcon}
           </Box>
-          <IconButton
-            className="source-action-trigger"
-            data-testid="source-action-trigger"
-            size="small"
-            aria-label={t('sources:row.actionsAria')}
-            onClick={openActionMenu}
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              opacity: { xs: 1, md: 0 },
-              pointerEvents: { xs: 'auto', md: 'none' },
-              p: 0,
-              transition: workspaceTransitionPresets.opacityOnly,
-            }}
-          >
-            <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
-          </IconButton>
         </Box>
         <Typography
           variant="body2"
@@ -388,6 +372,7 @@ export const SourceListRow = memo(function SourceListRow({
           minWidth: selectionColumnWidth,
           height: '100%',
           display: 'inline-flex',
+          gap: 2,
           justifyContent: 'flex-end',
           alignItems: 'center',
           flexShrink: 0,
@@ -395,6 +380,26 @@ export const SourceListRow = memo(function SourceListRow({
           zIndex: 1,
         }}
       >
+        <IconButton
+          className="source-action-trigger"
+          data-testid="source-action-trigger"
+          size="small"
+          aria-label={t('sources:row.actionsAria')}
+          onClick={openActionMenu}
+          sx={{
+            p: 0.5,
+            // 触屏设备无 hover，常显；桌面默认隐藏，hover 行 / 菜单打开 / 焦点在内时显示。
+            opacity: 0,
+            pointerEvents: 'none',
+            '&:focus, &:focus-visible': {
+              opacity: 1,
+              pointerEvents: 'auto',
+            },
+            transition: workspaceTransitionPresets.opacityOnly,
+          }}
+        >
+          <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+        </IconButton>
         {isProcessing ? (
           <CircularProgress size={16} thickness={5} />
         ) : (
@@ -416,6 +421,10 @@ export const SourceListRow = memo(function SourceListRow({
         open={actionMenuOpen}
         onClose={closeActionMenu}
         onClick={(e) => e.stopPropagation()}
+        // 菜单打开时固定触发器可见，避免鼠标离开后触发器消失、菜单被误点关闭。
+        containerProps={{
+          className: actionMenuOpen ? 'source-action-menu-open' : undefined,
+        }}
       >
         <MenuItem
           data-testid="sources-action-preview"

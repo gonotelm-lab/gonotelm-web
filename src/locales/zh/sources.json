@@ -3,7 +3,13 @@
     "title": "来源",
     "collapseAria": "收起来源面板",
     "add": "+ 添加来源",
-    "all": "所有来源"
+    "all": "所有来源",
+    "sort": {
+      "aria": "排序来源",
+      "recent": "最近",
+      "title": "标题",
+      "type": "类型"
+    }
   },
   "preview": {
     "title": "预览",

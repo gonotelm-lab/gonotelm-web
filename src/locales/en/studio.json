@@ -52,7 +52,8 @@
       "pending": "Processing...",
       "available": "Available",
       "comingSoon": "Coming soon"
-    }
+    },
+    "openSettingsAria": "Open {{title}} settings"
   },
   "artifact": {
     "status": {

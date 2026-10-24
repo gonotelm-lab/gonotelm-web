@@ -1,13 +1,15 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ArrowOutwardOutlinedIcon from '@mui/icons-material/ArrowOutwardOutlined'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import HourglassBottomOutlinedIcon from '@mui/icons-material/HourglassBottomOutlined'
 import { alpha } from '@mui/material/styles'
 import { Box, ButtonBase, Stack, Tooltip, Typography } from '@mui/material'
 import type { StudioToolDefinition } from '../types'
 import { workspaceRadius, workspaceSpace } from '../../../shared/ui/layoutTokens'
-import { workspaceInteraction, workspaceMotion } from '../../../shared/ui/motionTokens'
+import {
+  workspaceInteraction,
+  workspaceMotion,
+} from '../../../shared/ui/motionTokens'
 import {
   resolveStudioToolTone,
   resolveStudioToolToneKey,
@@ -42,15 +44,19 @@ export const StudioToolCard = memo(function StudioToolCard({
   const tooltipLabel = tool.availability === 'available'
     ? tool.description
     : statusLabel
-  const showAdvancedEntry = Boolean(tool.hasAdvancedConfig)
+  const showAdvancedEntry = Boolean(tool.hasAdvancedConfig) && Boolean(onAdvancedClick)
+  const advancedInteractive = showAdvancedEntry && interactive
   const toneKey = resolveStudioToolToneKey({
     artifactKind: tool.artifactKind,
     toolId: tool.id,
   })
 
+  const openAdvanced = () => {
+    if (advancedInteractive) onAdvancedClick?.()
+  }
+
   return (
-    <Tooltip title={tooltipLabel} arrow placement="top" enterDelay={240}
-    >
+    <Tooltip title={tooltipLabel} arrow placement="top" enterDelay={240}>
       <Box component="span" sx={{ display: 'block', width: '100%' }}>
         <ButtonBase
           onClick={interactive ? onClick : undefined}
@@ -104,22 +110,95 @@ export const StudioToolCard = memo(function StudioToolCard({
                 spacing={workspaceSpace.sm}
                 sx={{ alignItems: 'center', minWidth: 0 }}
               >
-                <Box
-                  sx={(theme) => {
-                    const tone = resolveStudioToolTone(theme, toneKey)
-                    return {
-                      width: 20,
-                      height: 20,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      color: tool.availability === 'available' ? tone.icon : 'text.disabled',
-                    }
-                  }}
-                >
-                  <Icon sx={{ fontSize: workspaceIconSize.md }} />
-                </Box>
+                {showAdvancedEntry ? (
+                  <Box
+                    component="span"
+                    role="button"
+                    tabIndex={advancedInteractive ? 0 : -1}
+                    data-testid="studio-tool-card-advanced-entry"
+                    aria-label={t('studio:tool.openSettingsAria', { title: tool.title })}
+                    aria-disabled={!advancedInteractive}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openAdvanced()
+                    }}
+                    onKeyDown={(e) => {
+                      if (!advancedInteractive) return
+                      if (e.key !== 'Enter' && e.key !== ' ') {
+                        return
+                      }
+                      e.preventDefault()
+                      e.stopPropagation()
+                      openAdvanced()
+                    }}
+                    sx={(theme) => {
+                      const tone = resolveStudioToolTone(theme, toneKey)
+                      return {
+                        width: 20,
+                        height: 20,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: tool.availability === 'available' ? tone.icon : 'text.disabled',
+                        cursor: advancedInteractive
+                          ? workspaceInteraction.cursorPointer
+                          : 'not-allowed',
+                        transition:
+                          `transform ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}, ` +
+                          `color ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
+                        ...(advancedInteractive
+                          ? {
+                              '&:hover': {
+                                color: tone.accent,
+                                transform: 'scale(1.18)',
+                              },
+                              '&:active': {
+                                transform: 'scale(1.06)',
+                              },
+                              '&:focus-visible': {
+                                outline: '2px solid',
+                                outlineColor: tone.accent,
+                                outlineOffset: 1,
+                              },
+                              [workspaceInteraction.reducedMotionQuery]: {
+                                '&:hover': {
+                                  transform: 'none',
+                                  color: tone.accent,
+                                },
+                                '&:active': {
+                                  transform: 'none',
+                                },
+                              },
+                            }
+                          : null),
+                      }
+                    }}
+                  >
+                    <Icon sx={{ fontSize: workspaceIconSize.md }} />
+                  </Box>
+                ) : (
+                  <Box
+                    sx={(theme) => {
+                      const tone = resolveStudioToolTone(theme, toneKey)
+                      return {
+                        width: 20,
+                        height: 20,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: tool.availability === 'available' ? tone.icon : 'text.disabled',
+                      }
+                    }}
+                  >
+                    <Icon sx={{ fontSize: workspaceIconSize.md }} />
+                  </Box>
+                )}
                 <Typography
                   variant="body2"
                   noWrap
@@ -136,55 +215,7 @@ export const StudioToolCard = memo(function StudioToolCard({
                     flexShrink: 0,
                   })}
                 />
-              ) : showAdvancedEntry ? (
-                <Box
-                  component="span"
-                  role="button"
-                  tabIndex={interactive ? 0 : -1}
-                  data-testid="studio-tool-card-advanced-entry"
-                  aria-disabled={!interactive}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (interactive) onAdvancedClick?.()
-                  }}
-                  onKeyDown={(e) => {
-                    if (!interactive) return
-                    if (e.key !== 'Enter' && e.key !== ' ') {
-                      return
-                    }
-                    e.preventDefault()
-                    e.stopPropagation()
-                    onAdvancedClick?.()
-                  }}
-                  sx={(theme) => {
-                    const tone = resolveStudioToolTone(theme, toneKey)
-                    return {
-                      width: 24,
-                      height: 24,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: workspaceRadius.sm,
-                      cursor: interactive ? workspaceInteraction.cursorPointer : 'not-allowed',
-                      color: interactive ? 'text.secondary' : 'action.disabled',
-                      '&:hover': interactive
-                        ? { color: tone.accent, bgcolor: tone.surface }
-                        : undefined,
-                      '&:focus-visible': {
-                        outline: '2px solid',
-                        outlineColor: tone.accent,
-                        outlineOffset: 1,
-                      },
-                    }
-                  }}
-                >
-                  <EditOutlinedIcon sx={{ fontSize: workspaceIconSize.sm }} />
-                </Box>
-              ) : (
+              ) : showAdvancedEntry ? null : (
                 <ArrowOutwardOutlinedIcon sx={{ fontSize: workspaceIconSize.sm, color: 'text.disabled' }} />
               )}
             </Stack>
