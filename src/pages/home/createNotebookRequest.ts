@@ -15,6 +15,5 @@ export function buildCreateNotebookRequest(
 
   return {
     name,
-    desc: '',
   }
 }

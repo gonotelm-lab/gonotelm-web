@@ -1,8 +1,8 @@
 import { useEffect, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CssBaseline, ThemeProvider } from '@mui/material'
+import { LOCAL_PREFERENCES_STORAGE_KEY } from '@/lib/localPreferences'
 import {
-  COLOR_MODE_STORAGE_KEY,
   applyColorModeToDocument,
   readSystemPrefersDark,
   subscribeToSystemColorMode,
@@ -42,7 +42,7 @@ const useSystemColorMode = () => {
       useColorModeStore.getState().setSystemPrefersDark(prefersDark)
     })
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === COLOR_MODE_STORAGE_KEY) {
+      if (event.key === null || event.key === LOCAL_PREFERENCES_STORAGE_KEY) {
         useColorModeStore.getState().syncStoredMode()
       }
     }

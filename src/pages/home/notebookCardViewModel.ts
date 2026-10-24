@@ -18,14 +18,19 @@ export interface NotebookCardViewModel {
 
 /**
  * 将后端 notebook 数据映射为首页卡片展示模型。
+ * 首页只展示自定义摘要；未开启自定义（含脏 desc）一律走占位文案，不做 AI 摘要。
  */
 export function toNotebookCardViewModel(
   notebook: NotebookSummary,
 ): NotebookCardViewModel {
+  const customDesc =
+    notebook.flags?.customize_description === true
+      ? notebook.desc?.trim()
+      : ''
   return {
     id: notebook.id,
     title: notebook.name,
-    description: notebook.desc?.trim() ? notebook.desc : i18n.t('home:card.noDescription'),
+    description: customDesc || i18n.t('home:card.noDescription'),
     sourceCount: notebook.source_count,
     dateLabel: formatNotebookDate(notebook.updated_at),
     owner: notebook.owner

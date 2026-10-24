@@ -10,15 +10,21 @@ import type {
   UpsertNotebookMemberResponse,
 } from '@/types/api'
 
+const defaultNotebookFlags = { customize_description: false }
+
 export const createNotebookSummaryFixture = (
   overrides: Partial<NotebookSummary> = {},
 ): NotebookSummary => ({
   id: 'notebook-1',
   name: 'Rust 入门',
-  desc: 'Rust 教程笔记',
+  desc: '',
   source_count: 2,
   updated_at: Date.UTC(2025, 6, 18),
   ...overrides,
+  flags: {
+    ...defaultNotebookFlags,
+    ...overrides.flags,
+  },
 })
 
 export const createNotebookFixture = (
@@ -26,10 +32,14 @@ export const createNotebookFixture = (
 ): Notebook => ({
   id: 'notebook-1',
   name: 'Rust 入门',
-  desc: 'Rust 教程笔记',
+  desc: '',
   source_count: 2,
   updated_at: Date.UTC(2025, 6, 18),
   ...overrides,
+  flags: {
+    ...defaultNotebookFlags,
+    ...overrides.flags,
+  },
 })
 
 export const createNotebookSourceFixture = (

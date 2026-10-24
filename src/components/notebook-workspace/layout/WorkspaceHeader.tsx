@@ -1,5 +1,6 @@
 import { memo, useEffect, useState, type MouseEvent } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
@@ -106,6 +107,8 @@ interface WorkspaceHeaderProps {
   onNotebookNameCommit: (value: string) => void
   /** 打开分享设置对话框；仅 owner 传入，省略时整个分享按钮不渲染。 */
   onShareNotebook?: () => void
+  /** 打开「自定义笔记本」对话框；仅 can_manage_notebook 传入。 */
+  onCustomizeNotebook?: () => void
   /** 省略则不渲染“更多选项”入口，header 仍可单独使用。 */
   chatMenu?: WorkspaceHeaderChatMenu
 }
@@ -117,6 +120,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   canRenameNotebook = true,
   onNotebookNameCommit,
   onShareNotebook,
+  onCustomizeNotebook,
   chatMenu,
 }: WorkspaceHeaderProps) {
   const { t } = useTranslation('workspace')
@@ -125,6 +129,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<HTMLElement | null>(null)
 
   const isRefreshingChat = chatMenu?.isRefreshing ?? false
+  const showMoreMenu = Boolean(chatMenu || onCustomizeNotebook)
 
   useEffect(() => {
     if (isEditing) {
@@ -157,6 +162,11 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   const handleRefreshChat = () => {
     setMoreMenuAnchorEl(null)
     chatMenu?.onRefreshChat()
+  }
+
+  const handleCustomizeNotebook = () => {
+    setMoreMenuAnchorEl(null)
+    onCustomizeNotebook?.()
   }
 
   return (
@@ -321,7 +331,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
               {t('workspace:header.share')}
             </Button>
           ) : null}
-          {chatMenu ? (
+          {showMoreMenu ? (
             <IconButton
               data-testid="workspace-more-options"
               size="small"
@@ -355,23 +365,37 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
         elevation={0}
         slotProps={{ paper: { sx: headerMenuPaperSx } }}
       >
-        <MenuItem
-          data-testid="workspace-configure-chat"
-          onClick={handleConfigureChat}
-          sx={headerMenuItemSx}
-        >
-          <TuneRoundedIcon sx={headerMenuIconSx} />
-          {t('workspace:header.configureChat')}
-        </MenuItem>
-        <MenuItem
-          data-testid="workspace-refresh-chat"
-          disabled={chatMenu?.refreshDisabled ?? true}
-          onClick={handleRefreshChat}
-          sx={headerMenuItemSx}
-        >
-          <RefreshRoundedIcon sx={headerMenuIconSx} />
-          {t('workspace:header.refreshChat')}
-        </MenuItem>
+        {onCustomizeNotebook ? (
+          <MenuItem
+            data-testid="workspace-customize-notebook"
+            onClick={handleCustomizeNotebook}
+            sx={headerMenuItemSx}
+          >
+            <DescriptionOutlinedIcon sx={headerMenuIconSx} />
+            {t('workspace:header.customizeNotebook')}
+          </MenuItem>
+        ) : null}
+        {chatMenu ? (
+          <MenuItem
+            data-testid="workspace-configure-chat"
+            onClick={handleConfigureChat}
+            sx={headerMenuItemSx}
+          >
+            <TuneRoundedIcon sx={headerMenuIconSx} />
+            {t('workspace:header.configureChat')}
+          </MenuItem>
+        ) : null}
+        {chatMenu ? (
+          <MenuItem
+            data-testid="workspace-refresh-chat"
+            disabled={chatMenu.refreshDisabled}
+            onClick={handleRefreshChat}
+            sx={headerMenuItemSx}
+          >
+            <RefreshRoundedIcon sx={headerMenuIconSx} />
+            {t('workspace:header.refreshChat')}
+          </MenuItem>
+        ) : null}
       </Menu>
     </Box>
   )

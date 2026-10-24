@@ -75,8 +75,8 @@ describe('notebook api with msw mock', () => {
   })
 
   it('creates notebook with optional empty name', async () => {
-    const withNameResult = await createNotebook({ name: 'Rust 并发', desc: '' })
-    const laterResult = await createNotebook({ name: '', desc: '' })
+    const withNameResult = await createNotebook({ name: 'Rust 并发' })
+    const laterResult = await createNotebook({ name: '' })
 
     expect(withNameResult.id).toBe('notebook-created-with-name')
     expect(laterResult.id).toBe('notebook-created-later')

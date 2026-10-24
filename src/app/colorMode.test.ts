@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 // 用 Vite 的 raw 导入读首帧脚本源码：app 的 tsconfig 没有开 node 类型。
 import indexHtml from '../../index.html?raw'
+import { LOCAL_PREFERENCES_STORAGE_KEY } from '@/lib/localPreferences'
 import {
   COLOR_MODE_ATTRIBUTE,
-  COLOR_MODE_STORAGE_KEY,
   COLOR_MODES,
   DEFAULT_COLOR_MODE,
   FAVICON_ELEMENT_ID,
@@ -13,24 +13,11 @@ import {
   applyColorModeToDocument,
   isColorMode,
   parseColorMode,
-  readStoredColorMode,
   readSystemPrefersDark,
   resolveColorMode,
   subscribeToSystemColorMode,
-  writeStoredColorMode,
   type ColorMode,
 } from './colorMode'
-
-const createMemoryStorage = () => {
-  const entries = new Map<string, string>()
-  return {
-    getItem: (key: string) => entries.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      entries.set(key, value)
-    },
-    entries,
-  }
-}
 
 const createFakeDocument = () => {
   const attributes = new Map<string, string>()
@@ -87,33 +74,6 @@ describe('resolveColorMode', () => {
     expect(resolveColorMode('dark', false)).toBe('dark')
     expect(resolveColorMode('system', true)).toBe('dark')
     expect(resolveColorMode('system', false)).toBe('light')
-  })
-})
-
-describe('颜色模式的读写', () => {
-  it('写入后能读回；没有存储时不报错', () => {
-    vi.stubGlobal('localStorage', createMemoryStorage())
-    expect(readStoredColorMode()).toBe('light')
-
-    writeStoredColorMode('system')
-    expect(readStoredColorMode()).toBe('system')
-
-    vi.stubGlobal('localStorage', undefined)
-    expect(readStoredColorMode()).toBe('light')
-  })
-
-  it('存储抛错（隐私模式 / 配额）时静默降级', () => {
-    vi.stubGlobal('localStorage', {
-      getItem: () => {
-        throw new Error('SecurityError')
-      },
-      setItem: () => {
-        throw new Error('QuotaExceededError')
-      },
-    })
-
-    expect(readStoredColorMode()).toBe('light')
-    expect(() => writeStoredColorMode('dark')).not.toThrow()
   })
 })
 
@@ -186,9 +146,9 @@ describe('applyColorModeToDocument', () => {
 describe('index.html 首帧脚本', () => {
   const html = indexHtml
 
-  it('与 colorMode.ts 共用同一份键名、默认值与资源映射', () => {
+  it('与 colorMode.ts / localPreferences 共用同一份键名、默认值与资源映射', () => {
     // 键名 / 属性名 / 默认值
-    expect(html).toContain(COLOR_MODE_STORAGE_KEY)
+    expect(html).toContain(LOCAL_PREFERENCES_STORAGE_KEY)
     expect(html).toContain(COLOR_MODE_ATTRIBUTE)
     expect(html).toContain(`'${DEFAULT_COLOR_MODE}'`)
     COLOR_MODES.forEach((mode: ColorMode) => {
@@ -218,12 +178,22 @@ describe('index.html 首帧脚本', () => {
   describe('首帧脚本的行为与 colorMode.ts 一致', () => {
     const scriptSource = /<script>([\s\S]*?)<\/script>/.exec(indexHtml)?.[1] ?? ''
 
-    const runFirstPaintScript = (options: { stored?: string; prefersDark: boolean }) => {
+    const runFirstPaintScript = (options: {
+      prefsColorMode?: string
+      prefersDark: boolean
+    }) => {
       const root = { setAttribute: vi.fn(), style: {} as CSSStyleDeclaration }
       const favicon = { setAttribute: vi.fn() }
       const themeColor = { setAttribute: vi.fn() }
       const fakeWindow = {
-        localStorage: { getItem: () => options.stored ?? null },
+        localStorage: {
+          getItem: (key: string) => {
+            if (key === LOCAL_PREFERENCES_STORAGE_KEY && options.prefsColorMode !== undefined) {
+              return JSON.stringify({ colorMode: options.prefsColorMode })
+            }
+            return null
+          },
+        },
         matchMedia: () => ({ matches: options.prefersDark }),
       }
       const fakeDocument = {
@@ -243,21 +213,46 @@ describe('index.html 首帧脚本', () => {
     }
 
     it('脚本存在且能执行', () => {
-      expect(scriptSource).toContain(COLOR_MODE_STORAGE_KEY)
+      expect(scriptSource).toContain(LOCAL_PREFERENCES_STORAGE_KEY)
+      expect(scriptSource).not.toContain('gonotelm.colorMode')
     })
 
     it.each([
-      { label: '没得选 → 浅色', stored: undefined, prefersDark: false, expected: 'light' as const },
-      { label: '没得选（系统深色）→ 浅色', stored: undefined, prefersDark: true, expected: 'light' as const },
-      { label: '存了深色 → 深色', stored: 'dark', prefersDark: false, expected: 'dark' as const },
-      { label: '存了浅色（系统深色）→ 浅色', stored: 'light', prefersDark: true, expected: 'light' as const },
-      { label: '跟随系统 + 系统深色 → 深色', stored: 'system', prefersDark: true, expected: 'dark' as const },
-      { label: '跟随系统 + 系统浅色 → 浅色', stored: 'system', prefersDark: false, expected: 'light' as const },
-      { label: '存储被写脏 → 浅色', stored: 'midnight', prefersDark: true, expected: 'light' as const },
-    ])('$label', ({ stored, prefersDark, expected }) => {
-      const result = runFirstPaintScript({ stored, prefersDark })
-      // 与模块里的解析逻辑同源
-      expect(resolveColorMode(parseColorMode(stored), prefersDark)).toBe(expected)
+      { label: '没得选 → 浅色', prefersDark: false, expected: 'light' as const },
+      { label: '没得选（系统深色）→ 浅色', prefersDark: true, expected: 'light' as const },
+      {
+        label: '统一偏好深色 → 深色',
+        prefsColorMode: 'dark',
+        prefersDark: false,
+        expected: 'dark' as const,
+      },
+      {
+        label: '统一偏好浅色（系统深色）→ 浅色',
+        prefsColorMode: 'light',
+        prefersDark: true,
+        expected: 'light' as const,
+      },
+      {
+        label: '跟随系统 + 系统深色 → 深色',
+        prefsColorMode: 'system',
+        prefersDark: true,
+        expected: 'dark' as const,
+      },
+      {
+        label: '跟随系统 + 系统浅色 → 浅色',
+        prefsColorMode: 'system',
+        prefersDark: false,
+        expected: 'light' as const,
+      },
+      {
+        label: '统一偏好写脏 → 浅色',
+        prefsColorMode: 'midnight',
+        prefersDark: true,
+        expected: 'light' as const,
+      },
+    ])('$label', ({ prefsColorMode, prefersDark, expected }) => {
+      const result = runFirstPaintScript({ prefsColorMode, prefersDark })
+      expect(resolveColorMode(parseColorMode(prefsColorMode), prefersDark)).toBe(expected)
       expect(result.theme).toBe(expected)
       expect(result.faviconHref).toBe(FAVICON_HREF_BY_MODE[expected])
       expect(result.themeColor).toBe(THEME_COLOR_BY_MODE[expected])

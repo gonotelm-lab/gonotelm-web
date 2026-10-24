@@ -202,23 +202,30 @@ export interface UpdateAvatarResponse {
   avatar_url: string
 }
 
+/** notebook 位标记；与 Get/List 的 flags 对象对齐。 */
+export interface NotebookFlags {
+  customize_description: boolean
+}
+
+/**
+ * Get / List 共用的 notebook 视图。
+ * `desc` 仅表示自定义摘要；未自定义时为空串（AI 摘要不落库）。
+ */
 export interface Notebook {
   id: string
   name: string
   desc: string
+  flags: NotebookFlags
   source_count: number
+  visibility?: string
   updated_at: number
-}
-
-export interface NotebookSummary {
-  id: string
-  name: string
-  desc: string
-  source_count: number
-  updated_at: number
-  /** 列表接口附带；shared 列表用它展示分享者。 */
+  created_at?: number
+  /** Get/List 均可附带；shared 列表用它展示分享者。 */
   owner?: NotebookOwnerSummary
 }
+
+/** @deprecated 与 Notebook 同形；保留别名避免调用处大面积改名。 */
+export type NotebookSummary = Notebook
 
 export type ListNotebooksSortBy = 'last_active' | 'create_time'
 
@@ -298,11 +305,21 @@ export interface NotebookSource {
 
 export interface CreateNotebookRequest {
   name: string
-  desc: string
 }
 
 export interface CreateNotebookResponse {
   id: string
+}
+
+/** PATCH /api/v1/notebooks/:id —— name 与自定义摘要可同次提交。 */
+export interface UpdateNotebookRequest {
+  name?: string
+  customize_description?: boolean
+  desc?: string
+}
+
+export interface GenerateNotebookDescriptionResponse {
+  desc: string
 }
 
 export interface ListNotebooksResponse {

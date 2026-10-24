@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
-import { COLOR_MODE_STORAGE_KEY } from '@/app/colorMode'
+import { LOCAL_PREFERENCES_STORAGE_KEY } from '@/lib/localPreferences'
 import { useColorModeStore } from '@/app/colorModeStore'
 import { mockServer } from '@/test/mocks'
 import {
@@ -468,14 +468,16 @@ describe('SettingsDialog', () => {
     const group = findToggleGroup(renderer, 'settings-color-mode-light')
     expect(group?.props.value).toBe('light')
     // 浅色是默认值：还没有选择过就不该写存储，避免污染「未设置」状态。
-    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBeNull()
+    expect(storage.getItem(LOCAL_PREFERENCES_STORAGE_KEY)).toBeNull()
 
     await act(async () => {
       group?.props.onChange(null, 'dark')
     })
 
     expect(useColorModeStore.getState().mode).toBe('dark')
-    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('dark')
+    expect(JSON.parse(storage.getItem(LOCAL_PREFERENCES_STORAGE_KEY) ?? '{}').colorMode).toBe(
+      'dark',
+    )
     expect(findToggleGroup(renderer, 'settings-color-mode-dark')?.props.value).toBe('dark')
 
     vi.stubGlobal('localStorage', undefined)

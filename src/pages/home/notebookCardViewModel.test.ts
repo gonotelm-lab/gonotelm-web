@@ -8,6 +8,7 @@ describe('toNotebookCardViewModel', () => {
       id: 'nb-1',
       name: 'Rust 入门',
       desc: '   ',
+      flags: { customize_description: false },
       source_count: 2,
       updated_at: Date.UTC(2025, 6, 18),
     })
@@ -20,6 +21,7 @@ describe('toNotebookCardViewModel', () => {
       id: 'nb-2',
       name: 'Rust 并发',
       desc: '并发原语',
+      flags: { customize_description: true },
       source_count: 5,
       updated_at: Date.UTC(2025, 6, 19),
     })
@@ -36,6 +38,7 @@ describe('toNotebookCardViewModel', () => {
       id: 'nb-shared',
       name: '团队指南',
       desc: '共享笔记',
+      flags: { customize_description: true },
       source_count: 3,
       updated_at: Date.UTC(2025, 6, 20),
       owner: {

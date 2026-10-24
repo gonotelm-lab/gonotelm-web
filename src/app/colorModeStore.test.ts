@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { COLOR_MODE_STORAGE_KEY } from './colorMode'
+import { LOCAL_PREFERENCES_STORAGE_KEY } from '@/lib/localPreferences'
 import {
   resetColorModeStore,
   selectResolvedColorMode,
@@ -15,8 +15,19 @@ const createMemoryStorage = () => {
     setItem: (key: string, value: string) => {
       entries.set(key, value)
     },
+    removeItem: (key: string) => {
+      entries.delete(key)
+    },
     entries,
   }
+}
+
+const readStoredColorMode = (storage: ReturnType<typeof createMemoryStorage>) => {
+  const raw = storage.getItem(LOCAL_PREFERENCES_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+  return (JSON.parse(raw) as { colorMode?: string }).colorMode ?? null
 }
 
 let storage: ReturnType<typeof createMemoryStorage>
@@ -32,21 +43,21 @@ afterEach(() => {
 })
 
 describe('colorModeStore', () => {
-  it('setMode 同时改状态与 localStorage', () => {
+  it('setMode 同时改状态与 LocalPreferences', () => {
     setColorMode('dark')
     expect(useColorModeStore.getState().mode).toBe('dark')
-    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('dark')
+    expect(readStoredColorMode(storage)).toBe('dark')
 
     setColorMode('system')
     expect(useColorModeStore.getState().mode).toBe('system')
-    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('system')
+    expect(readStoredColorMode(storage)).toBe('system')
   })
 
   it('非法值不会污染状态（旧数据 / 手工改坏的存储）', () => {
     setColorMode('dark')
     setColorMode('midnight' as never)
     expect(useColorModeStore.getState().mode).toBe('dark')
-    expect(storage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('dark')
+    expect(readStoredColorMode(storage)).toBe('dark')
   })
 
   it('system 模式下解析结果跟着系统偏好走', () => {
@@ -65,7 +76,14 @@ describe('colorModeStore', () => {
 
   it('syncStoredMode 跟随别的标签页写入的值', () => {
     setColorMode('light')
-    storage.setItem(COLOR_MODE_STORAGE_KEY, 'dark')
+    storage.setItem(
+      LOCAL_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        locale: 'zh',
+        colorMode: 'dark',
+        home: { scope: 'owned', sortBy: 'create_time' },
+      }),
+    )
 
     useColorModeStore.getState().syncStoredMode()
     expect(useColorModeStore.getState().mode).toBe('dark')
@@ -78,8 +96,15 @@ describe('colorModeStore', () => {
 })
 
 describe('colorModeStore 初始化', () => {
-  it('启动时从 localStorage 恢复上次的选择（下次打开还生效）', async () => {
-    storage.setItem(COLOR_MODE_STORAGE_KEY, 'dark')
+  it('启动时从 LocalPreferences 恢复上次的选择（下次打开还生效）', async () => {
+    storage.setItem(
+      LOCAL_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        locale: 'zh',
+        colorMode: 'dark',
+        home: { scope: 'owned', sortBy: 'create_time' },
+      }),
+    )
     vi.resetModules()
 
     const fresh = await import('./colorModeStore')
@@ -87,7 +112,10 @@ describe('colorModeStore 初始化', () => {
   })
 
   it('存储里是垃圾值时回落默认浅色', async () => {
-    storage.setItem(COLOR_MODE_STORAGE_KEY, '{"mode":"dark"}')
+    storage.setItem(
+      LOCAL_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ colorMode: { mode: 'dark' } }),
+    )
     vi.resetModules()
 
     const fresh = await import('./colorModeStore')

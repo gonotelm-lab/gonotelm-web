@@ -25,7 +25,7 @@ import {
   getNotebook,
   getOrCreateNotebookChat,
   listNotebookSources,
-  updateNotebookName,
+  updateNotebook,
 } from '../api/notebook'
 import { hashFile } from '../lib/md5'
 import { apiErrorMessage } from '../lib/apiErrorMessage'
@@ -41,6 +41,7 @@ import { type SourceCard, useWorkspaceStore } from '../store/workspace'
 import type { Notebook, SourceKind, SourceStatus } from '../types/api'
 import {
   ChatPanel,
+  CustomizeNotebookDialog,
   NotebookSharingDialog,
   SourceSelectionController,
   SourcesPanel,
@@ -191,9 +192,16 @@ export function NotebookWorkspacePage() {
     (ChatCitationJumpRequest & { requestId: number }) | null
   >(null)
   const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false)
+  const [isCustomizeNotebookDialogOpen, setIsCustomizeNotebookDialogOpen] = useState(false)
+  const [aiNotebookDescription, setAiNotebookDescription] = useState('')
   const [isGeneratingNotebookDescription, setIsGeneratingNotebookDescription] = useState(false)
-  const pendingNotebookDescGenerationRef = useRef(false)
+  /** 本次进入 notebook 是否已尝试过自动 AI 摘要（成功/失败/无可生成都算），防来源后续变更重触。 */
+  const autoDescAttemptedForVisitRef = useRef(false)
   const notebookDescGenerationInFlightRef = useRef(false)
+  // 递增以作废在途 generation 结果；关/开自定义或换 notebook 时 resetWorkspaceUiState / onSaved 均会 bump。
+  const notebookDescGenEpochRef = useRef(0)
+  /** 在途请求被作废后需要再跑一轮时，靠 nudge 触发 effect。 */
+  const [notebookDescGenNudge, setNotebookDescGenNudge] = useState(0)
   // 顶栏“更多选项”菜单是对话面板的 remote：actionsRef 持有面板动作，
   // actionState 由面板回报，用来禁用“刷新对话”并驱动 header spinner。
   const chatPanelActionsRef = useRef<ChatPanelActions | null>(null)
@@ -282,9 +290,11 @@ export function NotebookWorkspacePage() {
   const resetWorkspaceUiState = useCallback(() => {
     setRemovingSourceIds({})
     setIsHydratingSources(true)
-    pendingNotebookDescGenerationRef.current = false
+    autoDescAttemptedForVisitRef.current = false
     notebookDescGenerationInFlightRef.current = false
+    notebookDescGenEpochRef.current += 1
     setIsGeneratingNotebookDescription(false)
+    setAiNotebookDescription('')
   }, [])
 
   const beginHydratingSources = useCallback(() => {
@@ -335,7 +345,9 @@ export function NotebookWorkspacePage() {
     patchNotebookMeta({
       id: cached.id,
       name: cached.name ?? '',
-      desc: cached.desc ?? '',
+      // desc 只跟自定义摘要；脏 desc（flag=false 仍带 desc）不进 store。
+      desc: cached.flags?.customize_description === true ? (cached.desc ?? '') : '',
+      customizeDescription: cached.flags?.customize_description ?? false,
       sourceCount: cached.source_count,
     })
   }, [id, patchNotebookMeta, queryClient, resetWorkspace, resetWorkspaceUiState])
@@ -437,56 +449,85 @@ export function NotebookWorkspacePage() {
     onSourceReady: handleSourceReady,
   })
 
-  const markPendingNotebookDescGeneration = useCallback(() => {
-    if (pendingNotebookDescGenerationRef.current) return
-    const state = useWorkspaceStore.getState()
-    if (state.notebookMeta.sourceCount > 0 || state.sources.length > 0) return
-    pendingNotebookDescGenerationRef.current = true
-    // poll 开始前就展示骨架动效；generation 接口仍等 poll 结束后再调
-    setIsGeneratingNotebookDescription(true)
-  }, [])
+  // （原 render 期同步镜像 customize_description 到 ref 已移除：直读 store getState，
+  //  避免违反 react-hooks/refs；epoch 机制已覆盖自定义开关与换页两项作废。）
 
-  const clearPendingNotebookDescGeneration = useCallback(() => {
-    pendingNotebookDescGenerationRef.current = false
-    notebookDescGenerationInFlightRef.current = false
-    setIsGeneratingNotebookDescription(false)
-  }, [])
-
+  // 自动 AI 摘要：仅在「进入本 notebook 后第一次」满足条件时触发。
+  // - 进入时已有来源，等全部终态后生成一次；或
+  // - 进入时无来源，之后从无到有并全部终态后生成一次；
+  // 无来源时不打 generation，本地空摘要即可。
+  // 来源后续增删/变更不再重触。自定义文案走「自定义笔记本」对话框（PATCH），不经本 effect。
   useEffect(() => {
-    if (!id || !pendingNotebookDescGenerationRef.current) return
+    if (!id || isHydratingSources) return
     if (notebookDescGenerationInFlightRef.current) return
+    if (autoDescAttemptedForVisitRef.current) return
+    if (notebookMeta.customizeDescription) {
+      autoDescAttemptedForVisitRef.current = true
+      return
+    }
 
     const activeSources = sources.filter((source) => !removingSourceIds[source.id])
-    if (activeSources.length === 0) return
+    // 无 sources：不触发 generation；本 visit 仍可等「从无到有」后再试。
+    if (activeSources.length === 0) {
+      // 来源被删空时同步清掉过气的 AI 草稿与生成态，是跨外部数据源的刻意复位。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAiNotebookDescription('')
+      setIsGeneratingNotebookDescription(false)
+      return
+    }
 
     const hasNonTerminal = activeSources.some(
       (source) => source.status !== 'ready' && source.status !== 'failed',
     )
     if (hasNonTerminal) return
 
-    const hasReady = activeSources.some((source) => source.status === 'ready')
+    // 已有来源且全部终态：无论能否生成，都视为本 visit 已尝试，避免后续 source 变更重入。
+    autoDescAttemptedForVisitRef.current = true
 
+    const hasReady = activeSources.some((source) => source.status === 'ready')
+    if (!hasReady) {
+      // 全部来源失败：清掉展示位并停掉 loading，同样是刻意复位。
+      setAiNotebookDescription('')
+      setIsGeneratingNotebookDescription(false)
+      return
+    }
+
+    const epoch = notebookDescGenEpochRef.current
     notebookDescGenerationInFlightRef.current = true
+    setIsGeneratingNotebookDescription(true)
     void (async () => {
       try {
-        // 全部失败时没有可用内容，直接落到 finally 收尾：
-        // 状态清理不放在 effect 体内同步执行（会连带触发级联渲染）。
-        if (!hasReady) {
-          return
-        }
         const result = await generateNotebookDescription(id)
-        const nextDesc = result.desc ?? ''
-        patchNotebookMeta({ desc: nextDesc })
-        queryClient.setQueryData<Notebook>(['notebook', id], (prev) =>
-          prev ? { ...prev, desc: nextDesc } : prev,
-        )
+        // 在途期间若已开/关自定义或换 notebook，丢弃结果。
+        if (epoch !== notebookDescGenEpochRef.current) return
+        // 响应落地前若已开出自定义（epoch 已 bump 走不到这里），直读 store 兜底避免覆盖。
+        if (useWorkspaceStore.getState().notebookMeta.customizeDescription) return
+        // AI 摘要不落库；只放本地展示，不写 notebook.desc / query.desc。
+        setAiNotebookDescription(result.desc ?? '')
       } catch (error) {
-        console.warn('generate notebook description failed', error)
+        if (epoch === notebookDescGenEpochRef.current) {
+          console.warn('generate notebook description failed', error)
+        }
       } finally {
-        clearPendingNotebookDescGeneration()
+        const epochChanged = epoch !== notebookDescGenEpochRef.current
+        notebookDescGenerationInFlightRef.current = false
+        if (epochChanged && !autoDescAttemptedForVisitRef.current) {
+          // 关自定义时可能撞上 in-flight 提前 return；请求结束后再 nudge 一轮。
+          setNotebookDescGenNudge((n) => n + 1)
+        } else {
+          // 当前 epoch 正常收尾；或 epoch 已变但本 visit 已尝试过，停掉 loading 即可。
+          setIsGeneratingNotebookDescription(false)
+        }
       }
     })()
-  }, [clearPendingNotebookDescGeneration, id, patchNotebookMeta, queryClient, removingSourceIds, sources])
+  }, [
+    id,
+    isHydratingSources,
+    notebookDescGenNudge,
+    notebookMeta.customizeDescription,
+    removingSourceIds,
+    sources,
+  ])
 
   const notebookQuery = useQuery({
     queryKey: ['notebook', id],
@@ -523,6 +564,8 @@ export function NotebookWorkspacePage() {
   const notebookIdFromQuery = notebookQuery.data?.id
   const notebookNameFromQuery = notebookQuery.data?.name ?? ''
   const notebookDescFromQuery = notebookQuery.data?.desc ?? ''
+  const notebookCustomizeDescriptionFromQuery =
+    notebookQuery.data?.flags?.customize_description ?? false
   const notebookSourceCountFromQuery = notebookQuery.data?.source_count
 
   useEffect(() => {
@@ -530,19 +573,19 @@ export function NotebookWorkspacePage() {
       return
     }
 
-    const nextMeta: Partial<typeof notebookMeta> = {
+    patchNotebookMeta({
       id: notebookIdFromQuery,
       sourceCount: notebookSourceCountFromQuery,
       name: notebookNameFromQuery,
-    }
-    // 生成中不要用旧查询结果把 desc 盖回空
-    if (!isGeneratingNotebookDescription) {
-      nextMeta.desc = notebookDescFromQuery
-    }
-
-    patchNotebookMeta(nextMeta)
+      // desc 只跟自定义摘要；AI 草稿在 aiNotebookDescription，互不覆盖。
+      // 脏 desc（flag=false 仍带 desc）不进 store，避免 Dialog 开关预填过期摘要。
+      desc: notebookCustomizeDescriptionFromQuery
+        ? notebookDescFromQuery
+        : '',
+      customizeDescription: notebookCustomizeDescriptionFromQuery,
+    })
   }, [
-    isGeneratingNotebookDescription,
+    notebookCustomizeDescriptionFromQuery,
     notebookDescFromQuery,
     notebookIdFromQuery,
     notebookNameFromQuery,
@@ -637,7 +680,7 @@ export function NotebookWorkspacePage() {
   })
   const updateNotebookNameMutation = useMutation({
     mutationFn: ({ notebookId, name }: { notebookId: string; name: string }) =>
-      updateNotebookName(notebookId, { name }),
+      updateNotebook(notebookId, { name }),
   })
 
   const isBusy = useMemo(
@@ -746,7 +789,6 @@ export function NotebookWorkspacePage() {
     const normalized = content.trim()
     if (!normalized) return
 
-    markPendingNotebookDescGeneration()
     try {
       const created = await createSourceMutation.mutateAsync({
         notebookId: id,
@@ -765,13 +807,10 @@ export function NotebookWorkspacePage() {
         urlContent: kind === 'url' ? normalized : undefined,
       })
     } catch (err) {
-      if (useWorkspaceStore.getState().sources.length === 0) {
-        clearPendingNotebookDescGeneration()
-      }
       console.warn('create source failed', err)
       throw err
     }
-  }, [addSource, clearPendingNotebookDescGeneration, createSourceMutation, id, markPendingNotebookDescGeneration])
+  }, [addSource, createSourceMutation, id])
 
   const handleCreateFileSource = useCallback(async (file: File) => {
     if (!id) return
@@ -827,19 +866,12 @@ export function NotebookWorkspacePage() {
   }, [addSource, createSourceMutation, id, setSourceStatus, uploadSourceMutation])
 
   const handleCreateFileSources = useCallback(async (files: File[]) => {
-    markPendingNotebookDescGeneration()
-    try {
-      await Promise.all(
-        files.map(async (file) => {
-          await handleCreateFileSource(file)
-        }),
-      )
-    } finally {
-      if (useWorkspaceStore.getState().sources.length === 0) {
-        clearPendingNotebookDescGeneration()
-      }
-    }
-  }, [clearPendingNotebookDescGeneration, handleCreateFileSource, markPendingNotebookDescGeneration])
+    await Promise.all(
+      files.map(async (file) => {
+        await handleCreateFileSource(file)
+      }),
+    )
+  }, [handleCreateFileSource])
 
   const handleCreateUrlSource = useCallback(
     (url: string) => handleCreateSimpleSource('url', url),
@@ -972,6 +1004,9 @@ export function NotebookWorkspacePage() {
         notebookId: id,
         name: nextName,
       })
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
+      })
       .catch((error) => {
         startTransition(() => {
           queryClient.setQueryData<Notebook>(['notebook', id], (prev) => {
@@ -1023,6 +1058,59 @@ export function NotebookWorkspacePage() {
   const handleCloseSharingDialog = useCallback(() => {
     setIsSharingDialogOpen(false)
   }, [])
+
+  const handleOpenCustomizeNotebookDialog = useCallback(() => {
+    if (!canManageNotebook) {
+      return
+    }
+    setIsCustomizeNotebookDialogOpen(true)
+  }, [canManageNotebook])
+
+  const handleCloseCustomizeNotebookDialog = useCallback(() => {
+    setIsCustomizeNotebookDialogOpen(false)
+  }, [])
+
+  const handleCustomizeNotebookSaved = useCallback(
+    (next: { name: string; desc: string; customizeDescription: boolean }) => {
+      patchNotebookMeta({
+        name: next.name,
+        desc: next.desc,
+        customizeDescription: next.customizeDescription,
+      })
+      // 作废在途 generation，避免旧结果写回本地 AI 草稿。
+      notebookDescGenEpochRef.current += 1
+      if (next.customizeDescription) {
+        // 自定义生效后本地 AI 草稿不再展示。
+        setAiNotebookDescription('')
+        autoDescAttemptedForVisitRef.current = true
+        setIsGeneratingNotebookDescription(false)
+        return
+      }
+      // 关掉自定义：立刻切到 AI 展示路径；清旧草稿并允许自动生成 effect 再跑一次。
+      // 无 sources 时不预亮 loading、不打 generation（effect 内也会跳过）。
+      setAiNotebookDescription('')
+      autoDescAttemptedForVisitRef.current = false
+      const activeSources = sources.filter((source) => !removingSourceIds[source.id])
+      if (activeSources.length === 0) {
+        setIsGeneratingNotebookDescription(false)
+        return
+      }
+      const hasReady = activeSources.some((source) => source.status === 'ready')
+      const hasNonTerminal = activeSources.some(
+        (source) => source.status !== 'ready' && source.status !== 'failed',
+      )
+      if (hasReady && !hasNonTerminal) {
+        setIsGeneratingNotebookDescription(true)
+      }
+      // 若仍有 in-flight，effect 可能提前 return；依赖 nudge + finally 里的二次 nudge。
+      setNotebookDescGenNudge((n) => n + 1)
+    },
+    [patchNotebookMeta, removingSourceIds, sources],
+  )
+
+  const displayNotebookDescription = notebookMeta.customizeDescription
+    ? notebookMeta.desc
+    : aiNotebookDescription
 
   const chatMenu = useMemo<WorkspaceHeaderChatMenu>(
     () => ({
@@ -1503,6 +1591,9 @@ export function NotebookWorkspacePage() {
         onNotebookNameCommit={handleNotebookNameCommit}
         canRenameNotebook={canManageNotebook}
         onShareNotebook={isNotebookOwner ? handleOpenSharingDialog : undefined}
+        onCustomizeNotebook={
+          canManageNotebook ? handleOpenCustomizeNotebookDialog : undefined
+        }
         chatMenu={chatMenu}
       />
       {isNotebookOwner ? (
@@ -1511,6 +1602,19 @@ export function NotebookWorkspacePage() {
           notebookName={displayNotebookName}
           open={isSharingDialogOpen}
           onClose={handleCloseSharingDialog}
+        />
+      ) : null}
+      {canManageNotebook && id && isCustomizeNotebookDialogOpen ? (
+        <CustomizeNotebookDialog
+          notebookId={id}
+          open
+          notebookName={
+            (notebookQuery.data?.name ?? notebookMeta.name).trim() || displayNotebookName
+          }
+          description={notebookMeta.desc}
+          customizeDescription={notebookMeta.customizeDescription}
+          onClose={handleCloseCustomizeNotebookDialog}
+          onSaved={handleCustomizeNotebookSaved}
         />
       ) : null}
 
@@ -1635,8 +1739,9 @@ export function NotebookWorkspacePage() {
               notebookId={id}
               chatId={notebookChatQuery.data?.chat_id ?? ''}
               notebookName={displayNotebookName}
-              notebookDescription={notebookMeta.desc}
+              notebookDescription={displayNotebookDescription}
               notebookSourceCount={notebookMeta.sourceCount}
+              customizeDescription={notebookMeta.customizeDescription}
               notebookDescriptionLoading={isGeneratingNotebookDescription}
               selectedSourceIds={deferredSelectedSourceIdList}
               readySourceIds={readySourceIdList}

@@ -1,12 +1,11 @@
 /**
  * 颜色模式（浅色 / 深色 / 跟随系统）的纯逻辑与 DOM 应用。
  *
+ * 持久化在 `lib/localPreferences`（`gonotelm.preferences.colorMode`）。
  * 生产环境里 index.html 的内联脚本会先按同一份规则写一次 `<html data-theme>`，
  * 让首帧就是正确的颜色，因此这里的常量与 `index.html` 必须保持一致
  * （`colorMode.test.ts` 会校验两边同步）。
  */
-
-export const COLOR_MODE_STORAGE_KEY = 'gonotelm.colorMode'
 
 export const COLOR_MODES = ['light', 'dark', 'system'] as const
 
@@ -67,23 +66,6 @@ export const resolveColorMode = (
   mode: ColorMode,
   systemPrefersDark: boolean,
 ): ResolvedColorMode => (mode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : mode)
-
-/** localStorage 在隐私模式 / 被策略禁用时会在读写时抛错，因此统一走这两个薄封装。 */
-export const readStoredColorMode = (): ColorMode => {
-  try {
-    return parseColorMode(globalThis.localStorage?.getItem(COLOR_MODE_STORAGE_KEY))
-  } catch {
-    return DEFAULT_COLOR_MODE
-  }
-}
-
-export const writeStoredColorMode = (mode: ColorMode): void => {
-  try {
-    globalThis.localStorage?.setItem(COLOR_MODE_STORAGE_KEY, mode)
-  } catch {
-    // 存不下也不影响本次会话：内存里的 mode 仍然生效。
-  }
-}
 
 /**
  * 订阅系统配色变化。返回取消订阅函数；宿主环境不支持时返回 noop。

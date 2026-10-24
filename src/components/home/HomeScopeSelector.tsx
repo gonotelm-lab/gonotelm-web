@@ -71,11 +71,15 @@ export function HomeScopeSelector({ value, onChange }: HomeScopeSelectorProps) {
           },
         },
         // 分离圆角按钮：关掉 Group 默认负 margin；后项左边框必须显式带色，否则 `1px solid` 会落成黑线。
+        // hover / selected 也要同步左边框色，否则会被本规则盖住，看起来像左边缺一块。
         '& .MuiToggleButtonGroup-grouped:not(:first-of-type)': {
           marginLeft: 0,
           borderLeft: '1px solid',
           borderLeftColor: 'divider',
-          '&.Mui-selected': {
+          '&:hover': {
+            borderLeftColor: 'primary.main',
+          },
+          '&.Mui-selected, &.Mui-selected:hover': {
             borderLeftColor: 'primary.main',
           },
         },

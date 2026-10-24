@@ -26,6 +26,7 @@ const ownedNotebookSummaries = [
     name: 'Rust 并发',
     source_count: 1,
     desc: '并发原语与实践',
+    flags: { customize_description: true },
     updated_at: Date.UTC(2025, 6, 18, 9),
   }),
   createNotebookSummaryFixture({
@@ -33,6 +34,7 @@ const ownedNotebookSummaries = [
     name: 'Rust 生命周期',
     source_count: 3,
     desc: '借用检查与生命周期',
+    flags: { customize_description: true },
     updated_at: Date.UTC(2025, 6, 16, 9),
   }),
 ]
@@ -43,6 +45,7 @@ const sharedNotebookSummaries = [
     name: '团队 Rust 指南',
     source_count: 4,
     desc: '团队共享的 Rust 实践',
+    flags: { customize_description: true },
     updated_at: Date.UTC(2025, 6, 20, 10),
     owner: {
       user_id: 'user-alice',
@@ -55,6 +58,7 @@ const sharedNotebookSummaries = [
     name: 'Async Patterns',
     source_count: 2,
     desc: '异步模式速查',
+    flags: { customize_description: true },
     updated_at: Date.UTC(2025, 6, 15, 10),
     owner: {
       user_id: 'user-bob',
@@ -132,6 +136,7 @@ export const notebookHandlers = [
         id: notebookId,
         name: '',
         desc: '',
+        flags: { customize_description: false },
         source_count: 0,
         updated_at: 0,
       }),

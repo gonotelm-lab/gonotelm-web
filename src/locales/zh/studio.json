@@ -214,7 +214,7 @@
     },
     "orientation": "选择方向",
     "orientationHelp": "控制信息图的画面比例",
-    "prompt": "描述你想要的信息图",
+    "prompt": "描述您想要的信息图",
     "promptPlaceholder": "例如：用时间线展示关键里程碑与影响",
     "countStyle": "数量风格",
     "countStyleHelp": {
@@ -406,7 +406,7 @@
     "submit": "提交测验",
     "multiHint": "可选择多个选项",
     "explanation": "答案解析",
-    "yourAnswer": "你的答案：{{labels}}",
+    "yourAnswer": "您的答案：{{labels}}",
     "correctAnswer": "正确答案：{{labels}}",
     "unanswered": "未作答",
     "noExplanation": "本题暂无文字解析（旧产物可能缺少 explanation 字段）",

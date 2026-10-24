@@ -7,7 +7,33 @@
     "share": "分享",
     "moreOptionsAria": "更多选项",
     "configureChat": "配置对话",
-    "refreshChat": "刷新对话"
+    "refreshChat": "刷新对话",
+    "customizeNotebook": "自定义笔记本"
+  },
+  "customizeNotebook": {
+    "title": "自定义笔记本",
+    "done": "完成",
+    "saving": "保存中…",
+    "error": {
+      "saveFailed": "保存失败，请稍后重试"
+    },
+    "name": {
+      "label": "笔记本名称",
+      "placeholder": "未命名笔记本",
+      "errorRequired": "请填写笔记本名称",
+      "errorTooLong": "名称过长",
+      "errorInvalid": "名称无效"
+    },
+    "description": {
+      "sectionTitle": "设置自定义笔记本摘要",
+      "switchAria": "启用自定义摘要",
+      "help": "默认情况下，每次您打开笔记本时，摘要都会自动生成刷新。您可以通过手动设置自定义摘要，更改默认摘要。",
+      "placeholder": "在此处撰写简介…",
+      "counter": "{{count}} / {{max}}",
+      "error": {
+        "invalid": "开启自定义摘要时，摘要不能为空"
+      }
+    }
   },
   "sharing": {
     "title": "分享笔记本",
@@ -41,7 +67,7 @@
       "noPermission": "只有笔记本所有者可以管理分享",
       "userNotFound": "没有找到这个邮箱对应的账号",
       "userBanned": "该账号已被封禁，无法添加",
-      "cannotShareWithOwner": "这是你自己的邮箱，无需添加",
+      "cannotShareWithOwner": "这是您自己的邮箱，无需添加",
       "invalidEmail": "请输入有效的邮箱地址",
       "memberExists": "该用户已在访问权限列表中",
       "loadFailed": "分享设置加载失败，请稍后重试",
@@ -50,7 +76,7 @@
   },
   "notFound": {
     "title": "找不到这个笔记本",
-    "description": "它可能已被删除，或你当前没有访问权限",
+    "description": "它可能已被删除，或您当前没有访问权限",
     "hint": "请检查链接是否完整，或返回首页打开其他笔记本",
     "backHome": "返回首页",
     "retry": "重试",

@@ -21,7 +21,19 @@
         const THEME_COLOR_BY_MODE = { light: '#efebe2', dark: '#1b211d' }
         const FAVICON_HREF_BY_MODE = { light: '/favicon.svg', dark: '/favicon-dark.svg' }
         try {
-          const stored = window.localStorage.getItem('gonotelm.colorMode')
+          // 与 src/lib/localPreferences.ts 一致：只读 gonotelm.preferences.colorMode。
+          let stored = null
+          const prefsRaw = window.localStorage.getItem('gonotelm.preferences')
+          if (prefsRaw) {
+            try {
+              const parsed = JSON.parse(prefsRaw)
+              if (parsed && typeof parsed.colorMode === 'string') {
+                stored = parsed.colorMode
+              }
+            } catch {
+              // ignore malformed prefs
+            }
+          }
           const mode = COLOR_MODES.includes(stored) ? stored : DEFAULT_MODE
           const prefersDark =
             typeof window.matchMedia === 'function' &&

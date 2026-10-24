@@ -11,8 +11,8 @@ const normalizeLocale = (lng: string | undefined): AppLocale =>
 /**
  * 设置 → 通用：界面语言与颜色模式。
  *
- * 两项都是「立即生效 + 记住选择」的本地偏好：语言写回 i18n 的
- * localStorage（gonotelm.locale），颜色模式写回 gonotelm.colorMode。
+ * 两项都是「立即生效 + 记住选择」的本地偏好，统一写入
+ * `gonotelm.preferences`（见 `lib/localPreferences`）。
  */
 export function GeneralSettingsSection() {
   const { t, i18n } = useTranslation('settings')
@@ -22,7 +22,7 @@ export function GeneralSettingsSection() {
     if (!nextLocale || nextLocale === activeLocale) {
       return
     }
-    // LanguageDetector 负责把选择写回 localStorage（gonotelm.locale）。
+    // i18n 自定义 detector 会把语言写回 LocalPreferences。
     void i18n.changeLanguage(nextLocale)
   }
 

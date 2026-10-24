@@ -45,4 +45,46 @@ describe('ChatNotebookInfoHeader', () => {
     expect(html).toContain('data-testid="chat-notebook-description-skeleton"')
     expect(html).toContain('Loading Notebook')
   })
+
+  it('shows author origin icon left of source count for custom description', () => {
+    const html = renderToStaticMarkup(
+      <ChatNotebookInfoHeader
+        notebookName="Custom Notebook"
+        notebookDescription="作者写的摘要"
+        notebookSourceCount={2}
+        customizeDescription
+      />,
+    )
+
+    expect(html).toContain('data-testid="chat-notebook-description-origin-author"')
+    expect(html).toContain('摘要由作者指定')
+    expect(html).toContain('2 个来源')
+  })
+
+  it('shows AI origin icon left of source count for generated description', () => {
+    const html = renderToStaticMarkup(
+      <ChatNotebookInfoHeader
+        notebookName="AI Notebook"
+        notebookDescription="AI 写的摘要"
+        notebookSourceCount={3}
+        customizeDescription={false}
+      />,
+    )
+
+    expect(html).toContain('data-testid="chat-notebook-description-origin-ai"')
+    expect(html).toContain('摘要由 AI 生成')
+  })
+
+  it('hides origin icon when AI description is still empty', () => {
+    const html = renderToStaticMarkup(
+      <ChatNotebookInfoHeader
+        notebookName="Empty Notebook"
+        notebookDescription=""
+        notebookSourceCount={0}
+        customizeDescription={false}
+      />,
+    )
+
+    expect(html).not.toContain('chat-notebook-description-origin-')
+  })
 })

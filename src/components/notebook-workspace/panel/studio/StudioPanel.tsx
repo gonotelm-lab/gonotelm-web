@@ -179,7 +179,7 @@ export const StudioPanel = memo(function StudioPanel({
   )
   const resolveVideoOverviewVisualStyleParams = useVideoOverviewVisualStyleResolver()
 
-  // Keep Studio output-language defaults aligned with UI locale (gonotelm.locale).
+  // Keep Studio output-language defaults aligned with UI locale (LocalPreferences).
   useEffect(() => {
     const outputLanguage = getDefaultStudioOutputLanguage(i18n.language)
     setReportParams((prev) =>

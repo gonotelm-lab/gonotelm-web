@@ -21,7 +21,7 @@ const COLOR_MODE_TEST_IDS: Record<ColorMode, string> = {
 /**
  * 颜色模式：浅色 / 深色 / 跟随系统。
  *
- * 选择立刻生效并写入 localStorage（见 `colorModeStore.setMode`）；
+ * 选择立刻生效并写入统一 LocalPreferences（见 `colorModeStore.setMode`）；
  * 「跟随系统」时额外用一行说明当前实际取到的是哪一种，避免用户猜。
  */
 export function ColorModeControl() {

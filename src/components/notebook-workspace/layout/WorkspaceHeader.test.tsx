@@ -39,14 +39,18 @@ vi.mock('@mui/material', () => ({
   CircularProgress: () => <span data-testid="workspace-status-spinner" />,
   Typography: ({
     children,
-    sx: _sx,
-    noWrap: _noWrap,
-    component: _component,
     ...props
-  }: { children?: ReactNode } & Record<string, unknown>) => <h1 {...props}>{children}</h1>,
+  }: { children?: ReactNode } & Record<string, unknown>) => {
+    const { sx: _sx, noWrap: _noWrap, component: _component, ...rest } = props
+    void _sx
+    void _noWrap
+    void _component
+    return <h1 {...rest}>{children}</h1>
+  },
 }))
 
 vi.mock('@mui/icons-material/AddOutlined', () => ({ default: () => null }))
+vi.mock('@mui/icons-material/DescriptionOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/IosShareOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/MoreVertRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/RefreshRounded', () => ({ default: () => null }))
@@ -64,6 +68,7 @@ const renderHeader = (
     canRenameNotebook?: boolean
     onNotebookNameCommit?: (value: string) => void
     onShareNotebook?: () => void
+    onCustomizeNotebook?: () => void
   } = {},
 ) => {
   let renderer!: ReactTestRenderer
@@ -76,6 +81,7 @@ const renderHeader = (
         canRenameNotebook={extra.canRenameNotebook ?? true}
         onNotebookNameCommit={extra.onNotebookNameCommit ?? (() => undefined)}
         onShareNotebook={extra.onShareNotebook}
+        onCustomizeNotebook={extra.onCustomizeNotebook}
         chatMenu={chatMenu}
       />,
     )
@@ -101,19 +107,35 @@ describe('WorkspaceHeader', () => {
     await i18n.changeLanguage('zh')
   })
 
-  it('“更多选项”以竖向三点图标为触发器，点开后是配置对话与刷新对话', () => {
-    const renderer = renderHeader(buildChatMenu())
+  it('“更多选项”以竖向三点图标为触发器，点开后是自定义笔记本、配置对话与刷新对话', () => {
+    const renderer = renderHeader(buildChatMenu(), {
+      onCustomizeNotebook: vi.fn(),
+    })
 
     expect(renderer.root.findAllByProps({ 'data-testid': 'workspace-more-menu' })).toHaveLength(0)
 
     openMoreMenu(renderer)
 
     expect(renderer.root.findByProps({ 'data-testid': 'workspace-more-menu' })).toBeTruthy()
+    expect(renderer.root.findByProps({ 'data-testid': 'workspace-customize-notebook' })).toBeTruthy()
     expect(renderer.root.findByProps({ 'data-testid': 'workspace-configure-chat' })).toBeTruthy()
     expect(renderer.root.findByProps({ 'data-testid': 'workspace-refresh-chat' })).toBeTruthy()
     expect(
       renderer.root.findByProps({ 'aria-label': '更多选项' }),
     ).toBeTruthy()
+  })
+
+  it('点“自定义笔记本”触发回调并收起菜单', () => {
+    const onCustomizeNotebook = vi.fn()
+    const renderer = renderHeader(buildChatMenu(), { onCustomizeNotebook })
+    openMoreMenu(renderer)
+
+    act(() =>
+      renderer.root.findByProps({ 'data-testid': 'workspace-customize-notebook' }).props.onClick(),
+    )
+
+    expect(onCustomizeNotebook).toHaveBeenCalledTimes(1)
+    expect(renderer.root.findAllByProps({ 'data-testid': 'workspace-more-menu' })).toHaveLength(0)
   })
 
   it('点“配置对话”触发面板设置并收起菜单', () => {
@@ -167,11 +189,21 @@ describe('WorkspaceHeader', () => {
     ).toHaveLength(0)
   })
 
-  it('不传 chatMenu 时不渲染“更多选项”', () => {
+  it('不传 chatMenu 与自定义笔记本回调时不渲染“更多选项”', () => {
     const renderer = renderHeader()
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'workspace-more-options' }),
     ).toHaveLength(0)
+  })
+
+  it('仅传自定义笔记本回调时仍渲染“更多选项”', () => {
+    const renderer = renderHeader(undefined, { onCustomizeNotebook: vi.fn() })
+    expect(
+      renderer.root.findByProps({ 'data-testid': 'workspace-more-options' }),
+    ).toBeTruthy()
+    openMoreMenu(renderer)
+    expect(renderer.root.findByProps({ 'data-testid': 'workspace-customize-notebook' })).toBeTruthy()
+    expect(renderer.root.findAllByProps({ 'data-testid': 'workspace-configure-chat' })).toHaveLength(0)
   })
 
   it('尾部“创建笔记本”仍是占位，“分享”接页面回调', () => {

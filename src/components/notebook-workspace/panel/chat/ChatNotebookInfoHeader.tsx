@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import { Box, IconButton, Skeleton, Stack, Tooltip, Typography } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +41,8 @@ interface ChatNotebookInfoHeaderProps {
   notebookName: string
   notebookDescription: string
   notebookSourceCount: number
+  /** 是否为作者自定义摘要；false 表示展示中的摘要来自 AI。 */
+  customizeDescription?: boolean
   descriptionLoading?: boolean
 }
 
@@ -46,6 +50,7 @@ export function ChatNotebookInfoHeader({
   notebookName,
   notebookDescription,
   notebookSourceCount,
+  customizeDescription = false,
   descriptionLoading = false,
 }: ChatNotebookInfoHeaderProps) {
   const { t } = useTranslation(['chat', 'common'])
@@ -64,6 +69,11 @@ export function ChatNotebookInfoHeader({
       ? Math.floor(notebookSourceCount)
       : 0
   const sourceCountLabel = t('common:sourceCount', { count: normalizedCount })
+  // 自定义模式始终展示来源标识；AI 模式仅在已有摘要时展示，避免空摘要仍声称「由 AI 生成」。
+  const showDescriptionOrigin = customizeDescription || description.length > 0
+  const descriptionOriginLabel = customizeDescription
+    ? t('chat:notebookInfo.descriptionByAuthor')
+    : t('chat:notebookInfo.descriptionByAi')
   const copyPayload = [title, description, sourceCountLabel]
     .filter((part) => part.trim().length > 0)
     .join('\n')
@@ -174,13 +184,44 @@ export function ChatNotebookInfoHeader({
           </Typography>
         )}
 
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: workspaceType.xs, letterSpacing: 0 }}
+        <Stack
+          direction="row"
+          spacing={workspaceSpace.sm}
+          sx={{ alignItems: 'center', minWidth: 0 }}
         >
-          {sourceCountLabel}
-        </Typography>
+          {showDescriptionOrigin ? (
+            <Tooltip title={descriptionOriginLabel}>
+              <Box
+                component="span"
+                data-testid={
+                  customizeDescription
+                    ? 'chat-notebook-description-origin-author'
+                    : 'chat-notebook-description-origin-ai'
+                }
+                aria-label={descriptionOriginLabel}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'text.secondary',
+                  lineHeight: 0,
+                }}
+              >
+                {customizeDescription ? (
+                  <PersonOutlineOutlinedIcon sx={{ fontSize: workspaceIconSize.sm }} />
+                ) : (
+                  <AutoAwesomeOutlinedIcon sx={{ fontSize: workspaceIconSize.sm }} />
+                )}
+              </Box>
+            </Tooltip>
+          ) : null}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: workspaceType.xs, letterSpacing: 0 }}
+          >
+            {sourceCountLabel}
+          </Typography>
+        </Stack>
 
         <Box
           sx={{

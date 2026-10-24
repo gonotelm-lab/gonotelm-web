@@ -7,7 +7,33 @@
     "share": "Share",
     "moreOptionsAria": "More options",
     "configureChat": "Configure chat",
-    "refreshChat": "Refresh chat"
+    "refreshChat": "Refresh chat",
+    "customizeNotebook": "Customize notebook"
+  },
+  "customizeNotebook": {
+    "title": "Customize notebook",
+    "done": "Done",
+    "saving": "Saving…",
+    "error": {
+      "saveFailed": "Couldn’t save. Please try again."
+    },
+    "name": {
+      "label": "Notebook name",
+      "placeholder": "Untitled notebook",
+      "errorRequired": "Please enter a notebook name",
+      "errorTooLong": "Name is too long",
+      "errorInvalid": "Invalid name"
+    },
+    "description": {
+      "sectionTitle": "Custom notebook description",
+      "switchAria": "Enable custom description",
+      "help": "By default, the description is auto-generated and refreshed each time you open the notebook. You can set a custom description to replace it.",
+      "placeholder": "Write a short description here…",
+      "counter": "{{count}} / {{max}}",
+      "error": {
+        "invalid": "Description is required when custom description is on"
+      }
+    }
   },
   "sharing": {
     "title": "Share notebook",

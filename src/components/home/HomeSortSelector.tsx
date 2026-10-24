@@ -1,6 +1,8 @@
+import type { ElementType } from 'react'
 import { useState } from 'react'
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
-import SortRoundedIcon from '@mui/icons-material/SortRounded'
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded'
 import { Box, IconButton, Menu, MenuItem, Tooltip, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import type { ListNotebooksSortBy } from '@/types/api'
@@ -19,20 +21,29 @@ interface HomeSortSelectorProps {
   onChange: (value: ListNotebooksSortBy) => void
 }
 
-const SORT_OPTIONS: readonly ListNotebooksSortBy[] = ['last_active', 'create_time']
+const SORT_OPTIONS: readonly {
+  id: ListNotebooksSortBy
+  Icon: ElementType
+}[] = [
+  { id: 'last_active', Icon: HistoryRoundedIcon },
+  { id: 'create_time', Icon: CalendarMonthRoundedIcon },
+]
 
 export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
   const { t } = useTranslation('home')
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const open = Boolean(anchorEl)
-  const triggerLabel = t('sort.aria')
+  const selectedOption =
+    SORT_OPTIONS.find((option) => option.id === value) ?? SORT_OPTIONS[1]
+  const triggerLabel =
+    selectedOption.id === 'last_active' ? t('sort.lastActive') : t('sort.createTime')
 
   return (
     <>
       <Tooltip title={triggerLabel} arrow placement="top" enterDelay={240}>
         <IconButton
           size="small"
-          aria-label={triggerLabel}
+          aria-label={t('sort.aria')}
           aria-haspopup="menu"
           aria-expanded={open ? 'true' : undefined}
           data-testid="home-sort"
@@ -50,7 +61,7 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
             },
           }}
         >
-          <SortRoundedIcon sx={{ fontSize: workspaceIconSize.md }} />
+          <selectedOption.Icon sx={{ fontSize: workspaceIconSize.md }} />
         </IconButton>
       </Tooltip>
       <Menu
@@ -63,27 +74,39 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
         slotProps={{ paper: { sx: headerMenuPaperSx } }}
       >
         {SORT_OPTIONS.map((option) => {
-          const selected = option === value
+          const selected = option.id === value
           const label =
-            option === 'last_active' ? t('sort.lastActive') : t('sort.createTime')
+            option.id === 'last_active' ? t('sort.lastActive') : t('sort.createTime')
+          const OptionIcon = option.Icon
           return (
             <MenuItem
-              key={option}
-              data-testid={`home-sort-${option}`}
+              key={option.id}
+              data-testid={`home-sort-${option.id}`}
               selected={selected}
               onClick={() => {
-                onChange(option)
+                onChange(option.id)
                 setAnchorEl(null)
               }}
               sx={{
                 ...headerMenuItemSx,
                 minHeight: 34,
-                justifyContent: 'space-between',
+                gap: workspaceSpace.sm,
               }}
             >
+              <Box
+                sx={{
+                  width: workspaceIconSize.md,
+                  display: 'inline-flex',
+                  justifyContent: 'center',
+                  color: 'text.secondary',
+                }}
+              >
+                <OptionIcon sx={{ fontSize: workspaceIconSize.md }} />
+              </Box>
               <Typography
                 component="span"
                 sx={{
+                  flex: 1,
                   fontSize: workspaceType.sm,
                   lineHeight: 1.2,
                   fontWeight: selected ? 600 : 400,
@@ -96,7 +119,6 @@ export function HomeSortSelector({ value, onChange }: HomeSortSelectorProps) {
                   width: workspaceIconSize.md,
                   display: 'inline-flex',
                   justifyContent: 'center',
-                  ml: workspaceSpace.md,
                 }}
               >
                 {selected ? (

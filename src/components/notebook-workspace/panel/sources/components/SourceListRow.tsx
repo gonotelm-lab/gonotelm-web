@@ -280,6 +280,8 @@ export const SourceListRow = memo(function SourceListRow({
   return (
     <Box
       onClick={handleRowClick}
+      // 菜单打开时固定触发器可见，避免鼠标离开后触发器消失、菜单被误点关闭。
+      className={actionMenuOpen ? 'source-action-menu-open' : undefined}
       sx={{
         boxSizing: 'border-box',
         height: removing ? 0 : sourceListRowHeightPx,
@@ -311,7 +313,7 @@ export const SourceListRow = memo(function SourceListRow({
           opacity: { xs: 1, md: 0 },
         },
         // 操作触发器放在勾选框左侧：默认隐藏，hover 行、菜单打开、或焦点在触发器上时显示。
-        '&:hover .source-action-trigger, .source-action-menu-open .source-action-trigger, .source-action-trigger:focus, .source-action-trigger:focus-visible': {
+        '&:hover .source-action-trigger, &.source-action-menu-open .source-action-trigger, .source-action-trigger:focus, .source-action-trigger:focus-visible': {
           opacity: 1,
           pointerEvents: 'auto',
         },
@@ -427,10 +429,6 @@ export const SourceListRow = memo(function SourceListRow({
         open={actionMenuOpen}
         onClose={closeActionMenu}
         onClick={(e) => e.stopPropagation()}
-        // 菜单打开时固定触发器可见，避免鼠标离开后触发器消失、菜单被误点关闭。
-        containerProps={{
-          className: actionMenuOpen ? 'source-action-menu-open' : undefined,
-        }}
       >
         <MenuItem
           data-testid="sources-action-preview"

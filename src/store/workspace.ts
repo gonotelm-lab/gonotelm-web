@@ -16,7 +16,9 @@ export interface SourceCard {
 export interface NotebookMeta {
   id: string
   name: string
+  /** 仅自定义摘要；未开启自定义时为空。 */
   desc: string
+  customizeDescription: boolean
   sourceCount: number
   iconUrl?: string
 }
@@ -25,6 +27,7 @@ const createEmptyNotebookMeta = (): NotebookMeta => ({
   id: '',
   name: '',
   desc: '',
+  customizeDescription: false,
   sourceCount: 0,
 })
 

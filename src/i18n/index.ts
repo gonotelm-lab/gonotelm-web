@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
+import { parseLocale, patchLocalPreferences, readLocalPreferences } from '@/lib/localPreferences'
 
 import commonZh from '../locales/zh/common.json'
 import homeZh from '../locales/zh/home.json'
@@ -20,13 +21,24 @@ import chatEn from '../locales/en/chat.json'
 import authEn from '../locales/en/auth.json'
 import settingsEn from '../locales/en/settings.json'
 
-export const LOCALE_STORAGE_KEY = 'gonotelm.locale'
-export const SUPPORTED_LOCALES = ['zh', 'en'] as const
-export type AppLocale = (typeof SUPPORTED_LOCALES)[number]
-export const DEFAULT_LOCALE: AppLocale = 'zh'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale } from './locales'
+
+export { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale }
+
+/** 语言读写走统一 LocalPreferences（gonotelm.preferences）。 */
+const localPreferencesLanguageDetector = {
+  name: 'localPreferences',
+  lookup: () => readLocalPreferences().locale,
+  cacheUserLanguage: (lng: string) => {
+    patchLocalPreferences({ locale: parseLocale(lng) })
+  },
+}
+
+const languageDetector = new LanguageDetector()
+languageDetector.addDetector(localPreferencesLanguageDetector)
 
 void i18n
-  .use(LanguageDetector)
+  .use(languageDetector)
   .use(initReactI18next)
   .init({
     resources: {
@@ -59,9 +71,8 @@ void i18n
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage'],
-      caches: ['localStorage'],
-      lookupLocalStorage: LOCALE_STORAGE_KEY,
+      order: ['localPreferences'],
+      caches: ['localPreferences'],
     },
   })
 

@@ -25,6 +25,7 @@ import {
 } from '../components/notebook-workspace/shared/ui/layoutTokens'
 import { workspaceTransitionPresets } from '../components/notebook-workspace/shared/ui/motionTokens'
 import { buildCreateNotebookRequest } from './home/createNotebookRequest'
+import { patchHomePreferences, readHomePreferences } from '@/lib/localPreferences'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
 
 /** Home header mirrors the workspace chrome so the account trigger matches across pages. */
@@ -38,9 +39,18 @@ export function HomePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation('home')
-  const [scope, setScope] = useState<ListNotebooksScope>('owned')
-  const [sortBy, setSortBy] = useState<ListNotebooksSortBy>('create_time')
+  // 首页筛选落在统一 LocalPreferences.home；变更经 patchHomePreferences 落盘。
+  const [homePrefs, setHomePrefs] = useState(readHomePreferences)
+  const { scope, sortBy } = homePrefs
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+
+  const handleScopeChange = (next: ListNotebooksScope) => {
+    setHomePrefs(patchHomePreferences({ scope: next }))
+  }
+
+  const handleSortChange = (next: ListNotebooksSortBy) => {
+    setHomePrefs(patchHomePreferences({ sortBy: next }))
+  }
   const [createDialogState, setCreateDialogState] = useState<{
     draftName: string
     errorMessage: string | null
@@ -147,14 +157,14 @@ export function HomePage() {
             gap: workspaceLayout.listInlineGap,
           }}
         >
-          <HomeScopeSelector value={scope} onChange={setScope} />
+          <HomeScopeSelector value={scope} onChange={handleScopeChange} />
           <Stack
             direction="row"
             spacing={workspaceLayout.listInlineGap}
             sx={{ alignItems: 'center', ml: 'auto' }}
           >
             {notebooksQuery.isFetching && <CircularProgress size={14} color="primary" />}
-            <HomeSortSelector value={sortBy} onChange={setSortBy} />
+            <HomeSortSelector value={sortBy} onChange={handleSortChange} />
             <CreateNotebookEntry
               onClick={handleOpenCreateDialog}
               disabled={createNotebookMutation.isPending}

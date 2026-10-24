@@ -2,6 +2,7 @@ import { request } from '../lib/http'
 import type {
   CreateNotebookRequest,
   CreateNotebookResponse,
+  GenerateNotebookDescriptionResponse,
   GetNotebookChatResponse,
   GetNotebookSharingResponse,
   ListNotebookSourcesResponse,
@@ -11,6 +12,7 @@ import type {
   Notebook,
   NotebookAccess,
   NotebookVisibility,
+  UpdateNotebookRequest,
   UpsertNotebookMemberRequest,
   UpsertNotebookMemberResponse,
 } from '../types/api'
@@ -38,18 +40,19 @@ export function getOrCreateNotebookChat(id: string) {
   })
 }
 
-interface UpdateNotebookRequest {
-  name: string
-}
-
-export function updateNotebookName(
-  id: string,
-  payload: UpdateNotebookRequest,
-) {
+export function updateNotebook(id: string, payload: UpdateNotebookRequest) {
   return request<null>(`/api/v1/notebooks/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })
+}
+
+/** @deprecated 使用 updateNotebook；保留别名避免瞬时破坏既有调用。 */
+export function updateNotebookName(
+  id: string,
+  payload: Pick<UpdateNotebookRequest, 'name'> & { name: string },
+) {
+  return updateNotebook(id, payload)
 }
 
 interface ListNotebooksParams {
@@ -104,7 +107,7 @@ export function listNotebookSources(
 }
 
 export function generateNotebookDescription(id: string) {
-  return request<{ desc: string }>(
+  return request<GenerateNotebookDescriptionResponse>(
     `/api/v1/notebooks/${encodeURIComponent(id)}/description/generation`,
     {
       method: 'POST',

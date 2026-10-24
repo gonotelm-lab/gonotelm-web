@@ -5,8 +5,12 @@
     "expandStudioAria": "展开右侧面板",
     "scrollBottomAria": "回到底部"
   },
+  "notebookInfo": {
+    "descriptionByAuthor": "摘要由作者指定",
+    "descriptionByAi": "摘要由 AI 生成"
+  },
   "input": {
-    "placeholder": "输入你的问题",
+    "placeholder": "输入您的问题",
     "aiDisclaimer": "内容由AI生成，请仔细甄别"
   },
   "stream": {

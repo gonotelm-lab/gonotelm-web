@@ -7,7 +7,6 @@ describe('buildCreateNotebookRequest', () => {
 
     expect(payload).toEqual({
       name: 'Rust 并发实战',
-      desc: '',
     })
   })
 
@@ -16,7 +15,6 @@ describe('buildCreateNotebookRequest', () => {
 
     expect(payload).toEqual({
       name: '',
-      desc: '',
     })
   })
 })
