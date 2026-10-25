@@ -26,6 +26,8 @@
     "deleteBody": "This will remove chat and source data permanently",
     "noDescription": "No description",
     "unknownDate": "Unknown date",
-    "sharedBy": "Shared by {{nickname}}"
+    "sharedBy": "Shared by {{nickname}}",
+    "publicAria": "Public notebook",
+    "untitled": "Untitled notebook"
   }
 }

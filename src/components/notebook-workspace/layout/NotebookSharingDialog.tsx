@@ -36,6 +36,7 @@ import {
 import { ApiError } from '../../../lib/http'
 import type {
   GetNotebookSharingResponse,
+  Notebook,
   NotebookMemberRole,
   NotebookVisibility,
 } from '../../../types/api'
@@ -392,6 +393,16 @@ export function NotebookSharingDialog({
     try {
       if (nextDraft.visibility !== serverDraft.visibility) {
         await updateNotebookVisibility(notebookId, nextDraft.visibility)
+        // PATCH 已落库：工作区缓存（header 的公开图标）直接写入新可见性并瞬时反映，
+        // 首页卡片列表批量标记失效，回到首页后拉到新数据。
+        queryClient.setQueryData<Notebook>(
+          ['notebook', notebookId],
+          (prev) =>
+            prev && prev.visibility !== nextDraft.visibility
+              ? { ...prev, visibility: nextDraft.visibility }
+              : prev,
+        )
+        void queryClient.invalidateQueries({ queryKey: ['notebooks'] })
       }
 
       // 先删再增/改：同一邮箱先被移除又被重新添加时，顺序不会互相覆盖。

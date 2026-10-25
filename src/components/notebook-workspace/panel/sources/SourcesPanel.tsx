@@ -404,10 +404,6 @@ function SourcesPanelLayout({
                                 onRenameItem={onRenameItem}
                                 onPreviewItem={openPreviewFromMenu}
                                 selectionColumnWidth={sourceSelectionColumnWidthPx}
-                                previewLoading={Boolean(
-                                  previewState.loading &&
-                                  previewState.sourceId === item.id,
-                                )}
                               />
                             </Box>
                           ))
@@ -569,6 +565,13 @@ export const SourcesPanel = memo(function SourcesPanel(props: SourcesPanelProps)
   const [dialogOpen, setDialogOpen] = useState(false)
   // Local mirror so header "所有来源" and row checkboxes paint from one state.
   const [uiCheckedMap, setUiCheckedMap] = useState(checkedMap)
+  // 父级 checkedMap 变化时在「渲染期」对齐镜像，而不是 effect 里 setState：
+  // 用户操作仍只写镜像，保证头部与行内勾选立即上屏，等待父级回传不闪跳。
+  const [mirrorSource, setMirrorSource] = useState(checkedMap)
+  if (mirrorSource !== checkedMap) {
+    setMirrorSource(checkedMap)
+    setUiCheckedMap(checkedMap)
+  }
   const handledPreviewRequestIdRef = useRef<number>(0)
   const previewBodyRef = useRef<HTMLDivElement | null>(null)
   const previewInitialFocusPendingRef = useRef(false)
@@ -590,10 +593,6 @@ export const SourcesPanel = memo(function SourcesPanel(props: SourcesPanelProps)
   } = useSourcePreviewController({
     sourceListItems,
   })
-
-  useEffect(() => {
-    setUiCheckedMap(checkedMap)
-  }, [checkedMap])
 
   const selectableSourceItems = useMemo(
     () =>

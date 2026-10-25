@@ -8,7 +8,8 @@
     "moreOptionsAria": "More options",
     "configureChat": "Configure chat",
     "refreshChat": "Refresh chat",
-    "customizeNotebook": "Customize notebook"
+    "customizeNotebook": "Customize notebook",
+    "publicAria": "Public notebook"
   },
   "customizeNotebook": {
     "title": "Customize notebook",

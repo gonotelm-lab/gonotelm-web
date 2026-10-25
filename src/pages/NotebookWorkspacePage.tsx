@@ -1588,6 +1588,7 @@ export function NotebookWorkspacePage() {
         notebookName={displayNotebookName}
         isFetching={notebookQuery.isFetching}
         isUpdatingName={updateNotebookNameMutation.isPending}
+        isPublic={notebookQuery.data?.visibility === 'public'}
         onNotebookNameCommit={handleNotebookNameCommit}
         canRenameNotebook={canManageNotebook}
         onShareNotebook={isNotebookOwner ? handleOpenSharingDialog : undefined}

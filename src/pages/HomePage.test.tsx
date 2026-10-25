@@ -72,7 +72,7 @@ const switchScope = async (
 }
 
 describe('HomePage · 笔记本范围筛选', () => {
-  it('默认展示我的笔记本，且不展示 owner', async () => {
+  it('默认展示我的笔记本，owner 空位由 emoji 占位', async () => {
     const renderer = await renderHome()
     const cards = renderer.root.findAllByType(NotebookCard)
 
@@ -82,6 +82,7 @@ describe('HomePage · 笔记本范围筛选', () => {
       'Rust 并发',
     ])
     expect(cards.every((card) => card.props.owner === undefined)).toBe(true)
+    expect(new Set(cards.map((card) => card.props.emoji)).size).toBeGreaterThan(1)
     expect(cards.every((card) => typeof card.props.onDelete === 'function')).toBe(true)
   })
 

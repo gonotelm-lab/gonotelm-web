@@ -6,7 +6,6 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
@@ -14,7 +13,6 @@ import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined'
 import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined'
 import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
-import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined'
 import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined'
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
 import SlideshowOutlinedIcon from '@mui/icons-material/SlideshowOutlined'
@@ -36,7 +34,6 @@ import {
 } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { FlowLoadingOverlay } from './FlowLoadingOverlay'
-import { downloadSourceItemParsedContent } from './sourceItemDownload'
 import type { SourceListItem } from '../types/sourceTypes'
 import { isSameSourceListItem } from '../sourceListItemEquality'
 import {
@@ -84,7 +81,6 @@ interface SourceListRowProps {
   onRetryItem: (id: string) => Promise<void>
   onRenameItem: (id: string, title: string) => Promise<void>
   onPreviewItem: (item: SourceListItem) => Promise<void> | void
-  previewLoading: boolean
 }
 
 /**
@@ -95,7 +91,6 @@ const areSourceListRowPropsEqual = (prev: SourceListRowProps, next: SourceListRo
   && prev.removing === next.removing
   && prev.isBusy === next.isBusy
   && prev.canManageContent === next.canManageContent
-  && prev.previewLoading === next.previewLoading
   && prev.selectionColumnWidth === next.selectionColumnWidth
   && prev.onToggleItem === next.onToggleItem
   && prev.onDeleteItem === next.onDeleteItem
@@ -116,15 +111,16 @@ export const SourceListRow = memo(function SourceListRow({
   onRetryItem,
   onRenameItem,
   onPreviewItem,
-  previewLoading,
 }: SourceListRowProps) {
   const { t } = useTranslation(['sources', 'common'])
   const isProcessing = item.status === 'uploading' || item.status === 'preparing'
   const isFailed = item.status === 'failed'
-  const isReady = item.status === 'ready'
   const isAwaitingReady =
     item.status === 'inited' || item.status === 'uploading' || item.status === 'preparing'
   const rowSelectable = !isProcessing && !removing
+  // 菜单可用操作为空时（url 才有「打开」；重试/编辑/删除需要编辑权限），整组入口收起。
+  const canOpenSourceUrl = item.kind === 'url' && Boolean(item.urlContent)
+  const hasMenuActions = canOpenSourceUrl || canManageContent
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(item.title)
@@ -137,13 +133,12 @@ export const SourceListRow = memo(function SourceListRow({
     px: workspaceSpace.md,
     display: 'flex',
     alignItems: 'center',
+    gap: workspaceSpace.sm,
   }
   const actionMenuIconSx = { fontSize: workspaceIconSize.md, color: 'text.secondary' }
   const actionMenuTextSx = {
     fontSize: workspaceType.xs,
     lineHeight: 1.2,
-    ml: 'auto',
-    pl: workspaceSpace.md,
   }
 
   const commitToggleSelection = (nextChecked: boolean) => {
@@ -181,23 +176,10 @@ export const SourceListRow = memo(function SourceListRow({
     void onRetryItem(item.id)
   }
 
-  const handleDownloadSource = () => {
-    closeActionMenu()
-    if (!isReady || isBusy || removing) {
-      return
-    }
-    void downloadSourceItemParsedContent(item.id).catch(() => undefined)
-  }
-
   const handleOpenSourceUrl = () => {
     closeActionMenu()
     if (!item.urlContent) return
     window.open(item.urlContent, '_blank', 'noopener,noreferrer')
-  }
-
-  const handlePreviewSource = () => {
-    closeActionMenu()
-    void onPreviewItem(item)
   }
 
   const handleOpenEditDialog = () => {
@@ -384,26 +366,28 @@ export const SourceListRow = memo(function SourceListRow({
           zIndex: 1,
         }}
       >
-        <IconButton
-          className="source-action-trigger"
-          data-testid="source-action-trigger"
-          size="small"
-          aria-label={t('sources:row.actionsAria')}
-          onClick={openActionMenu}
-          sx={{
-            p: 0.5,
-            // 触屏设备无 hover，常显；桌面默认隐藏，hover 行 / 菜单打开 / 焦点在内时显示。
-            opacity: 0,
-            pointerEvents: 'none',
-            '&:focus, &:focus-visible': {
-              opacity: 1,
-              pointerEvents: 'auto',
-            },
-            transition: workspaceTransitionPresets.opacityOnly,
-          }}
-        >
-          <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
-        </IconButton>
+        {hasMenuActions ? (
+          <IconButton
+            className="source-action-trigger"
+            data-testid="source-action-trigger"
+            size="small"
+            aria-label={t('sources:row.actionsAria')}
+            onClick={openActionMenu}
+            sx={{
+              p: 0.5,
+              // 触屏设备无 hover，常显；桌面默认隐藏，hover 行 / 菜单打开 / 焦点在内时显示。
+              opacity: 0,
+              pointerEvents: 'none',
+              '&:focus, &:focus-visible': {
+                opacity: 1,
+                pointerEvents: 'auto',
+              },
+              transition: workspaceTransitionPresets.opacityOnly,
+            }}
+          >
+            <MoreHorizOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
+          </IconButton>
+        ) : null}
         {isProcessing ? (
           <CircularProgress size={16} thickness={5} />
         ) : (
@@ -424,22 +408,14 @@ export const SourceListRow = memo(function SourceListRow({
         )}
       </Box>
 
-      <Menu
-        anchorEl={actionAnchorEl}
-        open={actionMenuOpen}
-        onClose={closeActionMenu}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <MenuItem
-          data-testid="sources-action-preview"
-          disabled={!isReady || isBusy || removing || previewLoading}
-          onClick={handlePreviewSource}
-          sx={actionMenuItemSx}
+      {hasMenuActions ? (
+        <Menu
+          anchorEl={actionAnchorEl}
+          open={actionMenuOpen}
+          onClose={closeActionMenu}
+          onClick={(e) => e.stopPropagation()}
         >
-          <PreviewOutlinedIcon sx={actionMenuIconSx} />
-          <Typography sx={actionMenuTextSx}>{t('sources:row.preview')}</Typography>
-        </MenuItem>
-        {item.kind === 'url' ? (
+          {item.kind === 'url' ? (
           <MenuItem
             disabled={!item.urlContent}
             onClick={handleOpenSourceUrl}
@@ -449,14 +425,6 @@ export const SourceListRow = memo(function SourceListRow({
             <Typography sx={actionMenuTextSx}>{t('sources:row.open')}</Typography>
           </MenuItem>
         ) : null}
-        <MenuItem
-          disabled={!isReady || isBusy || removing}
-          onClick={handleDownloadSource}
-          sx={actionMenuItemSx}
-        >
-          <DownloadOutlinedIcon sx={actionMenuIconSx} />
-          <Typography sx={actionMenuTextSx}>{t('sources:row.download')}</Typography>
-        </MenuItem>
         {canManageContent && isFailed ? (
           <MenuItem
             data-testid="sources-action-retry"
@@ -489,8 +457,9 @@ export const SourceListRow = memo(function SourceListRow({
             <DeleteOutlineOutlinedIcon sx={actionMenuIconSx} />
             <Typography sx={actionMenuTextSx}>{t('sources:row.delete')}</Typography>
           </MenuItem>
-        ) : null}
-      </Menu>
+          ) : null}
+        </Menu>
+      ) : null}
       <Dialog
         open={editDialogOpen}
         onClose={handleCloseEditDialog}

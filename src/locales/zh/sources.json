@@ -63,12 +63,10 @@
   },
   "row": {
     "actionsAria": "来源操作",
-    "preview": "预览",
     "open": "打开",
-    "download": "下载",
     "retry": "重试",
-    "edit": "编辑",
-    "delete": "删除"
+    "edit": "重命名",
+    "delete": "移除"
   },
   "editTitle": {
     "dialog": "编辑来源标题",

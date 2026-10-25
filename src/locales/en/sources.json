@@ -63,12 +63,10 @@
   },
   "row": {
     "actionsAria": "Source actions",
-    "preview": "Preview",
     "open": "Open",
-    "download": "Download",
     "retry": "Retry",
-    "edit": "Edit",
-    "delete": "Delete"
+    "edit": "Rename",
+    "delete": "Remove"
   },
   "editTitle": {
     "dialog": "Edit source title",

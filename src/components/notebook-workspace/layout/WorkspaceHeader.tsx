@@ -1,8 +1,9 @@
-import { memo, useEffect, useState, type MouseEvent } from 'react'
+import { memo, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
+import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import {
@@ -13,6 +14,7 @@ import {
   InputBase,
   Menu,
   MenuItem,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
@@ -101,6 +103,8 @@ interface WorkspaceHeaderProps {
   notebookName: string
   isFetching: boolean
   isUpdatingName: boolean
+  /** 公开笔记本：标题右侧补一个可见性图标。 */
+  isPublic?: boolean
   /** 仅 owner 可改名；没有权限时标题变成只读文本。 */
   canRenameNotebook?: boolean
   /** Commit only on blur / Enter — keeps keystrokes out of the workspace page tree. */
@@ -117,6 +121,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   notebookName,
   isFetching,
   isUpdatingName,
+  isPublic = false,
   canRenameNotebook = true,
   onNotebookNameCommit,
   onShareNotebook,
@@ -127,6 +132,39 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   const [draftName, setDraftName] = useState(notebookName)
   const [isEditing, setIsEditing] = useState(false)
   const [moreMenuAnchorEl, setMoreMenuAnchorEl] = useState<HTMLElement | null>(null)
+
+  // 无标题时兜底成「未命名笔记本」；编辑分支的空串交给 placeholder 展示同一段文案，
+  // 避免把 fallback 当成真实标题写进输入值（否则保存会落一个假名字）。
+  const displayName = notebookName.trim() || t('workspace:header.namePlaceholder')
+
+  // 标题框宽度跟随文本：隐藏 span 用同样式量出 ink 宽度，输入框在量宽上加
+  // px padding（md=12 两边 24）+ 透明边框（2px）+ 少量呼吸余量。空值时量
+  // fallback 文案，输入框不会缩成一条缝。文本变化每个按键重测，字体换装
+  // （webfont 晚于首次测量生效）由 ResizeObserver 兜底纠正，避免假截断。
+  const measureText = isEditing ? draftName || displayName : displayName
+  const measureRef = useRef<HTMLSpanElement | null>(null)
+  const [nameWidth, setNameWidth] = useState(0)
+
+  useLayoutEffect(() => {
+    const el = measureRef.current
+    if (el) {
+      setNameWidth(el.offsetWidth)
+    }
+  }, [measureText])
+
+  useLayoutEffect(() => {
+    const el = measureRef.current
+    if (!el || typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const observer = new ResizeObserver(() => {
+      setNameWidth(el.offsetWidth)
+    })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   const isRefreshingChat = chatMenu?.isRefreshing ?? false
   const showMoreMenu = Boolean(chatMenu || onCustomizeNotebook)
@@ -180,6 +218,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
     >
       <Box
         sx={{
+          position: 'relative',
           width: '100%',
           minHeight: headerChrome.rowMinHeight,
           px: workspaceSpace.sm,
@@ -212,6 +251,24 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
         >
           <BrandMark size={headerChrome.brandMarkSize} />
         </IconButton>
+        {/* 量宽 ink 镜像：与标题框同字体字号字重，只用于测量文本宽度，不参与布局。 */}
+        <span
+          ref={measureRef}
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            visibility: 'hidden',
+            whiteSpace: 'pre',
+            fontSize: headerChrome.titleFontSize,
+            fontWeight: 600,
+            letterSpacing: 0,
+            pointerEvents: 'none',
+          }}
+        >
+          {measureText}
+        </span>
         {canRenameNotebook ? (
           <InputBase
             value={draftName}
@@ -235,9 +292,13 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
               maxLength: 128,
             }}
             sx={{
-              flex: 1,
-              minWidth: 0,
+              // 宽度跟随文本 ink（隐藏 span 量宽）：文本 + px padding 24 + 透明边框 2 +
+              // ~6px 呼吸余量，保证不因亚像素舍入出现假「...」。只有文本超过
+              // md 的 560 上限（或行空间被挤压）才走输入内 ellipsis。
+              width: nameWidth ? nameWidth + 32 : undefined,
               maxWidth: { xs: '100%', md: 560 },
+              flex: '0 1 auto',
+              minWidth: 0,
               height: headerChrome.controlHeight,
               px: workspaceSpace.md,
               py: 0,
@@ -275,10 +336,10 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           <Typography
             component="h1"
             data-testid="workspace-title"
-            title={notebookName}
+            title={displayName}
             noWrap
             sx={{
-              flex: 1,
+              flex: '0 1 auto',
               minWidth: 0,
               maxWidth: { xs: '100%', md: 560 },
               height: headerChrome.controlHeight,
@@ -293,9 +354,24 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
               textOverflow: 'ellipsis',
             }}
           >
-            {notebookName}
+            {displayName}
           </Typography>
         )}
+        {isPublic ? (
+          /* 可见性示意：跟在标题块右侧，留 lg 级间距避免贴着标题；弱化为次级 ink，
+             只承担“这是公开笔记本”的指示，不参与头部主操作。 */
+          <Tooltip title={t('workspace:header.publicAria')} placement="bottom">
+            <PublicOutlinedIcon
+              color="primary"
+              aria-label={t('workspace:header.publicAria')}
+              sx={{
+                flexShrink: 0,
+                ml: workspaceSpace.lg,
+                fontSize: headerChrome.controlIconSize,
+              }}
+            />
+          </Tooltip>
+        ) : null}
         <Box
           sx={{
             ml: 'auto',

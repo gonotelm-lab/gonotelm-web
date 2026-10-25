@@ -13,6 +13,7 @@ export interface NotebookCardViewModel {
   description: string
   sourceCount: number
   dateLabel: string
+  isPublic: boolean
   owner?: NotebookCardOwnerViewModel
 }
 
@@ -29,10 +30,13 @@ export function toNotebookCardViewModel(
       : ''
   return {
     id: notebook.id,
-    title: notebook.name,
+    title: notebook.name.trim() || i18n.t('home:card.untitled'),
     description: customDesc || i18n.t('home:card.noDescription'),
     sourceCount: notebook.source_count,
-    dateLabel: formatNotebookDate(notebook.updated_at),
+    // 卡片日期展示创建时间；列表排序仍走 updated_at（sortBy 由后端处理）。
+    // 旧后端缺 created_at 时回退更新时间，避免显示「未知日期」。
+    dateLabel: formatNotebookDate(notebook.created_at ?? notebook.updated_at),
+    isPublic: notebook.visibility === 'public',
     owner: notebook.owner
       ? {
           nickname: notebook.owner.nickname,

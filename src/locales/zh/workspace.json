@@ -8,7 +8,8 @@
     "moreOptionsAria": "更多选项",
     "configureChat": "配置对话",
     "refreshChat": "刷新对话",
-    "customizeNotebook": "自定义笔记本"
+    "customizeNotebook": "自定义笔记本",
+    "publicAria": "公开笔记本"
   },
   "customizeNotebook": {
     "title": "自定义笔记本",

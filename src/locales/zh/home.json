@@ -26,6 +26,8 @@
     "deleteBody": "删除后将移除聊天与来源数据，且不可恢复",
     "noDescription": "无描述",
     "unknownDate": "未知日期",
-    "sharedBy": "由 {{nickname}} 分享"
+    "sharedBy": "由 {{nickname}} 分享",
+    "publicAria": "公开笔记本",
+    "untitled": "未命名笔记本"
   }
 }

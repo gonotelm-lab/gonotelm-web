@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
-import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
+import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import {
   Avatar,
-  Button,
   Box,
+  Button,
   Card,
   CardActionArea,
   Dialog,
@@ -40,9 +40,12 @@ export interface NotebookCardOwner {
 
 interface NotebookCardProps {
   title: string
-  description: string
   dateLabel: string
   sourceCount: number
+  /** 公开笔记本：卡片右下角补充指向性图标。 */
+  isPublic?: boolean
+  /** owned 卡片在 owner 空位上展示的 emoji；由 notebookId 确定性映射。 */
+  emoji?: string
   /** 共享列表里展示分享者；owned 列表不传。 */
   owner?: NotebookCardOwner
   onOpen: () => void
@@ -52,9 +55,10 @@ interface NotebookCardProps {
 
 export function NotebookCard({
   title,
-  description,
   dateLabel,
   sourceCount,
+  isPublic = false,
+  emoji,
   owner,
   onOpen,
   onDelete,
@@ -66,7 +70,6 @@ export function NotebookCard({
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
   const actionMenuOpen = Boolean(actionAnchorEl)
   const canDelete = typeof onDelete === 'function'
-  const showOwner = Boolean(owner) && !canDelete
   const ownerInitial = owner
     ? (Array.from(owner.nickname.trim())[0]?.toUpperCase() ?? '?')
     : ''
@@ -145,82 +148,103 @@ export function NotebookCard({
           sx={{
             minHeight: 136,
             display: 'grid',
-            gridTemplateRows: 'auto minmax(0, 2.4em) minmax(0, 2.75em) auto',
+            gridTemplateRows: 'auto minmax(0, 1fr) auto',
             rowGap: workspaceLayout.listRowGap,
-            alignItems: 'start',
+            alignItems: 'stretch',
           }}
         >
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: workspaceRadius.md,
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.default',
-                color: 'primary.main',
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <MenuBookOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
-            </Box>
-            {showOwner && owner ? (
-              <Tooltip title={owner.nickname} placement="top">
-                <Avatar
-                  src={owner.avatarUrl?.trim() || undefined}
-                  alt=""
-                  aria-label={t('home:card.sharedBy', { nickname: owner.nickname })}
+          <Stack
+            direction="row"
+            sx={{ alignItems: 'center', gap: workspaceSpace.sm, minWidth: 0, pr: workspaceSpace.lg }}
+          >
+            {owner ? (
+              <>
+                <Tooltip
+                  title={canDelete ? owner.nickname : t('home:card.sharedBy', { nickname: owner.nickname })}
+                  placement="top"
+                >
+                  <Avatar
+                    src={owner.avatarUrl?.trim() || undefined}
+                    alt=""
+                    aria-label={
+                      canDelete
+                        ? owner.nickname
+                        : t('home:card.sharedBy', { nickname: owner.nickname })
+                    }
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      flexShrink: 0,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'background.default',
+                      color: 'text.secondary',
+                      fontSize: workspaceType.xs,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {ownerInitial}
+                  </Avatar>
+                </Tooltip>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                  sx={{ minWidth: 0, fontWeight: 500, letterSpacing: 0 }}
+                >
+                  {owner.nickname}
+                </Typography>
+              </>
+            ) : (
+              /* owned 卡片没有 owner 行：放 notebookId hash 出来的 emoji，顶部不空荡；纯字形，不加底色也不加边框。 */
+              emoji ? (
+                <Box
+                  aria-hidden
                   sx={{
-                    width: 24,
-                    height: 24,
+                    width: 36,
+                    height: 36,
+                    display: 'grid',
+                    placeItems: 'center',
                     flexShrink: 0,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'background.default',
-                    color: 'text.secondary',
-                    fontSize: workspaceType.xs,
-                    fontWeight: 600,
+                    fontSize: 24,
+                    lineHeight: 1,
                   }}
                 >
-                  {ownerInitial}
-                </Avatar>
-              </Tooltip>
-            ) : (
-              <Box sx={{ width: 28, height: 28, flexShrink: 0, visibility: canDelete ? 'hidden' : 'visible' }} />
+                  {emoji}
+                </Box>
+              ) : null
             )}
           </Stack>
-          <Typography
-            variant="subtitle1"
+          {/* 标题相对 owner 行与 meta 行垂直居中（参考稿里标题压在中段）。 */}
+          <Box
             sx={{
-              fontWeight: 600,
-              fontStyle: 'normal',
-              letterSpacing: 0,
-              lineHeight: 1.2,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              minWidth: 0,
+              minHeight: 0,
+              pr: workspaceSpace.lg,
             }}
           >
-            {title}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: 1.35,
-            }}
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                fontStyle: 'normal',
+                letterSpacing: 0,
+                lineHeight: 1.3,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: 'space-between', alignItems: 'center', minWidth: 0, alignSelf: 'stretch' }}
           >
-            {description}
-          </Typography>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
             <Typography
               variant="caption"
               color="text.secondary"
@@ -228,21 +252,21 @@ export function NotebookCard({
                 fontWeight: 500,
                 letterSpacing: 0,
                 whiteSpace: 'nowrap',
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              {t('common:sourceCount', { count: sourceCount })}
+              {dateLabel} · {t('common:sourceCount', { count: sourceCount })}
             </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                letterSpacing: 0,
-                whiteSpace: 'nowrap',
-                pl: workspaceSpace.sm,
-              }}
-            >
-              {dateLabel}
-            </Typography>
+            {isPublic ? (
+              <Tooltip title={t('home:card.publicAria')} placement="top">
+                <PublicOutlinedIcon
+                  aria-label={t('home:card.publicAria')}
+                  sx={{ fontSize: workspaceIconSize.sm, color: 'primary.main', flexShrink: 0 }}
+                />
+              </Tooltip>
+            ) : null}
           </Stack>
         </Stack>
       </CardActionArea>
@@ -261,27 +285,29 @@ export function NotebookCard({
           <MoreVertOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
         </IconButton>
       ) : null}
-      <Menu
-        anchorEl={actionAnchorEl}
-        open={actionMenuOpen}
-        onClose={handleCloseActionMenu}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <MenuItem
-          onClick={handleOpenDeleteDialog}
-          disabled={!canDelete || deleting}
-          sx={{
-            minHeight: 34,
-            px: workspaceSpace.md,
-            gap: workspaceLayout.listInlineGap,
-          }}
+      {canDelete ? (
+        <Menu
+          anchorEl={actionAnchorEl}
+          open={actionMenuOpen}
+          onClose={handleCloseActionMenu}
+          onClick={(event) => event.stopPropagation()}
         >
-          <DeleteOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
-          <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
-            {t('common:action.delete')}
-          </Typography>
-        </MenuItem>
-      </Menu>
+          <MenuItem
+            onClick={handleOpenDeleteDialog}
+            disabled={!canDelete || deleting}
+            sx={{
+              minHeight: 34,
+              px: workspaceSpace.md,
+              gap: workspaceLayout.listInlineGap,
+            }}
+          >
+            <DeleteOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
+            <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+              {t('common:action.delete')}
+            </Typography>
+          </MenuItem>
+        </Menu>
+      ) : null}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}

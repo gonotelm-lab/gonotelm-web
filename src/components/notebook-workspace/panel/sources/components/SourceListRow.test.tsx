@@ -74,7 +74,6 @@ const createRenderer = (canManageContent = true) => {
         onRetryItem={async () => undefined}
         onRenameItem={async () => undefined}
         onPreviewItem={() => undefined}
-        previewLoading={false}
       />,
     )
   })
@@ -97,16 +96,14 @@ describe('SourceListRow', () => {
     })
   }
 
-  it('无编辑权限时操作菜单只保留只读项', () => {
+  it('无编辑权限时无可用操作，整组入口不渲染', () => {
     const { renderer } = createRenderer(false)
-    openActionMenu(renderer)
 
+    // text 来源没有「打开」，且重试/重命名/移除都需要编辑权限：
+    // 菜单可操作项为空，三个点与菜单整体收起。
     expect(
-      renderer.root.findByProps({ 'data-testid': 'source-action-menu' }),
-    ).toBeTruthy()
-    expect(
-      renderer.root.findAllByProps({ 'data-testid': 'sources-action-preview' }),
-    ).not.toHaveLength(0)
+      renderer.root.findAllByProps({ 'data-testid': 'source-action-trigger' }),
+    ).toHaveLength(0)
     expect(
       renderer.root.findAllByProps({ 'data-testid': 'sources-action-edit' }),
     ).toHaveLength(0)
@@ -161,7 +158,6 @@ describe('SourceListRow', () => {
           onRetryItem={async () => undefined}
           onRenameItem={async () => undefined}
           onPreviewItem={onPreviewItem}
-          previewLoading={false}
         />,
       )
     })
