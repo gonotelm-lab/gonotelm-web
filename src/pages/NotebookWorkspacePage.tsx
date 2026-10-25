@@ -81,6 +81,46 @@ const workspacePanelMaxWidthRatio = 0.5
 const workspacePanelWidthScaleBasePx = 1440
 const workspaceCenterMinWidthPx = 420
 const workspaceResizeHandleWidthPx = 10
+
+/**
+ * 首帧面板宽度：按视口宽度和设计基准同步换算好，
+ * 避免挂载后从默认 280/460 过渡到目标宽度（看起来像“展开动画”）。
+ */
+const resolveInitialPanelWidths = (): { sources: number; insights: number } => {
+  const fallback = {
+    sources: workspaceSourcesPanelDefaultWidthPx,
+    insights: workspaceInsightsPanelDefaultWidthPx,
+  }
+  if (typeof window === 'undefined' || window.innerWidth <= 0) {
+    return fallback
+  }
+
+  // 面板容器在 md+ 有 workspaceSpace.sm（8px）的左右留白。
+  const containerWidth = Math.max(0, window.innerWidth - 16)
+  if (containerWidth <= 0) {
+    return fallback
+  }
+
+  const ratio = containerWidth / workspacePanelWidthScaleBasePx
+  const clampPanelWidth = (width: number, otherWidth: number) => {
+    const maxByRatio = Math.floor(containerWidth * workspacePanelMaxWidthRatio)
+    const maxByCenter =
+      containerWidth -
+      workspaceCenterMinWidthPx -
+      otherWidth -
+      workspaceResizeHandleWidthPx * 2
+    const maxWidth = Math.max(0, Math.min(maxByRatio, maxByCenter))
+    const minWidth = Math.min(workspacePanelMinWidthPx, maxWidth)
+    return Math.max(minWidth, Math.min(maxWidth, Math.round(width)))
+  }
+
+  const initialSources = Math.round(workspaceSourcesPanelDefaultWidthPx * ratio)
+  const initialInsights = Math.round(workspaceInsightsPanelDefaultWidthPx * ratio)
+  return {
+    sources: clampPanelWidth(initialSources, initialInsights),
+    insights: clampPanelWidth(initialInsights, clampPanelWidth(initialSources, initialInsights)),
+  }
+}
 const workspacePanelGridTransition = workspaceTransitionPresets.panelGridColumns
 const workspaceSourcesColumnVar = '--workspace-sources-column'
 const workspaceInsightsColumnVar = '--workspace-insights-column'
@@ -180,10 +220,10 @@ export function NotebookWorkspacePage() {
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false)
   const [isInsightsPanelCollapsed, setIsInsightsPanelCollapsed] = useState(false)
   const [sourcesPanelWidthPx, setSourcesPanelWidthPx] = useState(
-    workspaceSourcesPanelDefaultWidthPx,
+    () => resolveInitialPanelWidths().sources,
   )
   const [insightsPanelWidthPx, setInsightsPanelWidthPx] = useState(
-    workspaceInsightsPanelDefaultWidthPx,
+    () => resolveInitialPanelWidths().insights,
   )
   const [workspaceContainerWidthPx, setWorkspaceContainerWidthPx] = useState(0)
   const [isPanelLayoutAnimating, setIsPanelLayoutAnimating] = useState(false)
@@ -1258,15 +1298,17 @@ export function NotebookWorkspacePage() {
     }
 
     const lastWidth = lastPanelScaleContainerWidthRef.current
-    if (lastWidth > 0 && Math.abs(workspaceContainerWidthPx - lastWidth) < 32) {
+    if (lastWidth === 0) {
+      // 首帧宽度已按视口换算好，首次测量只记录，不再二次缩放。
+      lastPanelScaleContainerWidthRef.current = workspaceContainerWidthPx
+      return
+    }
+    if (Math.abs(workspaceContainerWidthPx - lastWidth) < 32) {
       return
     }
 
-    const ratio =
-      lastWidth > 0
-        ? workspaceContainerWidthPx / lastWidth
-        : workspaceContainerWidthPx / workspacePanelWidthScaleBasePx
-    if (lastWidth > 0 && Math.abs(ratio - 1) < 0.01) {
+    const ratio = workspaceContainerWidthPx / lastWidth
+    if (Math.abs(ratio - 1) < 0.01) {
       lastPanelScaleContainerWidthRef.current = workspaceContainerWidthPx
       return
     }
@@ -1747,8 +1789,8 @@ export function NotebookWorkspacePage() {
             overflow: 'hidden',
             gridTemplateColumns: {
               xs: '1fr',
-              md: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
-              xl: `var(${workspaceSourcesColumnVar}, ${workspaceSourcesPanelDefaultWidthPx}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${workspaceInsightsPanelDefaultWidthPx}px)`,
+              md: `var(${workspaceSourcesColumnVar}, ${Math.round(sourcesPanelWidthPx)}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${Math.round(insightsPanelWidthPx)}px)`,
+              xl: `var(${workspaceSourcesColumnVar}, ${Math.round(sourcesPanelWidthPx)}px) var(${workspaceLeftHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) minmax(${workspaceCenterMinWidthPx}px, 1fr) var(${workspaceRightHandleColumnVar}, ${workspaceResizeHandleWidthPx}px) var(${workspaceInsightsColumnVar}, ${Math.round(insightsPanelWidthPx)}px)`,
             },
             gridTemplateRows: 'minmax(0, 1fr)',
             transition: workspacePanelGridTransition,
