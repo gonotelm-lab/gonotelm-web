@@ -34,6 +34,21 @@
       "error": {
         "invalid": "Description is required when custom description is on"
       }
+    },
+    "cover": {
+      "alt": "Notebook cover",
+      "uploadNew": "Upload cover",
+      "uploading": "Uploading…",
+      "deleteAria": "Delete cover",
+      "formatHint": "JPG / PNG / WebP up to 2MB; crops to 16:9",
+      "error": {
+        "unsupportedType": "Only JPG, PNG, or WebP images are supported",
+        "tooLarge": "The image is over 2MB. Please choose a smaller one",
+        "processFailed": "Couldn't process the image. Please try again",
+        "uploadFailed": "Couldn't upload the cover. Please try again",
+        "deleteFailed": "Couldn't delete the cover. Please try again",
+        "invalid": "Cover verification failed. Please re-upload"
+      }
     }
   },
   "sharing": {

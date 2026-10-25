@@ -98,4 +98,43 @@ describe('toNotebookCardViewModel', () => {
       avatarUrl: 'https://cdn.example.com/avatars/alice.png',
     })
   })
+
+  it('封面 URL 映射到 coverUrl；空串/缺失视为无封面', () => {
+    expect(
+      toNotebookCardViewModel({
+        id: 'nb-cover',
+        name: '带封面',
+        desc: '',
+        flags: { customize_description: false },
+        source_count: 1,
+        updated_at: Date.UTC(2025, 6, 18),
+        cover_url: 'https://cdn.example.com/covers/nb-cover.webp',
+      }).coverUrl,
+    ).toBe('https://cdn.example.com/covers/nb-cover.webp')
+
+    // 旧后端缺 cover_url 字段
+    expect(
+      toNotebookCardViewModel({
+        id: 'nb-nofield',
+        name: '无字段',
+        desc: '',
+        flags: { customize_description: false },
+        source_count: 1,
+        updated_at: Date.UTC(2025, 6, 18),
+      }).coverUrl,
+    ).toBeUndefined()
+
+    // 空串也要顶掉，避免首页用空 src 发请求
+    expect(
+      toNotebookCardViewModel({
+        id: 'nb-empty',
+        name: '空封面',
+        desc: '',
+        flags: { customize_description: false },
+        source_count: 1,
+        updated_at: Date.UTC(2025, 6, 18),
+        cover_url: '   ',
+      }).coverUrl,
+    ).toBeUndefined()
+  })
 })

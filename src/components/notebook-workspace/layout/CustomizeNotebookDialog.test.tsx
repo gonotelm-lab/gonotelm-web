@@ -5,6 +5,7 @@ import { Alert } from '@mui/material'
 import { http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
+import { apiErrorToastStore, resetApiErrorToastForTest } from '@/lib/apiErrorToast'
 import { mockServer } from '@/test/mocks'
 import type { Notebook } from '@/types/api'
 import {
@@ -67,16 +68,26 @@ const findAlertChildren = (renderer: ReactTestRenderer) => {
   return Array.isArray(alert.props.children) ? '' : (alert.props.children as string)
 }
 
+/** 封面类即时提示走全局 toast，不在对话框内渲染 Alert。 */
+const currentToastMessage = () => apiErrorToastStore.getSnapshot()?.message
+
+const alertCount = (renderer: ReactTestRenderer) =>
+  renderer.root.findAllByType(Alert).length
+
 interface RenderOptions {
   notebookName?: string
   description?: string
   customizeDescription?: boolean
+  coverUrl?: string
+  onCoverChange?: (coverUrl: string | null) => void
 }
 
 const renderDialog = async ({
   notebookName = 'Rust 入门',
   description = '',
   customizeDescription = false,
+  coverUrl,
+  onCoverChange,
 }: RenderOptions = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -110,6 +121,8 @@ const renderDialog = async ({
           notebookName={notebookName}
           description={description}
           customizeDescription={customizeDescription}
+          coverUrl={coverUrl}
+          onCoverChange={onCoverChange}
           onClose={onClose}
           onSaved={onSaved}
         />
@@ -144,6 +157,7 @@ const clickDone = async (renderer: ReactTestRenderer) => {
 describe('CustomizeNotebookDialog', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('zh')
+    resetApiErrorToastForTest()
   })
 
   it('打开时预填当前名称；未开启自定义时没有摘要输入', async () => {
@@ -335,5 +349,128 @@ describe('CustomizeNotebookDialog', () => {
     expect(findAlertChildren(renderer)).toBe(i18n.t(messageKey))
     // 保存失败不能把对话框关掉，用户要有机会修改后重试。
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('无封面时空态：只有上传入口，没有删除按钮', async () => {
+    const { renderer } = await renderDialog()
+
+    // MUI 把 data-testid 透传到多个内部节点，count 只能表达 0 / 非零。
+    expect(countByTestId(renderer, 'customize-notebook-cover-upload')).toBeGreaterThan(0)
+    expect(countByTestId(renderer, 'customize-notebook-cover-delete')).toBe(0)
+  })
+
+  it('有封面时预填图片并展示删除/上传两个操作', async () => {
+    const { renderer } = await renderDialog({
+      coverUrl: 'https://cdn.example.com/covers/notebook-1.webp',
+    })
+
+    expect(renderer.root.findByProps({ src: 'https://cdn.example.com/covers/notebook-1.webp' }))
+      .toBeDefined()
+    expect(countByTestId(renderer, 'customize-notebook-cover-delete')).toBeGreaterThan(0)
+    expect(countByTestId(renderer, 'customize-notebook-cover-upload')).toBeGreaterThan(0)
+  })
+
+  it('选择白名单外/超 2MB 的文件：直接前端拒绝，不发任何封面请求', async () => {
+    let coverRequests = 0
+    const track = () => {
+      coverRequests += 1
+      return createSuccessResponse({ store_key: 'k', url: 'u' })
+    }
+    mockServer.use(
+      http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/cover/uploads`, () => track()),
+      http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/cover/confirm`, () => track()),
+    )
+
+    const { renderer } = await renderDialog({
+      coverUrl: undefined,
+      onCoverChange: vi.fn(),
+    })
+    const fileInput = renderer.root.findByProps({ type: 'file' })
+
+    // 非白名单格式直接拒绝
+    const gifFile = new File([new Uint8Array(64)], 'cover.gif', { type: 'image/gif' })
+    await act(async () => {
+      fileInput.props.onChange({ target: { files: [gifFile], value: '' } })
+    })
+    await settle()
+    expect(currentToastMessage()).toBe(
+      i18n.t('workspace:customizeNotebook.cover.error.unsupportedType'),
+    )
+
+    // 超 2MB 拒绝
+    const bigFile = new File(
+      [new Uint8Array(2 * 1024 * 1024 + 1)],
+      'cover.png',
+      { type: 'image/png' },
+    )
+    await act(async () => {
+      fileInput.props.onChange({ target: { files: [bigFile], value: '' } })
+    })
+    await settle()
+    expect(currentToastMessage()).toBe(
+      i18n.t('workspace:customizeNotebook.cover.error.tooLarge'),
+    )
+
+    // 即时提示走 toast，不落到对话框内的表单错误区
+    expect(alertCount(renderer)).toBe(0)
+    expect(coverRequests).toBe(0)
+  })
+
+  it('删除封面成功：请求 DELETE、清空图片并同步详情缓存/回传页面', async () => {
+    let deletes = 0
+    mockServer.use(
+      http.delete(`${apiBaseUrl}/api/v1/notebooks/:notebookId/cover`, () => {
+        deletes += 1
+        return createSuccessResponse(null)
+      }),
+    )
+
+    const onCoverChange = vi.fn()
+    const { renderer, queryClient } = await renderDialog({
+      coverUrl: 'https://cdn.example.com/covers/notebook-1.webp',
+      onCoverChange,
+    })
+    queryClient.setQueryData<Notebook>(['notebook', 'notebook-1'], createNotebookFixture({
+      cover_url: 'https://cdn.example.com/covers/notebook-1.webp',
+    }))
+
+    await act(async () => {
+      findByTestId(renderer, 'customize-notebook-cover-delete').props.onClick()
+    })
+    await settle()
+
+    expect(deletes).toBe(1)
+    expect(countByTestId(renderer, 'customize-notebook-cover-delete')).toBe(0)
+    expect(countByTestId(renderer, 'customize-notebook-cover-upload')).toBeGreaterThan(0)
+    expect(onCoverChange).toHaveBeenCalledWith(null)
+    const cached = queryClient.getQueryData<Notebook>(['notebook', 'notebook-1'])
+    expect(cached?.cover_url).toBeUndefined()
+    expect(Boolean(queryClient.getQueryState(homeKey)?.isInvalidated)).toBe(true)
+  })
+
+  it('删除封面失败（100016）：映射文案且保留当前封面', async () => {
+    mockServer.use(
+      http.delete(`${apiBaseUrl}/api/v1/notebooks/:notebookId/cover`, () =>
+        createErrorResponse(400, 'mock cover error', 100016),
+      ),
+    )
+
+    const onCoverChange = vi.fn()
+    const { renderer } = await renderDialog({
+      coverUrl: 'https://cdn.example.com/covers/notebook-1.webp',
+      onCoverChange,
+    })
+
+    await act(async () => {
+      findByTestId(renderer, 'customize-notebook-cover-delete').props.onClick()
+    })
+    await settle()
+
+    expect(currentToastMessage()).toBe(
+      i18n.t('workspace:customizeNotebook.cover.error.invalid'),
+    )
+    expect(alertCount(renderer)).toBe(0)
+    expect(countByTestId(renderer, 'customize-notebook-cover-delete')).toBeGreaterThan(0)
+    expect(onCoverChange).not.toHaveBeenCalled()
   })
 })

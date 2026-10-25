@@ -6,7 +6,7 @@ import { apiErrorMessage } from '@/lib/apiErrorMessage'
 import { showAppToast } from '@/lib/apiErrorToast'
 import { ChatComposer } from './ChatComposer'
 import { ChatMessagesList } from './ChatMessagesList'
-import { ChatNotebookInfoHeader } from './ChatNotebookInfoHeader'
+import { ChatNotebookInfoHeader, type ChatNotebookOwner } from './ChatNotebookInfoHeader'
 import { ChatPanelHeader } from './ChatPanelHeader'
 import { ChatSettingsDialog } from './ChatSettingsDialog'
 import {
@@ -20,7 +20,7 @@ import { useChatConversation } from './useChatConversation'
 import { useChatSuggestions } from './useChatSuggestions'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import { resolveWorkspaceElevation } from '../../shared/ui/workspaceElevation'
-import { chatPanelLayoutTokens } from './layoutTokens'
+import { chatContentColumnSx, chatPanelLayoutTokens, chatReadableColumnSx } from './layoutTokens'
 
 const scrollToBottomButtonTokens = {
   size: 32,
@@ -133,6 +133,12 @@ interface ChatPanelProps {
   notebookName: string
   notebookDescription: string
   notebookSourceCount: number
+  /** 笔记本创建时间（unix ms）；标题下方展示创建日期。 */
+  notebookCreatedAt?: number
+  /** 已设置封面时：封面作为聊天开场标题背景，owner/标题压在图上。 */
+  notebookCoverUrl?: string
+  /** 共享笔记本的 owner；自己拥有时不传（不展示）。 */
+  notebookOwner?: ChatNotebookOwner
   customizeDescription?: boolean
   notebookDescriptionLoading?: boolean
   selectedSourceIds: string[]
@@ -169,10 +175,14 @@ export const ChatPanel = memo(function ChatPanel({
 type ChatPanelContentProps = ChatPanelProps
 
 function ChatPanelContent({
+  notebookId,
   chatId,
   notebookName,
   notebookDescription,
   notebookSourceCount,
+  notebookCreatedAt,
+  notebookCoverUrl,
+  notebookOwner,
   customizeDescription = false,
   notebookDescriptionLoading = false,
   selectedSourceIds,
@@ -333,18 +343,26 @@ function ChatPanelContent({
   const notebookInfoHeader = useMemo(
     () => (
       <ChatNotebookInfoHeader
+        notebookId={notebookId}
         notebookName={notebookName}
         notebookDescription={notebookDescription}
         notebookSourceCount={notebookSourceCount}
+        notebookCreatedAt={notebookCreatedAt}
+        notebookCoverUrl={notebookCoverUrl}
+        notebookOwner={notebookOwner}
         customizeDescription={customizeDescription}
         descriptionLoading={notebookDescriptionLoading}
       />
     ),
     [
       customizeDescription,
+      notebookCoverUrl,
+      notebookCreatedAt,
       notebookDescription,
       notebookDescriptionLoading,
+      notebookId,
       notebookName,
+      notebookOwner,
       notebookSourceCount,
     ],
   )
@@ -367,13 +385,15 @@ function ChatPanelContent({
         contain: 'layout paint',
       }}
     >
-      <Box sx={{ px: chatPanelLayoutTokens.horizontalPadding }}>
-        <ChatPanelHeader
-          sourcesPanelCollapsed={sourcesPanelCollapsed}
-          insightsPanelCollapsed={insightsPanelCollapsed}
-          onExpandSourcesPanel={onExpandSourcesPanel}
-          onExpandInsightsPanel={onExpandInsightsPanel}
-        />
+      <Box sx={chatContentColumnSx}>
+        <Box sx={chatReadableColumnSx}>
+          <ChatPanelHeader
+            sourcesPanelCollapsed={sourcesPanelCollapsed}
+            insightsPanelCollapsed={insightsPanelCollapsed}
+            onExpandSourcesPanel={onExpandSourcesPanel}
+            onExpandInsightsPanel={onExpandInsightsPanel}
+          />
+        </Box>
       </Box>
 
       <ChatMessagesList
@@ -393,7 +413,7 @@ function ChatPanelContent({
         onOpenCitationJump={onOpenCitationJump}
       />
 
-      <Box sx={{ position: 'relative', px: chatPanelLayoutTokens.horizontalPadding }}>
+      <Box sx={{ position: 'relative', ...chatContentColumnSx }}>
         {showScrollToBottomButton ? (
           <IconButton
             size="small"
@@ -420,18 +440,20 @@ function ChatPanelContent({
           </IconButton>
         ) : null}
 
-        <ChatComposer
-          inputRef={chatInputRef}
-          interactionState={composerInteractionState}
-          canSubmit={canSubmit}
-          restoreNonce={composerRestoreNonce}
-          restoreValue={composerRestoreValue}
-          onSend={onSendMessage}
-          onAbort={onAbortStream}
-          suggestions={suggestions}
-          suggestionsDisabled={isStreaming}
-          onSuggestionSelect={sendPrompt}
-        />
+        <Box sx={chatReadableColumnSx}>
+          <ChatComposer
+            inputRef={chatInputRef}
+            interactionState={composerInteractionState}
+            canSubmit={canSubmit}
+            restoreNonce={composerRestoreNonce}
+            restoreValue={composerRestoreValue}
+            onSend={onSendMessage}
+            onAbort={onAbortStream}
+            suggestions={suggestions}
+            suggestionsDisabled={isStreaming}
+            onSuggestionSelect={sendPrompt}
+          />
+        </Box>
       </Box>
 
       <ChatSettingsDialog

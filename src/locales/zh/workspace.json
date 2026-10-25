@@ -34,6 +34,21 @@
       "error": {
         "invalid": "开启自定义摘要时，摘要不能为空"
       }
+    },
+    "cover": {
+      "alt": "笔记本封面",
+      "uploadNew": "上传封面",
+      "uploading": "上传中…",
+      "deleteAria": "删除封面",
+      "formatHint": "支持 JPG / PNG / WebP，不超过 2MB，将裁切为 16:9",
+      "error": {
+        "unsupportedType": "仅支持 JPG、PNG、WebP 格式的图片",
+        "tooLarge": "图片超过 2MB，请选择更小的图片",
+        "processFailed": "图片处理失败，请重试",
+        "uploadFailed": "封面上传失败，请重试",
+        "deleteFailed": "封面删除失败，请重试",
+        "invalid": "封面校验未通过，请重新上传"
+      }
     }
   },
   "sharing": {

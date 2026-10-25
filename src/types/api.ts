@@ -222,6 +222,11 @@ export interface Notebook {
   created_at?: number
   /** Get/List 均可附带；shared 列表用它展示分享者。 */
   owner?: NotebookOwnerSummary
+  /**
+   * 生效封面直链；pending key 永不外显，confirm 前返回旧封面直链。
+   * 旧后端缺字段时为 undefined（视为无封面）。
+   */
+  cover_url?: string
 }
 
 /** @deprecated 与 Notebook 同形；保留别名避免调用处大面积改名。 */
@@ -309,6 +314,28 @@ export interface CreateNotebookRequest {
 
 export interface CreateNotebookResponse {
   id: string
+}
+
+/** POST /api/v1/notebooks/:id/cover/uploads 请求体；POST policy 精确钉 content-type 与长度区间。 */
+export interface PresignCoverUploadRequest {
+  content_type: string
+  size: number
+}
+
+/** 封面 presign 响应为扁平结构：store_key + 对象存储直传配置（对齐 source 的上传形态）。 */
+export interface PresignCoverUploadResponse {
+  store_key: string
+  url: string
+  method?: string
+  /** Go nil map 会序列化为 null，前端消费时必须容错。 */
+  forms?: Record<string, string> | null
+  /** Go nil map 会序列化为 null，前端消费时必须容错。 */
+  headers?: Record<string, string> | null
+}
+
+/** POST /api/v1/notebooks/:id/cover/confirm 响应；confirm 成功即返回新封面直链。 */
+export interface ConfirmCoverUploadResponse {
+  cover_url: string
 }
 
 /** PATCH /api/v1/notebooks/:id —— name 与自定义摘要可同次提交。 */

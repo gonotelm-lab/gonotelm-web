@@ -77,6 +77,8 @@ const workspaceInsightsPanelDefaultWidthPx = 460
 const workspacePanelMinWidthPx = 220
 const workspacePanelAutoCollapseWidthPx = 170
 const workspacePanelMaxWidthRatio = 0.5
+/** 面板宽度自适应缩放的设计基准宽度（默认 280/460 按此宽度设计）。 */
+const workspacePanelWidthScaleBasePx = 1440
 const workspaceCenterMinWidthPx = 420
 const workspaceResizeHandleWidthPx = 10
 const workspacePanelGridTransition = workspaceTransitionPresets.panelGridColumns
@@ -349,6 +351,7 @@ export function NotebookWorkspacePage() {
       desc: cached.flags?.customize_description === true ? (cached.desc ?? '') : '',
       customizeDescription: cached.flags?.customize_description ?? false,
       sourceCount: cached.source_count,
+      coverUrl: cached.cover_url || undefined,
     })
   }, [id, patchNotebookMeta, queryClient, resetWorkspace, resetWorkspaceUiState])
 
@@ -461,12 +464,21 @@ export function NotebookWorkspacePage() {
     if (!id || isHydratingSources) return
     if (notebookDescGenerationInFlightRef.current) return
     if (autoDescAttemptedForVisitRef.current) return
-    if (notebookMeta.customizeDescription) {
+
+    // 进入笔记本的首个 commit 里，reset effect 虽已同步清空 store，但本轮 effect 闭包里的
+    // sources/meta 仍是上一个笔记本的渲染快照；StrictMode 又会把 effect 跑两遍并复位守卫，
+    // 于是会拿残留 sources 连发两次 generation。这里一律以 live store 为准，并要求 store
+    // 已切到当前 notebook（reset + query 回填之后）再继续。
+    const liveState = useWorkspaceStore.getState()
+    if (liveState.notebookMeta.id !== id) return
+    if (liveState.notebookMeta.customizeDescription) {
       autoDescAttemptedForVisitRef.current = true
       return
     }
 
-    const activeSources = sources.filter((source) => !removingSourceIds[source.id])
+    const activeSources = liveState.sources.filter(
+      (source) => !removingSourceIds[source.id],
+    )
     // 无 sources：不触发 generation；本 visit 仍可等「从无到有」后再试。
     if (activeSources.length === 0) {
       // 来源被删空时同步清掉过气的 AI 草稿与生成态，是跨外部数据源的刻意复位。
@@ -525,6 +537,7 @@ export function NotebookWorkspacePage() {
     isHydratingSources,
     notebookDescGenNudge,
     notebookMeta.customizeDescription,
+    notebookMeta.id,
     removingSourceIds,
     sources,
   ])
@@ -555,6 +568,17 @@ export function NotebookWorkspacePage() {
     Boolean(id) && notebookQuery.isSuccess,
   )
   const isNotebookOwner = resolveIsNotebookOwner(notebookAccessQuery.data)
+  // 聊天开场标题区只在「共享给当前用户」时展示 owner；自己拥有时不展示。
+  const notebookOwnerForHeader = useMemo(() => {
+    if (isNotebookOwner) {
+      return undefined
+    }
+    const owner = notebookQuery.data?.owner
+    if (!owner) {
+      return undefined
+    }
+    return { nickname: owner.nickname, avatarUrl: owner.avatar_url }
+  }, [isNotebookOwner, notebookQuery.data?.owner])
   // 无编辑权限时整个工作区进入只读：隐藏/禁用所有会写内容的入口。
   const canManageContent =
     notebookAccessQuery.data?.can_manage_content ?? false
@@ -567,6 +591,7 @@ export function NotebookWorkspacePage() {
   const notebookCustomizeDescriptionFromQuery =
     notebookQuery.data?.flags?.customize_description ?? false
   const notebookSourceCountFromQuery = notebookQuery.data?.source_count
+  const notebookCoverUrlFromQuery = notebookQuery.data?.cover_url
 
   useEffect(() => {
     if (!notebookIdFromQuery || notebookSourceCountFromQuery === undefined) {
@@ -583,6 +608,7 @@ export function NotebookWorkspacePage() {
         ? notebookDescFromQuery
         : '',
       customizeDescription: notebookCustomizeDescriptionFromQuery,
+      coverUrl: notebookCoverUrlFromQuery || undefined,
     })
   }, [
     notebookCustomizeDescriptionFromQuery,
@@ -590,6 +616,7 @@ export function NotebookWorkspacePage() {
     notebookIdFromQuery,
     notebookNameFromQuery,
     notebookSourceCountFromQuery,
+    notebookCoverUrlFromQuery,
     patchNotebookMeta,
   ])
 
@@ -1217,6 +1244,80 @@ export function NotebookWorkspacePage() {
     workspaceContainerWidthPx,
   ])
 
+  /**
+   * 大屏自适应：窗口跨屏/放大时按容器比例同步放大两侧面板。
+   * 否则中间 chat 区会被拉宽，而聊天内容列有最大宽度，两侧会出现大片空白。
+   * - 首次测量：以 1440 为设计基准推导；
+   * - 后续：按容器变化比例缩放，并受拖动边界约束；
+   * - 小于 32px 的抖动忽略，避免窗口拖拽过程中频繁重排。
+   */
+  const lastPanelScaleContainerWidthRef = useRef(0)
+  useEffect(() => {
+    if (workspaceContainerWidthPx <= 0) {
+      return
+    }
+
+    const lastWidth = lastPanelScaleContainerWidthRef.current
+    if (lastWidth > 0 && Math.abs(workspaceContainerWidthPx - lastWidth) < 32) {
+      return
+    }
+
+    const ratio =
+      lastWidth > 0
+        ? workspaceContainerWidthPx / lastWidth
+        : workspaceContainerWidthPx / workspacePanelWidthScaleBasePx
+    if (lastWidth > 0 && Math.abs(ratio - 1) < 0.01) {
+      lastPanelScaleContainerWidthRef.current = workspaceContainerWidthPx
+      return
+    }
+
+    let nextSourcesWidth = Math.round(sourcesPanelWidthPx * ratio)
+    let nextInsightsWidth = Math.round(insightsPanelWidthPx * ratio)
+
+    const leftBounds = getLeftPanelWidthBounds(
+      workspaceContainerWidthPx,
+      nextInsightsWidth,
+      isInsightsPanelCollapsed,
+    )
+    nextSourcesWidth = Math.min(
+      leftBounds.maxWidth,
+      Math.max(leftBounds.minWidth, nextSourcesWidth),
+    )
+    const rightBounds = getRightPanelWidthBounds(
+      workspaceContainerWidthPx,
+      nextSourcesWidth,
+      isSourcesPanelCollapsed,
+    )
+    nextInsightsWidth = Math.min(
+      rightBounds.maxWidth,
+      Math.max(rightBounds.minWidth, nextInsightsWidth),
+    )
+
+    lastPanelScaleContainerWidthRef.current = workspaceContainerWidthPx
+    if (
+      nextSourcesWidth === Math.round(sourcesPanelWidthPx)
+      && nextInsightsWidth === Math.round(insightsPanelWidthPx)
+    ) {
+      return
+    }
+
+    applyPanelSizingState({
+      nextSourcesCollapsed: isSourcesPanelCollapsed,
+      nextInsightsCollapsed: isInsightsPanelCollapsed,
+      nextSourcesWidth,
+      nextInsightsWidth,
+    })
+  }, [
+    applyPanelSizingState,
+    getLeftPanelWidthBounds,
+    getRightPanelWidthBounds,
+    insightsPanelWidthPx,
+    isInsightsPanelCollapsed,
+    isSourcesPanelCollapsed,
+    sourcesPanelWidthPx,
+    workspaceContainerWidthPx,
+  ])
+
   const startResizePanel = useCallback(
     (side: 'left' | 'right') => (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.button !== 0) return
@@ -1614,6 +1715,10 @@ export function NotebookWorkspacePage() {
           }
           description={notebookMeta.desc}
           customizeDescription={notebookMeta.customizeDescription}
+          coverUrl={notebookMeta.coverUrl}
+          onCoverChange={(nextCoverUrl) => {
+            patchNotebookMeta({ coverUrl: nextCoverUrl ?? undefined })
+          }}
           onClose={handleCloseCustomizeNotebookDialog}
           onSaved={handleCustomizeNotebookSaved}
         />
@@ -1742,6 +1847,13 @@ export function NotebookWorkspacePage() {
               notebookName={displayNotebookName}
               notebookDescription={displayNotebookDescription}
               notebookSourceCount={notebookMeta.sourceCount}
+              notebookCreatedAt={
+                notebookQuery.data?.created_at && notebookQuery.data.created_at > 0
+                  ? notebookQuery.data.created_at
+                  : notebookQuery.data?.updated_at
+              }
+              notebookCoverUrl={notebookMeta.coverUrl}
+              notebookOwner={notebookOwnerForHeader}
               customizeDescription={notebookMeta.customizeDescription}
               notebookDescriptionLoading={isGeneratingNotebookDescription}
               selectedSourceIds={deferredSelectedSourceIdList}

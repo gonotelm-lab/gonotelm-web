@@ -21,7 +21,8 @@ export interface NotebookMeta {
   desc: string
   customizeDescription: boolean
   sourceCount: number
-  iconUrl?: string
+  /** 当前生效封面直链；无封面时为 undefined。对话框上传/删除后会同步到这里。 */
+  coverUrl?: string
 }
 
 const createEmptyNotebookMeta = (): NotebookMeta => ({

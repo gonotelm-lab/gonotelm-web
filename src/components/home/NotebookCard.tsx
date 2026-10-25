@@ -19,6 +19,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
 import { apiErrorMessage } from '../../lib/apiErrorMessage'
 import { workspaceDialogLayout } from '../notebook-workspace/shared/ui/dialogLayoutTokens'
@@ -29,6 +30,7 @@ import {
 } from '../notebook-workspace/shared/ui/layoutTokens'
 import {
   workspaceInteraction,
+  workspaceMotion,
   workspaceTransitionPresets,
 } from '../notebook-workspace/shared/ui/motionTokens'
 import { workspaceIconSize, workspaceType } from '../notebook-workspace/shared/ui/typeTokens'
@@ -44,8 +46,10 @@ interface NotebookCardProps {
   sourceCount: number
   /** 公开笔记本：卡片右下角补充指向性图标。 */
   isPublic?: boolean
-  /** owned 卡片在 owner 空位上展示的 emoji；由 notebookId 确定性映射。 */
+  /** owned 卡片在 owner 空位上展示的 emoji；由 notebookId 确定性映射；有封面时不展示。 */
   emoji?: string
+  /** 已设置封面：整卡以封面为背景，文字压在渐变遮罩上。 */
+  coverUrl?: string
   /** 共享列表里展示分享者；owned 列表不传。 */
   owner?: NotebookCardOwner
   onOpen: () => void
@@ -59,12 +63,14 @@ export function NotebookCard({
   sourceCount,
   isPublic = false,
   emoji,
+  coverUrl,
   owner,
   onOpen,
   onDelete,
   deleting = false,
 }: NotebookCardProps) {
   const { t } = useTranslation(['home', 'common'])
+  const hasCover = Boolean(coverUrl)
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
@@ -131,9 +137,53 @@ export function NotebookCard({
           ? undefined
           : {
               borderColor: 'primary.main',
+              // hover 时封面轻微放大；非封面卡片没有该目标，不受影响。
+              '& .notebook-card-cover': {
+                transform: 'scale(1.04)',
+              },
             },
+        // 尊重系统的减少动态偏好：只保留边框反馈，不做缩放。
+        [workspaceInteraction.reducedMotionQuery]: {
+          '&:hover .notebook-card-cover': {
+            transform: 'none',
+          },
+        },
       }}
     >
+      {coverUrl ? (
+        /* 封面背景层：整卡铺满 + 底部渐变遮罩保证文字可读；on-image 配色用 common.black/white 派生。 */
+        <Box aria-hidden sx={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <Box
+            component="img"
+            src={coverUrl}
+            alt=""
+            loading="lazy"
+            className="notebook-card-cover"
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transform: 'scale(1)',
+              transition: `transform ${workspaceMotion.durationBaseMs}ms ${workspaceMotion.easingStandard}`,
+              [workspaceInteraction.reducedMotionQuery]: {
+                transition: 'none',
+              },
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: (theme) =>
+                `linear-gradient(180deg, ${alpha(theme.palette.common.black, 0.16)} 0%, ${alpha(
+                  theme.palette.common.black,
+                  0.58,
+                )} 100%)`,
+            }}
+          />
+        </Box>
+      ) : null}
       <CardActionArea
         onClick={onOpen}
         disabled={deleting}
@@ -142,6 +192,8 @@ export function NotebookCard({
           py: workspaceSpace.md,
           height: '100%',
           cursor: deleting ? 'default' : workspaceInteraction.cursorPointer,
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <Stack
@@ -188,32 +240,38 @@ export function NotebookCard({
                 </Tooltip>
                 <Typography
                   variant="caption"
-                  color="text.secondary"
                   noWrap
-                  sx={{ minWidth: 0, fontWeight: 500, letterSpacing: 0 }}
+                  sx={{
+                    minWidth: 0,
+                    fontWeight: 500,
+                    letterSpacing: 0,
+                    // 封面背景上压白字，保持可读性。
+                    color: hasCover
+                      ? (theme) => alpha(theme.palette.common.white, 0.92)
+                      : 'text.secondary',
+                  }}
                 >
                   {owner.nickname}
                 </Typography>
               </>
-            ) : (
-              /* owned 卡片没有 owner 行：放 notebookId hash 出来的 emoji，顶部不空荡；纯字形，不加底色也不加边框。 */
-              emoji ? (
-                <Box
-                  aria-hidden
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    fontSize: 24,
-                    lineHeight: 1,
-                  }}
-                >
-                  {emoji}
-                </Box>
-              ) : null
-            )}
+            ) : coverUrl || emoji ? (
+              /* owned 卡片没有 owner 行：emoji 只作为 no-cover 的占位字形。
+                 有封面时隐藏 emoji，但保留同尺寸空位，避免标题相对无封面卡片上移。 */
+              <Box
+                aria-hidden
+                sx={{
+                  width: 36,
+                  height: 36,
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                  fontSize: 24,
+                  lineHeight: 1,
+                }}
+              >
+                {coverUrl ? null : emoji}
+              </Box>
+            ) : null}
           </Stack>
           {/* 标题相对 owner 行与 meta 行垂直居中（参考稿里标题压在中段）。 */}
           <Box
@@ -236,6 +294,7 @@ export function NotebookCard({
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
+                color: hasCover ? 'common.white' : 'text.primary',
               }}
             >
               {title}
@@ -247,7 +306,6 @@ export function NotebookCard({
           >
             <Typography
               variant="caption"
-              color="text.secondary"
               sx={{
                 fontWeight: 500,
                 letterSpacing: 0,
@@ -255,6 +313,9 @@ export function NotebookCard({
                 minWidth: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                color: hasCover
+                  ? (theme) => alpha(theme.palette.common.white, 0.85)
+                  : 'text.secondary',
               }}
             >
               {dateLabel} · {t('common:sourceCount', { count: sourceCount })}
@@ -263,7 +324,11 @@ export function NotebookCard({
               <Tooltip title={t('home:card.publicAria')} placement="top">
                 <PublicOutlinedIcon
                   aria-label={t('home:card.publicAria')}
-                  sx={{ fontSize: workspaceIconSize.sm, color: 'primary.main', flexShrink: 0 }}
+                  sx={{
+                    fontSize: workspaceIconSize.sm,
+                    flexShrink: 0,
+                    color: hasCover ? 'common.white' : 'primary.main',
+                  }}
                 />
               </Tooltip>
             ) : null}
@@ -280,6 +345,7 @@ export function NotebookCard({
             position: 'absolute',
             top: 8,
             right: 4,
+            color: hasCover ? 'common.white' : undefined,
           }}
         >
           <MoreVertOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />

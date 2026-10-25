@@ -1,6 +1,6 @@
 import i18n from '@/i18n'
 import type { NotebookSummary } from '@/types/api'
-import { formatNotebookDate } from './formatNotebookDate'
+import { formatNotebookDate } from '@/lib/formatNotebookDate'
 
 export interface NotebookCardOwnerViewModel {
   nickname: string
@@ -14,6 +14,8 @@ export interface NotebookCardViewModel {
   sourceCount: number
   dateLabel: string
   isPublic: boolean
+  /** 已设置封面时作为卡片背景，并顶掉 emoji 占位；空串/缺失视为无封面。 */
+  coverUrl?: string
   owner?: NotebookCardOwnerViewModel
 }
 
@@ -37,6 +39,7 @@ export function toNotebookCardViewModel(
     // 旧后端缺 created_at 时回退更新时间，避免显示「未知日期」。
     dateLabel: formatNotebookDate(notebook.created_at ?? notebook.updated_at),
     isPublic: notebook.visibility === 'public',
+    coverUrl: notebook.cover_url?.trim() || undefined,
     owner: notebook.owner
       ? {
           nickname: notebook.owner.nickname,

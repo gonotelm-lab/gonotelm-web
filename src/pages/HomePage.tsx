@@ -27,7 +27,7 @@ import { workspaceTransitionPresets } from '../components/notebook-workspace/sha
 import { buildCreateNotebookRequest } from './home/createNotebookRequest'
 import { patchHomePreferences, readHomePreferences } from '@/lib/localPreferences'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
-import { getNotebookEmoji } from './home/notebookEmoji'
+import { getNotebookEmoji } from '../lib/notebookEmoji'
 
 /** Home header mirrors the workspace chrome so the account trigger matches across pages. */
 const homeHeaderChrome = {
@@ -213,6 +213,7 @@ export function HomePage() {
                   sourceCount={viewModel.sourceCount}
                   dateLabel={viewModel.dateLabel}
                   isPublic={viewModel.isPublic}
+                  coverUrl={viewModel.coverUrl}
                   emoji={getNotebookEmoji(viewModel.id)}
                   owner={scope === 'shared' ? viewModel.owner : undefined}
                   onOpen={() => navigate(notebookPath)}

@@ -6,7 +6,11 @@ import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { ChatMessageItem } from './ChatMessageItem'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
-import { chatMessageContentTokens } from './layoutTokens'
+import {
+  chatContentColumnSx,
+  chatMessageContentTokens,
+  chatReadableColumnSx,
+} from './layoutTokens'
 import { resolveMessageItemContentVisibility } from './chatConversationCommon'
 
 const messageItemSpacing = chatMessageContentTokens.messageGap
@@ -68,14 +72,22 @@ export const ChatMessagesList = memo(function ChatMessagesList({
         flex: 1,
         minHeight: 0,
         overflowY: 'auto',
+        // 横向永不滚动：封面/正文都受内容列宽度约束。
+        overflowX: 'hidden',
+        // 两侧对称预留滚动条槽位；否则右侧滚动条会把居中内容整体挤向左边。
+        scrollbarGutter: 'stable both-edges',
         overflowAnchor: 'none',
         px: 0,
         ...subtleScrollbarSx(theme),
       })}
     >
-      <Box sx={{ px: messageListLayoutTokens.innerPaddingX }}>
+      <Box
+        sx={chatContentColumnSx}
+      >
         {notebookInfoHeader}
 
+        {/* 聊天记录/分隔线：与摘要、输入框共用可读列。 */}
+        <Box sx={chatReadableColumnSx}>
         {notebookInfoHeader ? (
           <Box
             sx={{
@@ -133,6 +145,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
             </Box>
           )
         })}
+        </Box>
       </Box>
     </Stack>
   )
