@@ -5,8 +5,14 @@ import { http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import { mockServer } from '@/test/mocks'
-import { createNotebookAccessFixture } from '@/test/mocks/fixtures/notebook'
 import {
+  createGetNotebookSharingResponseFixture,
+  createNotebookAccessFixture,
+  createNotebookSharingMemberFixture,
+} from '@/test/mocks/fixtures/notebook'
+import type { NotebookSharingMember } from '@/types/api'
+import {
+  createErrorResponse,
   createNoContentResponse,
   createSuccessResponse,
 } from '@/test/mocks/handlers/httpResponse'
@@ -217,13 +223,27 @@ describe('NotebookSharingDialog', () => {
     expect(text).toContain('Alice')
   })
 
-  it('添加用户先在本地展示，点击保存才 PUT 并关闭对话框', async () => {
+  it('回车添加用户时先 PUT，成功后才出现在列表', async () => {
     let requestedBody: { email?: string; role?: string } = {}
+    const members: NotebookSharingMember[] = [createNotebookSharingMemberFixture()]
     mockServer.use(
+      http.get(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing`, () =>
+        createSuccessResponse(
+          createGetNotebookSharingResponseFixture({ members: [...members] }),
+        ),
+      ),
       http.put(
         `${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing/members`,
         async ({ request }) => {
           requestedBody = (await request.json()) as typeof requestedBody
+          members.push(
+            createNotebookSharingMemberFixture({
+              user_id: 'user-3',
+              email: requestedBody.email ?? 'bob@example.com',
+              nickname: 'Bob',
+              role: (requestedBody.role as 'viewer' | 'collaborator') ?? 'viewer',
+            }),
+          )
           return createSuccessResponse({
             user_id: 'user-3',
             role: requestedBody.role ?? 'viewer',
@@ -238,7 +258,9 @@ describe('NotebookSharingDialog', () => {
     act(() => {
       emailInput.props.onChange({ target: { value: ' bob@example.com ' } })
     })
-    act(() => {
+    expect(findAllByTestId(renderer, 'sharing-member-user-3')).toHaveLength(0)
+
+    await act(async () => {
       emailInput.props.onKeyDown({
         key: 'Enter',
         preventDefault: () => undefined,
@@ -246,21 +268,37 @@ describe('NotebookSharingDialog', () => {
     })
     await settle()
 
-    expect(findByTestId(renderer, 'sharing-member-new:bob@example.com')).toBeTruthy()
-    expect(findByTestId(renderer, 'sharing-save').props.disabled).toBe(false)
-    expect(requestedBody).toEqual({})
-    expect(onClose).not.toHaveBeenCalled()
-
-    await act(async () => {
-      findByTestId(renderer, 'sharing-save').props.onClick()
-    })
-    await settle()
-
     expect(requestedBody).toEqual({
       email: 'bob@example.com',
       role: 'viewer',
     })
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(findByTestId(renderer, 'sharing-member-user-3')).toBeTruthy()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('添加用户接口失败时列表不变化', async () => {
+    mockServer.use(
+      http.put(`${apiBaseUrl}/api/v1/notebooks/:notebookId/sharing/members`, () =>
+        createErrorResponse(200, 'user not found', 100010),
+      ),
+    )
+
+    const { renderer } = await renderDialog()
+    const emailInput = findByTestId(renderer, 'sharing-add-member-input')
+
+    act(() => {
+      emailInput.props.onChange({ target: { value: 'missing@example.com' } })
+    })
+    await act(async () => {
+      emailInput.props.onKeyDown({
+        key: 'Enter',
+        preventDefault: () => undefined,
+      })
+    })
+    await settle()
+
+    expect(findAllByTestId(renderer, 'sharing-member-user-3')).toHaveLength(0)
+    expect(findByTestId(renderer, 'sharing-member-user-2')).toBeTruthy()
   })
 
   it('输入邮箱后不按回车，直接点击保存也会添加该用户', async () => {
