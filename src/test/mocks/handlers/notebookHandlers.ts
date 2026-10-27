@@ -107,6 +107,34 @@ export const notebookHandlers = [
     })
   }),
 
+  // 须在 /notebooks/:notebookId 之前注册，避免 pins 被当成 id。
+  http.get(`${apiBaseUrl}/api/v1/notebooks/pins`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: { notebooks: [] },
+      emptyData: { notebooks: [] },
+    })
+  }),
+
+  http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/pin`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: { is_pinned: true, pinned_at: Date.UTC(2025, 6, 20) },
+      emptyData: { is_pinned: false, pinned_at: 0 },
+    })
+  }),
+
+  http.post(`${apiBaseUrl}/api/v1/notebooks/:notebookId/unpin`, async () => {
+    const scenario = getMockScenario('notebook')
+    return resolveScenarioResponse({
+      scenario,
+      successData: { is_pinned: false, pinned_at: 0 },
+      emptyData: { is_pinned: false, pinned_at: 0 },
+    })
+  }),
+
   http.post(`${apiBaseUrl}/api/v1/notebooks`, async ({ request }) => {
     const scenario = getMockScenario('notebook')
     const body = (await request.json()) as { name?: string }

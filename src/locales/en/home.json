@@ -15,6 +15,9 @@
     "owned": "No notebooks yet. Use “New notebook” above to start",
     "shared": "No one has shared a notebook with you yet"
   },
+  "pinned": {
+    "title": "Pinned"
+  },
   "sort": {
     "aria": "Notebook sort order",
     "lastActive": "Recently active",
@@ -22,6 +25,8 @@
   },
   "card": {
     "actionsAria": "Notebook actions",
+    "pin": "Pin",
+    "unpin": "Unpin",
     "deleteTitle": "Delete notebook",
     "deleteBody": "This will remove chat and source data permanently",
     "noDescription": "No description",

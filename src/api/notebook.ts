@@ -9,9 +9,11 @@ import type {
   ListNotebooksResponse,
   ListNotebooksScope,
   ListNotebooksSortBy,
+  ListPinnedNotebooksResponse,
   Notebook,
   NotebookAccess,
   NotebookVisibility,
+  PinNotebookResponse,
   UpdateNotebookRequest,
   UpsertNotebookMemberRequest,
   UpsertNotebookMemberResponse,
@@ -80,6 +82,23 @@ export function listNotebooks(params: ListNotebooksParams = {}) {
   const suffix = query.toString()
   const path = suffix ? `/api/v1/notebooks?${suffix}` : '/api/v1/notebooks'
   return request<ListNotebooksResponse>(path)
+}
+
+/** 当前用户全部仍可访问的置顶 notebook（一次返回，无分页）。 */
+export function listPinnedNotebooks() {
+  return request<ListPinnedNotebooksResponse>('/api/v1/notebooks/pins')
+}
+
+export function pinNotebook(id: string) {
+  return request<PinNotebookResponse>(`/api/v1/notebooks/${encodeURIComponent(id)}/pin`, {
+    method: 'POST',
+  })
+}
+
+export function unpinNotebook(id: string) {
+  return request<PinNotebookResponse>(`/api/v1/notebooks/${encodeURIComponent(id)}/unpin`, {
+    method: 'POST',
+  })
 }
 
 interface ListNotebookSourcesParams {

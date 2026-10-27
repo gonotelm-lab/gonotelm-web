@@ -9,6 +9,9 @@ import {
   getNotebookSharing,
   getOrCreateNotebookChat,
   listNotebooks,
+  listPinnedNotebooks,
+  pinNotebook,
+  unpinNotebook,
   updateNotebookVisibility,
   upsertNotebookMember,
 } from './notebook'
@@ -21,6 +24,20 @@ describe('notebook api with msw mock', () => {
     expect(result.notebooks.length).toBeGreaterThan(0)
     expect(result.notebooks[0]?.name).toContain('Rust')
     expect(result.notebooks[0]?.updated_at).toBeTypeOf('number')
+  })
+
+  it('returns pinned notebooks and supports pin/unpin', async () => {
+    const pinned = await listPinnedNotebooks()
+    expect(pinned.notebooks).toEqual([])
+
+    await expect(pinNotebook('notebook-1')).resolves.toEqual({
+      is_pinned: true,
+      pinned_at: Date.UTC(2025, 6, 20),
+    })
+    await expect(unpinNotebook('notebook-1')).resolves.toEqual({
+      is_pinned: false,
+      pinned_at: 0,
+    })
   })
 
   it('supports sort_by query for notebook list', async () => {

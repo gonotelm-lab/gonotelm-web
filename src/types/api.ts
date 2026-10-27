@@ -218,6 +218,10 @@ export interface Notebook {
   flags: NotebookFlags
   source_count: number
   visibility?: string
+  /** 当前用户是否置顶；旧后端缺字段时视为 false。 */
+  is_pinned?: boolean
+  /** 置顶时间 unix ms；未置顶为 0；旧后端缺字段时视为 0。 */
+  pinned_at?: number
   updated_at: number
   created_at?: number
   /** Get/List 均可附带；shared 列表用它展示分享者。 */
@@ -354,6 +358,17 @@ export interface ListNotebooksResponse {
   limit: number
   offset: number
   has_more: boolean
+}
+
+/** GET /api/v1/notebooks/pins —— 一次返回全部仍可访问的置顶本。 */
+export interface ListPinnedNotebooksResponse {
+  notebooks: NotebookSummary[]
+}
+
+/** POST /api/v1/notebooks/:id/pin|unpin */
+export interface PinNotebookResponse {
+  is_pinned: boolean
+  pinned_at: number
 }
 
 export interface GetNotebookChatResponse {
