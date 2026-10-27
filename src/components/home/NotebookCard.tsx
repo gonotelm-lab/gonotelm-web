@@ -372,6 +372,8 @@ export function NotebookCard({
             position: 'absolute',
             top: 8,
             right: 4,
+            // 必须高于 CardActionArea(zIndex:1)，否则整卡点击层会吃掉菜单点击。
+            zIndex: 2,
             color: hasCover ? 'common.white' : undefined,
           }}
         >

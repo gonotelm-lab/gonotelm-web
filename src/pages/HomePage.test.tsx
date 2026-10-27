@@ -106,7 +106,7 @@ describe('HomePage · 笔记本范围筛选', () => {
     expect(cards.every((card) => typeof card.props.onPin === 'function')).toBe(true)
   })
 
-  it('有置顶时在普通列表上方展示置顶区，且仅提供取消置顶', async () => {
+  it('有置顶时在 scope 筛选上方展示置顶区，且仅提供取消置顶', async () => {
     mockServer.use(
       http.get('http://127.0.0.1:4173/api/v1/notebooks/pins', () =>
         createSuccessResponse({

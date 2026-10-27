@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import {
   Box,
   CircularProgress,
   Container,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
@@ -252,6 +254,35 @@ export function HomePage() {
             borderColor: 'divider',
           }}
         />
+
+        {/* 置顶区独立于 scope，放在筛选条上方。 */}
+        {!pinsQuery.isLoading && pinnedItems.length > 0 ? (
+          <Stack spacing={workspaceLayout.listRowGap}>
+            <Tooltip title={t('pinned.title')} placement="top">
+              <PushPinOutlinedIcon
+                aria-label={t('pinned.title')}
+                sx={{
+                  fontSize: 18,
+                  color: 'text.secondary',
+                  transform: 'rotate(45deg)',
+                }}
+              />
+            </Tooltip>
+            <Box sx={notebookGridSx}>
+              {pinnedItems.map((notebook) => {
+                const isOwned =
+                  Boolean(meUserId) && notebook.owner?.user_id === meUserId
+                const showOwner = Boolean(notebook.owner) && !isOwned
+                return renderNotebookCard(notebook, {
+                  showOwner,
+                  canDelete: isOwned || (!notebook.owner && scope === 'owned'),
+                  pinned: true,
+                })
+              })}
+            </Box>
+          </Stack>
+        ) : null}
+
         <Stack
           direction="row"
           sx={{
@@ -283,62 +314,38 @@ export function HomePage() {
           <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
             <CircularProgress size={20} />
           </Stack>
-        ) : (
-          <Stack spacing={workspaceLayout.panelPaddingY}>
-            {pinnedItems.length > 0 ? (
-              <Stack spacing={workspaceLayout.listRowGap}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {t('pinned.title')}
-                </Typography>
-                <Box sx={notebookGridSx}>
-                  {pinnedItems.map((notebook) => {
-                    const isOwned =
-                      Boolean(meUserId) && notebook.owner?.user_id === meUserId
-                    const showOwner = Boolean(notebook.owner) && !isOwned
-                    return renderNotebookCard(notebook, {
-                      showOwner,
-                      canDelete: isOwned || (!notebook.owner && scope === 'owned'),
-                      pinned: true,
-                    })
-                  })}
-                </Box>
-              </Stack>
-            ) : null}
-
-            {notebooksQuery.isLoading ? (
-              <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
-                <CircularProgress size={20} />
-              </Stack>
-            ) : notebookItems.length === 0 ? (
-              pinnedItems.length === 0 ? (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ py: workspaceLayout.panelPaddingY, textAlign: 'center' }}
-                >
-                  {t(scope === 'shared' ? 'empty.shared' : 'empty.owned')}
-                </Typography>
-              ) : null
-            ) : (
-              <Box
-                aria-busy={notebooksQuery.isFetching}
-                sx={{
-                  ...notebookGridSx,
-                  opacity: notebooksQuery.isPlaceholderData ? 0.55 : 1,
-                  pointerEvents: notebooksQuery.isPlaceholderData ? 'none' : undefined,
-                  transition: workspaceTransitionPresets.opacityOnly,
-                }}
-              >
-                {notebookItems.map((notebook) =>
-                  renderNotebookCard(notebook, {
-                    showOwner: scope === 'shared',
-                    canDelete: scope === 'owned',
-                    pinned: false,
-                  }),
-                )}
-              </Box>
-            )}
+        ) : notebooksQuery.isLoading ? (
+          <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
+            <CircularProgress size={20} />
           </Stack>
+        ) : notebookItems.length === 0 ? (
+          pinnedItems.length === 0 ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ py: workspaceLayout.panelPaddingY, textAlign: 'center' }}
+            >
+              {t(scope === 'shared' ? 'empty.shared' : 'empty.owned')}
+            </Typography>
+          ) : null
+        ) : (
+          <Box
+            aria-busy={notebooksQuery.isFetching}
+            sx={{
+              ...notebookGridSx,
+              opacity: notebooksQuery.isPlaceholderData ? 0.55 : 1,
+              pointerEvents: notebooksQuery.isPlaceholderData ? 'none' : undefined,
+              transition: workspaceTransitionPresets.opacityOnly,
+            }}
+          >
+            {notebookItems.map((notebook) =>
+              renderNotebookCard(notebook, {
+                showOwner: scope === 'shared',
+                canDelete: scope === 'owned',
+                pinned: false,
+              }),
+            )}
+          </Box>
         )}
       </Stack>
       <CreateNotebookDialog
