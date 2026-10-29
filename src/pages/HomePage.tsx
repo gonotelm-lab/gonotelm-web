@@ -1,18 +1,30 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import {
   Box,
   CircularProgress,
   Container,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import type { ListNotebooksScope, ListNotebooksSortBy } from '@/types/api'
-import { createNotebook, deleteNotebook, listNotebooks } from '../api/notebook'
+import type { ListNotebooksScope, ListNotebooksSortBy, NotebookSummary } from '@/types/api'
+import {
+  createNotebook,
+  deleteNotebook,
+  listNotebooks,
+  listPinnedNotebooks,
+  pinNotebook,
+  unpinNotebook,
+} from '../api/notebook'
 import { apiErrorMessage } from '../lib/apiErrorMessage'
+import { isPinLimitReached } from '../lib/notebookPins'
+import { showAppToast } from '../lib/apiErrorToast'
 import { AccountMenu } from '../components/auth/AccountMenu'
+import { useMeQuery } from '../components/auth/useMeQuery'
 import { BrandMark } from '../components/brand/BrandMark'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
@@ -36,10 +48,23 @@ const homeHeaderChrome = {
   avatarSize: 32,
 } as const
 
+const notebookGridSx = {
+  display: 'grid',
+  gap: workspaceLayout.listRowGap,
+  gridTemplateColumns: {
+    xs: '1fr',
+    sm: 'repeat(2, minmax(0, 1fr))',
+    md: 'repeat(3, minmax(0, 1fr))',
+    lg: 'repeat(4, minmax(0, 1fr))',
+  },
+} as const
+
 export function HomePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation('home')
+  const meQuery = useMeQuery()
+  const meUserId = meQuery.data?.user_id
   // 首页筛选落在统一 LocalPreferences.home；变更经 patchHomePreferences 落盘。
   const [homePrefs, setHomePrefs] = useState(readHomePreferences)
   const { scope, sortBy } = homePrefs
@@ -60,6 +85,12 @@ export function HomePage() {
     errorMessage: null,
   })
   const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null)
+  const [pinningNotebookId, setPinningNotebookId] = useState<string | null>(null)
+
+  const pinsQuery = useQuery({
+    queryKey: ['notebooks', 'pins'],
+    queryFn: listPinnedNotebooks,
+  })
 
   const notebooksQuery = useQuery({
     queryKey: ['notebooks', 'home', { sortBy, scope }],
@@ -74,8 +105,24 @@ export function HomePage() {
   const deleteNotebookMutation = useMutation({
     mutationFn: deleteNotebook,
   })
+  const pinNotebookMutation = useMutation({
+    mutationFn: pinNotebook,
+  })
+  const unpinNotebookMutation = useMutation({
+    mutationFn: unpinNotebook,
+  })
 
+  const pinnedItems = pinsQuery.data?.notebooks ?? []
   const notebookItems = notebooksQuery.data?.notebooks ?? []
+  const pinLimitReached = isPinLimitReached(pinnedItems.length)
+  const homeBusy = notebooksQuery.isLoading && pinnedItems.length === 0 && !pinsQuery.isSuccess
+
+  const invalidateHomeLists = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] }),
+      queryClient.invalidateQueries({ queryKey: ['notebooks', 'pins'] }),
+    ])
+  }
 
   const handleOpenCreateDialog = () => {
     setCreateDialogState((prev) => ({ ...prev, errorMessage: null }))
@@ -117,10 +164,76 @@ export function HomePage() {
     setDeletingNotebookId(notebookId)
     try {
       await deleteNotebookMutation.mutateAsync(notebookId)
-      await queryClient.invalidateQueries({ queryKey: ['notebooks', 'home'] })
+      await invalidateHomeLists()
     } finally {
       setDeletingNotebookId(null)
     }
+  }
+
+  const handlePinNotebook = async (notebookId: string) => {
+    if (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) {
+      return
+    }
+    if (isPinLimitReached(pinnedItems.length)) {
+      showAppToast({ messageKey: 'apiError.pinLimit' })
+      return
+    }
+    setPinningNotebookId(notebookId)
+    try {
+      await pinNotebookMutation.mutateAsync(notebookId)
+      await invalidateHomeLists()
+    } finally {
+      setPinningNotebookId(null)
+    }
+  }
+
+  const handleUnpinNotebook = async (notebookId: string) => {
+    if (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) {
+      return
+    }
+    setPinningNotebookId(notebookId)
+    try {
+      await unpinNotebookMutation.mutateAsync(notebookId)
+      await invalidateHomeLists()
+    } finally {
+      setPinningNotebookId(null)
+    }
+  }
+
+  const renderNotebookCard = (
+    notebook: NotebookSummary,
+    options: {
+      showOwner: boolean
+      canDelete: boolean
+      pinned: boolean
+    },
+  ) => {
+    const viewModel = toNotebookCardViewModel(notebook)
+    const notebookPath = `/notebook/${viewModel.id}`
+    return (
+      <NotebookCard
+        key={viewModel.id}
+        title={viewModel.title}
+        sourceCount={viewModel.sourceCount}
+        dateLabel={viewModel.dateLabel}
+        isPublic={viewModel.isPublic}
+        coverUrl={viewModel.coverUrl}
+        emoji={getNotebookEmoji(viewModel.id)}
+        owner={options.showOwner ? viewModel.owner : undefined}
+        onOpen={() => navigate(notebookPath)}
+        onDelete={
+          options.canDelete ? () => handleDeleteNotebook(viewModel.id) : undefined
+        }
+        onPin={options.pinned ? undefined : () => handlePinNotebook(viewModel.id)}
+        onUnpin={options.pinned ? () => handleUnpinNotebook(viewModel.id) : undefined}
+        deleting={deleteNotebookMutation.isPending && deletingNotebookId === viewModel.id}
+        pinning={
+          (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) &&
+          pinningNotebookId === viewModel.id
+        }
+        pinDisabled={!options.pinned && pinLimitReached}
+      />
+    )
   }
 
   return (
@@ -149,6 +262,35 @@ export function HomePage() {
             borderColor: 'divider',
           }}
         />
+
+        {/* 置顶区独立于 scope，放在筛选条上方。 */}
+        {!pinsQuery.isLoading && pinnedItems.length > 0 ? (
+          <Stack spacing={workspaceLayout.listRowGap}>
+            <Tooltip title={t('pinned.title')} placement="top">
+              <PushPinOutlinedIcon
+                aria-label={t('pinned.title')}
+                sx={{
+                  fontSize: 18,
+                  color: 'text.secondary',
+                  transform: 'rotate(45deg)',
+                }}
+              />
+            </Tooltip>
+            <Box sx={notebookGridSx}>
+              {pinnedItems.map((notebook) => {
+                const isOwned =
+                  Boolean(meUserId) && notebook.owner?.user_id === meUserId
+                const showOwner = Boolean(notebook.owner) && !isOwned
+                return renderNotebookCard(notebook, {
+                  showOwner,
+                  canDelete: isOwned || (!notebook.owner && scope === 'owned'),
+                  pinned: true,
+                })
+              })}
+            </Box>
+          </Stack>
+        ) : null}
+
         <Stack
           direction="row"
           sx={{
@@ -164,7 +306,9 @@ export function HomePage() {
             spacing={workspaceLayout.listInlineGap}
             sx={{ alignItems: 'center', ml: 'auto' }}
           >
-            {notebooksQuery.isFetching && <CircularProgress size={14} color="primary" />}
+            {(notebooksQuery.isFetching || pinsQuery.isFetching) && (
+              <CircularProgress size={14} color="primary" />
+            )}
             <HomeSortSelector value={sortBy} onChange={handleSortChange} />
             <CreateNotebookEntry
               onClick={handleOpenCreateDialog}
@@ -174,58 +318,41 @@ export function HomePage() {
           </Stack>
         </Stack>
 
-        {notebooksQuery.isLoading ? (
+        {homeBusy ? (
+          <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
+            <CircularProgress size={20} />
+          </Stack>
+        ) : notebooksQuery.isLoading ? (
           <Stack sx={{ py: workspaceLayout.panelPaddingY, alignItems: 'center' }}>
             <CircularProgress size={20} />
           </Stack>
         ) : notebookItems.length === 0 ? (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ py: workspaceLayout.panelPaddingY, textAlign: 'center' }}
-          >
-            {t(scope === 'shared' ? 'empty.shared' : 'empty.owned')}
-          </Typography>
+          pinnedItems.length === 0 ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ py: workspaceLayout.panelPaddingY, textAlign: 'center' }}
+            >
+              {t(scope === 'shared' ? 'empty.shared' : 'empty.owned')}
+            </Typography>
+          ) : null
         ) : (
           <Box
             aria-busy={notebooksQuery.isFetching}
             sx={{
-              display: 'grid',
-              gap: workspaceLayout.listRowGap,
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
-                lg: 'repeat(4, minmax(0, 1fr))',
-              },
+              ...notebookGridSx,
               opacity: notebooksQuery.isPlaceholderData ? 0.55 : 1,
               pointerEvents: notebooksQuery.isPlaceholderData ? 'none' : undefined,
               transition: workspaceTransitionPresets.opacityOnly,
             }}
           >
-            {notebookItems.map((notebook) => {
-              const viewModel = toNotebookCardViewModel(notebook)
-              const notebookPath = `/notebook/${viewModel.id}`
-              return (
-                <NotebookCard
-                  key={viewModel.id}
-                  title={viewModel.title}
-                  sourceCount={viewModel.sourceCount}
-                  dateLabel={viewModel.dateLabel}
-                  isPublic={viewModel.isPublic}
-                  coverUrl={viewModel.coverUrl}
-                  emoji={getNotebookEmoji(viewModel.id)}
-                  owner={scope === 'shared' ? viewModel.owner : undefined}
-                  onOpen={() => navigate(notebookPath)}
-                  onDelete={
-                    scope === 'shared'
-                      ? undefined
-                      : () => handleDeleteNotebook(viewModel.id)
-                  }
-                  deleting={deleteNotebookMutation.isPending && deletingNotebookId === viewModel.id}
-                />
-              )
-            })}
+            {notebookItems.map((notebook) =>
+              renderNotebookCard(notebook, {
+                showOwner: scope === 'shared',
+                canDelete: scope === 'owned',
+                pinned: false,
+              }),
+            )}
           </Box>
         )}
       </Stack>

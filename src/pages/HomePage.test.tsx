@@ -84,6 +84,8 @@ describe('HomePage · 笔记本范围筛选', () => {
     expect(cards.every((card) => card.props.owner === undefined)).toBe(true)
     expect(new Set(cards.map((card) => card.props.emoji)).size).toBeGreaterThan(1)
     expect(cards.every((card) => typeof card.props.onDelete === 'function')).toBe(true)
+    expect(cards.every((card) => typeof card.props.onPin === 'function')).toBe(true)
+    expect(cards.every((card) => card.props.onUnpin === undefined)).toBe(true)
   })
 
   it('切换到共享给我后展示 owner，并隐藏删除入口', async () => {
@@ -101,6 +103,61 @@ describe('HomePage · 笔记本范围筛选', () => {
       { nickname: 'Alice', avatarUrl: '' },
     ])
     expect(cards.every((card) => card.props.onDelete === undefined)).toBe(true)
+    expect(cards.every((card) => typeof card.props.onPin === 'function')).toBe(true)
+  })
+
+  it('有置顶时在 scope 筛选上方展示置顶区，且仅提供取消置顶', async () => {
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/notebooks/pins', () =>
+        createSuccessResponse({
+          notebooks: [
+            createNotebookSummaryFixture({
+              id: 'notebook-pinned-1',
+              name: '置顶本',
+              is_pinned: true,
+              pinned_at: Date.UTC(2025, 6, 21),
+            }),
+          ],
+        }),
+      ),
+    )
+
+    const renderer = await renderHome()
+    const cards = renderer.root.findAllByType(NotebookCard)
+
+    expect(cards.map((card) => card.props.title)).toEqual([
+      '置顶本',
+      'Rust 生命周期',
+      'Rust 入门',
+      'Rust 并发',
+    ])
+    expect(typeof cards[0]?.props.onUnpin).toBe('function')
+    expect(cards[0]?.props.onPin).toBeUndefined()
+    expect(cards.slice(1).every((card) => card.props.pinDisabled === false)).toBe(true)
+  })
+
+  it('置顶已满时列表卡片禁用置顶入口', async () => {
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/notebooks/pins', () =>
+        createSuccessResponse({
+          notebooks: Array.from({ length: 50 }, (_, index) =>
+            createNotebookSummaryFixture({
+              id: `notebook-pinned-${index + 1}`,
+              name: `置顶本 ${index + 1}`,
+              is_pinned: true,
+              pinned_at: Date.UTC(2025, 6, 21) - index,
+            }),
+          ),
+        }),
+      ),
+    )
+
+    const renderer = await renderHome()
+    const cards = renderer.root.findAllByType(NotebookCard)
+    const listCards = cards.filter((card) => typeof card.props.onPin === 'function')
+
+    expect(listCards.length).toBeGreaterThan(0)
+    expect(listCards.every((card) => card.props.pinDisabled === true)).toBe(true)
   })
 
   it('切换范围时保留上一次列表，避免列表区域塌陷', async () => {

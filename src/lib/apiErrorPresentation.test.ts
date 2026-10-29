@@ -19,6 +19,13 @@ describe('describeApiError', () => {
     })
   })
 
+  it('置顶数量达上限按业务码提示', () => {
+    expect(describeApiError({ code: 107001, status: 200 })).toEqual({
+      messageKey: 'apiError.pinLimit',
+      silent: false,
+    })
+  })
+
   it('笔记本不存在静默交给专用页面处理', () => {
     expect(describeApiError({ code: 100001, status: 404 })).toEqual({
       messageKey: 'apiError.notebookNotFound',

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import {
   Avatar,
@@ -54,7 +55,12 @@ interface NotebookCardProps {
   owner?: NotebookCardOwner
   onOpen: () => void
   onDelete?: () => Promise<void>
+  onPin?: () => Promise<void>
+  onUnpin?: () => Promise<void>
   deleting?: boolean
+  pinning?: boolean
+  /** 置顶额度已满：仍展示「置顶」入口，但禁用并提示。 */
+  pinDisabled?: boolean
 }
 
 export function NotebookCard({
@@ -67,7 +73,11 @@ export function NotebookCard({
   owner,
   onOpen,
   onDelete,
+  onPin,
+  onUnpin,
   deleting = false,
+  pinning = false,
+  pinDisabled = false,
 }: NotebookCardProps) {
   const { t } = useTranslation(['home', 'common'])
   const hasCover = Boolean(coverUrl)
@@ -76,6 +86,11 @@ export function NotebookCard({
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
   const actionMenuOpen = Boolean(actionAnchorEl)
   const canDelete = typeof onDelete === 'function'
+  const canPin = typeof onPin === 'function'
+  const canUnpin = typeof onUnpin === 'function'
+  const hasActions = canDelete || canPin || canUnpin
+  const actionsBusy = deleting || pinning
+  const pinActionDisabled = actionsBusy || pinDisabled
   const ownerInitial = owner
     ? (Array.from(owner.nickname.trim())[0]?.toUpperCase() ?? '?')
     : ''
@@ -87,6 +102,22 @@ export function NotebookCard({
 
   const handleCloseActionMenu = () => {
     setActionAnchorEl(null)
+  }
+
+  const handlePin = () => {
+    handleCloseActionMenu()
+    if (!onPin || pinActionDisabled) {
+      return
+    }
+    void onPin()
+  }
+
+  const handleUnpin = () => {
+    handleCloseActionMenu()
+    if (!onUnpin || actionsBusy) {
+      return
+    }
+    void onUnpin()
   }
 
   const handleOpenDeleteDialog = () => {
@@ -133,7 +164,7 @@ export function NotebookCard({
         bgcolor: 'background.paper',
         boxShadow: 'none',
         transition: workspaceTransitionPresets.cardLift,
-        '&:hover': deleting
+        '&:hover': actionsBusy
           ? undefined
           : {
               borderColor: 'primary.main',
@@ -186,12 +217,12 @@ export function NotebookCard({
       ) : null}
       <CardActionArea
         onClick={onOpen}
-        disabled={deleting}
+        disabled={actionsBusy}
         sx={{
           px: workspaceSpace.md,
           py: workspaceSpace.md,
           height: '100%',
-          cursor: deleting ? 'default' : workspaceInteraction.cursorPointer,
+          cursor: actionsBusy ? 'default' : workspaceInteraction.cursorPointer,
           position: 'relative',
           zIndex: 1,
         }}
@@ -335,43 +366,89 @@ export function NotebookCard({
           </Stack>
         </Stack>
       </CardActionArea>
-      {canDelete ? (
+      {hasActions ? (
         <IconButton
           size="small"
           aria-label={t('home:card.actionsAria')}
           onClick={handleOpenActionMenu}
-          disabled={deleting}
+          disabled={actionsBusy}
           sx={{
             position: 'absolute',
             top: 8,
             right: 4,
+            // 必须高于 CardActionArea(zIndex:1)，否则整卡点击层会吃掉菜单点击。
+            zIndex: 2,
             color: hasCover ? 'common.white' : undefined,
           }}
         >
           <MoreVertOutlinedIcon sx={{ fontSize: workspaceIconSize.md }} />
         </IconButton>
       ) : null}
-      {canDelete ? (
+      {hasActions ? (
         <Menu
           anchorEl={actionAnchorEl}
           open={actionMenuOpen}
           onClose={handleCloseActionMenu}
           onClick={(event) => event.stopPropagation()}
         >
-          <MenuItem
-            onClick={handleOpenDeleteDialog}
-            disabled={!canDelete || deleting}
-            sx={{
-              minHeight: 34,
-              px: workspaceSpace.md,
-              gap: workspaceLayout.listInlineGap,
-            }}
-          >
-            <DeleteOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
-            <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
-              {t('common:action.delete')}
-            </Typography>
-          </MenuItem>
+          {canPin ? (
+            <Tooltip
+              title={pinDisabled ? t('common:apiError.pinLimit') : ''}
+              placement="left"
+              disableHoverListener={!pinDisabled}
+            >
+              <Box component="span" sx={{ display: 'block' }}>
+                <MenuItem
+                  onClick={handlePin}
+                  disabled={pinActionDisabled}
+                  sx={{
+                    minHeight: 34,
+                    px: workspaceSpace.md,
+                    gap: workspaceLayout.listInlineGap,
+                  }}
+                >
+                  <PushPinOutlinedIcon
+                    sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }}
+                  />
+                  <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                    {t('home:card.pin')}
+                  </Typography>
+                </MenuItem>
+              </Box>
+            </Tooltip>
+          ) : null}
+          {canUnpin ? (
+            <MenuItem
+              onClick={handleUnpin}
+              disabled={actionsBusy}
+              sx={{
+                minHeight: 34,
+                px: workspaceSpace.md,
+                gap: workspaceLayout.listInlineGap,
+              }}
+            >
+              <PushPinOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
+              <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                {t('home:card.unpin')}
+              </Typography>
+            </MenuItem>
+          ) : null}
+          {canDelete ? (
+            <MenuItem
+              onClick={handleOpenDeleteDialog}
+              disabled={actionsBusy}
+              sx={{
+                minHeight: 34,
+                px: workspaceSpace.md,
+                gap: workspaceLayout.listInlineGap,
+              }}
+            >
+              <DeleteOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
+              <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                {t('common:action.delete')}
+              </Typography>
+            </MenuItem>
+          ) : null}
         </Menu>
       ) : null}
       <Dialog

@@ -89,6 +89,9 @@ const byCode: Record<number, string> = {
   104001: 'apiError.taskExpired',
   105001: 'apiError.sandboxExpired',
 
+  // 置顶
+  107001: 'apiError.pinLimit',
+
   // 账号与登录
   106001: 'apiError.unsupportedLoginMethod',
   106002: 'apiError.loginServiceUnavailable',

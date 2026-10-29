@@ -241,6 +241,7 @@ export function NotebookSharingDialog({
   const [addMemberError, setAddMemberError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAddingMember, setIsAddingMember] = useState(false)
   const [visibilityMenuAnchorEl, setVisibilityMenuAnchorEl] =
     useState<HTMLElement | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
@@ -281,12 +282,13 @@ export function NotebookSharingDialog({
     setNewMemberEmail('')
     setAddMemberError(null)
     setSaveError(null)
+    setIsAddingMember(false)
     setVisibilityMenuAnchorEl(null)
     setCopyState('idle')
   }
 
   const handleClose = () => {
-    if (isSaving) {
+    if (isSaving || isAddingMember) {
       return
     }
     resetDrafts()
@@ -301,23 +303,95 @@ export function NotebookSharingDialog({
     setDraftOverride((previous) => updater(previous ?? serverDraft))
   }
 
-  const handleAddMember = () => {
-    if (!draft) {
-      return
+  /**
+   * 添加成员：先校验，再 PUT；只有接口成功后才改成员列表 UI。
+   * 返回成功后的草稿快照，供保存路径继续用；失败返回 null。
+   */
+  const persistNewMember = async (rawEmail: string): Promise<SharingDraft | null> => {
+    if (!draft || !serverDraft) {
+      return null
     }
-    const { nextDraft, error } = appendDraftMember(
-      draft,
-      newMemberEmail,
-      ownerEmail,
-    )
+    const { error } = appendDraftMember(draft, rawEmail, ownerEmail)
     if (error) {
       setAddMemberError(error)
-      return
+      return null
     }
 
+    const email = rawEmail.trim()
     setAddMemberError(null)
-    setNewMemberEmail('')
-    updateDraft(() => nextDraft)
+    try {
+      const result = await upsertNotebookMember(notebookId, {
+        email,
+        role: 'viewer',
+      })
+
+      const added: DraftMember = {
+        key: result.user_id,
+        userId: result.user_id,
+        email,
+        nickname: '',
+        avatarUrl: '',
+        role: result.role,
+      }
+
+      // 成功后再写缓存，避免失败时列表已出现幽灵成员。
+      queryClient.setQueryData<GetNotebookSharingResponse>(sharingKey, (previous) => {
+        if (!previous) {
+          return previous
+        }
+        if (previous.members.some((member) => member.user_id === result.user_id)) {
+          return previous
+        }
+        return {
+          ...previous,
+          members: [
+            ...previous.members,
+            {
+              user_id: result.user_id,
+              email,
+              nickname: '',
+              avatar_url: '',
+              role: result.role,
+            },
+          ],
+        }
+      })
+
+      // 本地还有未保存的可见性/角色改动时，把新成员并进 override；否则跟 server 缓存走。
+      let nextDraft: SharingDraft
+      if (draftOverride) {
+        nextDraft = {
+          ...draftOverride,
+          members: draftOverride.members.some((member) => member.userId === result.user_id)
+            ? draftOverride.members
+            : [...draftOverride.members, added],
+        }
+        setDraftOverride(nextDraft)
+      } else {
+        const cached = queryClient.getQueryData<GetNotebookSharingResponse>(sharingKey)
+        nextDraft = cached
+          ? toDraft(cached)
+          : { ...serverDraft, members: [...serverDraft.members, added] }
+        setDraftOverride(null)
+      }
+
+      setNewMemberEmail('')
+      void queryClient.invalidateQueries({ queryKey: sharingKey })
+      return nextDraft
+    } catch (error) {
+      setAddMemberError(resolveSharingError(error))
+      return null
+    }
+  }
+
+  const handleAddMember = () => {
+    if (!draft || isAddingMember || isSaving) {
+      return
+    }
+    setIsAddingMember(true)
+    void persistNewMember(newMemberEmail).finally(() => {
+      setIsAddingMember(false)
+    })
   }
 
   const handleNewMemberKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -363,35 +437,34 @@ export function NotebookSharingDialog({
   }
 
   const handleSave = async () => {
-    if (!draft || !serverDraft || isSaving) {
-      return
-    }
-
-    let nextDraft = draft
-    if (hasPendingMemberEmail) {
-      const { nextDraft: draftWithMember, error } = appendDraftMember(
-        draft,
-        newMemberEmail,
-        ownerEmail,
-      )
-      if (error) {
-        setAddMemberError(error)
-        return
-      }
-      nextDraft = draftWithMember
-      setDraftOverride(draftWithMember)
-      setNewMemberEmail('')
-      setAddMemberError(null)
-    }
-
-    if (!hasSharingChanges(nextDraft, serverDraft)) {
+    if (!draft || !serverDraft || isSaving || isAddingMember) {
       return
     }
 
     setIsSaving(true)
     setSaveError(null)
+
+    let nextDraft = draft
+    let baseline = serverDraft
+    if (hasPendingMemberEmail) {
+      const persisted = await persistNewMember(newMemberEmail)
+      if (!persisted) {
+        setIsSaving(false)
+        return
+      }
+      nextDraft = persisted
+      const cached = queryClient.getQueryData<GetNotebookSharingResponse>(sharingKey)
+      baseline = cached ? toDraft(cached) : { ...serverDraft, members: persisted.members }
+    }
+
+    if (!hasSharingChanges(nextDraft, baseline)) {
+      setIsSaving(false)
+      handleClose()
+      return
+    }
+
     try {
-      if (nextDraft.visibility !== serverDraft.visibility) {
+      if (nextDraft.visibility !== baseline.visibility) {
         await updateNotebookVisibility(notebookId, nextDraft.visibility)
         // PATCH 已落库：工作区缓存（header 的公开图标）直接写入新可见性并瞬时反映，
         // 首页卡片列表批量标记失效，回到首页后拉到新数据。
@@ -406,7 +479,7 @@ export function NotebookSharingDialog({
       }
 
       // 先删再增/改：同一邮箱先被移除又被重新添加时，顺序不会互相覆盖。
-      for (const original of serverDraft.members) {
+      for (const original of baseline.members) {
         if (
           original.userId &&
           !nextDraft.members.some((member) => member.userId === original.userId)
@@ -416,9 +489,10 @@ export function NotebookSharingDialog({
       }
 
       for (const member of nextDraft.members) {
-        const original = serverDraft.members.find(
+        const original = baseline.members.find(
           (candidate) => candidate.key === member.key,
         )
+        // 刚通过 persistNewMember 落库的成员已在 baseline 中，勿重复 PUT。
         if (!original || original.role !== member.role) {
           await upsertNotebookMember(notebookId, {
             email: member.email,
@@ -491,7 +565,7 @@ export function NotebookSharingDialog({
           autoComplete="email"
           value={newMemberEmail}
           placeholder={t('workspace:sharing.add.placeholder')}
-          disabled={isSaving}
+          disabled={isSaving || isAddingMember}
           onChange={(event) => {
             setNewMemberEmail(event.target.value)
             if (addMemberError) {
@@ -877,7 +951,7 @@ export function NotebookSharingDialog({
             variant="contained"
             data-testid="sharing-save"
             onClick={() => void handleSave()}
-            disabled={!canSave || isSaving}
+            disabled={!canSave || isSaving || isAddingMember}
           >
             {isSaving ? t('common:action.saving') : t('common:action.save')}
           </Button>

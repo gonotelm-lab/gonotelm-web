@@ -37,6 +37,7 @@ vi.mock('@mui/material', () => ({
     </button>
   ),
   CircularProgress: () => <span data-testid="workspace-status-spinner" />,
+  Tooltip: ({ children }: { children?: ReactNode }) => <>{children}</>,
   Typography: ({
     children,
     ...props
@@ -53,6 +54,9 @@ vi.mock('@mui/icons-material/AddOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/DescriptionOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/IosShareOutlined', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/MoreVertRounded', () => ({ default: () => null }))
+vi.mock('@mui/icons-material/PublicOutlined', () => ({
+  default: () => <span data-testid="icon-public" />,
+}))
 vi.mock('@mui/icons-material/RefreshRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/TuneRounded', () => ({ default: () => null }))
 
@@ -66,6 +70,7 @@ const renderHeader = (
   extra: {
     isFetching?: boolean
     canRenameNotebook?: boolean
+    isPublic?: boolean
     onNotebookNameCommit?: (value: string) => void
     onShareNotebook?: () => void
     onCustomizeNotebook?: () => void
@@ -78,6 +83,7 @@ const renderHeader = (
         notebookName="第三季度复盘"
         isFetching={extra.isFetching ?? false}
         isUpdatingName={false}
+        isPublic={extra.isPublic}
         canRenameNotebook={extra.canRenameNotebook ?? true}
         onNotebookNameCommit={extra.onNotebookNameCommit ?? (() => undefined)}
         onShareNotebook={extra.onShareNotebook}

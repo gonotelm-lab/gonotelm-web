@@ -58,6 +58,7 @@
     "notebookNameInvalid": "笔记本名称不合法",
     "notebookDescInvalid": "笔记本简介不合法",
     "sourceLimit": "来源数量已达上限，请先删除部分来源",
+    "pinLimit": "置顶数量已达上限，请先取消部分置顶",
     "noSourcesForDescription": "还没有可用来源，无法生成简介",
     "memberRoleInvalid": "成员权限设置无效",
     "cannotShareOwner": "不能把笔记本分享给自己",
