@@ -21,6 +21,8 @@ import {
   unpinNotebook,
 } from '../api/notebook'
 import { apiErrorMessage } from '../lib/apiErrorMessage'
+import { isPinLimitReached } from '../lib/notebookPins'
+import { showAppToast } from '../lib/apiErrorToast'
 import { AccountMenu } from '../components/auth/AccountMenu'
 import { useMeQuery } from '../components/auth/useMeQuery'
 import { BrandMark } from '../components/brand/BrandMark'
@@ -112,6 +114,7 @@ export function HomePage() {
 
   const pinnedItems = pinsQuery.data?.notebooks ?? []
   const notebookItems = notebooksQuery.data?.notebooks ?? []
+  const pinLimitReached = isPinLimitReached(pinnedItems.length)
   const homeBusy = notebooksQuery.isLoading && pinnedItems.length === 0 && !pinsQuery.isSuccess
 
   const invalidateHomeLists = async () => {
@@ -171,6 +174,10 @@ export function HomePage() {
     if (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) {
       return
     }
+    if (isPinLimitReached(pinnedItems.length)) {
+      showAppToast({ messageKey: 'apiError.pinLimit' })
+      return
+    }
     setPinningNotebookId(notebookId)
     try {
       await pinNotebookMutation.mutateAsync(notebookId)
@@ -224,6 +231,7 @@ export function HomePage() {
           (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) &&
           pinningNotebookId === viewModel.id
         }
+        pinDisabled={!options.pinned && pinLimitReached}
       />
     )
   }

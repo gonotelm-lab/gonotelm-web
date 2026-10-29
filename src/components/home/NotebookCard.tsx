@@ -59,6 +59,8 @@ interface NotebookCardProps {
   onUnpin?: () => Promise<void>
   deleting?: boolean
   pinning?: boolean
+  /** 置顶额度已满：仍展示「置顶」入口，但禁用并提示。 */
+  pinDisabled?: boolean
 }
 
 export function NotebookCard({
@@ -75,6 +77,7 @@ export function NotebookCard({
   onUnpin,
   deleting = false,
   pinning = false,
+  pinDisabled = false,
 }: NotebookCardProps) {
   const { t } = useTranslation(['home', 'common'])
   const hasCover = Boolean(coverUrl)
@@ -87,6 +90,7 @@ export function NotebookCard({
   const canUnpin = typeof onUnpin === 'function'
   const hasActions = canDelete || canPin || canUnpin
   const actionsBusy = deleting || pinning
+  const pinActionDisabled = actionsBusy || pinDisabled
   const ownerInitial = owner
     ? (Array.from(owner.nickname.trim())[0]?.toUpperCase() ?? '?')
     : ''
@@ -102,7 +106,7 @@ export function NotebookCard({
 
   const handlePin = () => {
     handleCloseActionMenu()
-    if (!onPin || actionsBusy) {
+    if (!onPin || pinActionDisabled) {
       return
     }
     void onPin()
@@ -388,20 +392,30 @@ export function NotebookCard({
           onClick={(event) => event.stopPropagation()}
         >
           {canPin ? (
-            <MenuItem
-              onClick={handlePin}
-              disabled={actionsBusy}
-              sx={{
-                minHeight: 34,
-                px: workspaceSpace.md,
-                gap: workspaceLayout.listInlineGap,
-              }}
+            <Tooltip
+              title={pinDisabled ? t('common:apiError.pinLimit') : ''}
+              placement="left"
+              disableHoverListener={!pinDisabled}
             >
-              <PushPinOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
-              <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
-                {t('home:card.pin')}
-              </Typography>
-            </MenuItem>
+              <Box component="span" sx={{ display: 'block' }}>
+                <MenuItem
+                  onClick={handlePin}
+                  disabled={pinActionDisabled}
+                  sx={{
+                    minHeight: 34,
+                    px: workspaceSpace.md,
+                    gap: workspaceLayout.listInlineGap,
+                  }}
+                >
+                  <PushPinOutlinedIcon
+                    sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }}
+                  />
+                  <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                    {t('home:card.pin')}
+                  </Typography>
+                </MenuItem>
+              </Box>
+            </Tooltip>
           ) : null}
           {canUnpin ? (
             <MenuItem

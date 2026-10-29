@@ -133,6 +133,31 @@ describe('HomePage · 笔记本范围筛选', () => {
     ])
     expect(typeof cards[0]?.props.onUnpin).toBe('function')
     expect(cards[0]?.props.onPin).toBeUndefined()
+    expect(cards.slice(1).every((card) => card.props.pinDisabled === false)).toBe(true)
+  })
+
+  it('置顶已满时列表卡片禁用置顶入口', async () => {
+    mockServer.use(
+      http.get('http://127.0.0.1:4173/api/v1/notebooks/pins', () =>
+        createSuccessResponse({
+          notebooks: Array.from({ length: 50 }, (_, index) =>
+            createNotebookSummaryFixture({
+              id: `notebook-pinned-${index + 1}`,
+              name: `置顶本 ${index + 1}`,
+              is_pinned: true,
+              pinned_at: Date.UTC(2025, 6, 21) - index,
+            }),
+          ),
+        }),
+      ),
+    )
+
+    const renderer = await renderHome()
+    const cards = renderer.root.findAllByType(NotebookCard)
+    const listCards = cards.filter((card) => typeof card.props.onPin === 'function')
+
+    expect(listCards.length).toBeGreaterThan(0)
+    expect(listCards.every((card) => card.props.pinDisabled === true)).toBe(true)
   })
 
   it('切换范围时保留上一次列表，避免列表区域塌陷', async () => {

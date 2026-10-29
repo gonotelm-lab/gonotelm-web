@@ -357,9 +357,8 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
             {displayName}
           </Typography>
         )}
+        {/* 公开可见性示意：弱化为次级 ink，只指示“公开”，不参与主操作。 */}
         {isPublic ? (
-          /* 可见性示意：跟在标题块右侧，留 lg 级间距避免贴着标题；弱化为次级 ink，
-             只承担“这是公开笔记本”的指示，不参与头部主操作。 */
           <Tooltip title={t('workspace:header.publicAria')} placement="bottom">
             <PublicOutlinedIcon
               color="primary"

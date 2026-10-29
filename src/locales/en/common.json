@@ -58,6 +58,7 @@
     "notebookNameInvalid": "That notebook name isn't valid",
     "notebookDescInvalid": "That notebook description isn't valid",
     "sourceLimit": "You've reached the source limit. Remove some sources first",
+    "pinLimit": "You've reached the pin limit. Unpin some notebooks first",
     "noSourcesForDescription": "Add a ready source before generating a description",
     "memberRoleInvalid": "That member permission isn't valid",
     "cannotShareOwner": "You can't share a notebook with yourself",
