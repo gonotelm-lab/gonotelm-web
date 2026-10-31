@@ -92,6 +92,12 @@ const byCode: Record<number, string> = {
   // 置顶
   107001: 'apiError.pinLimit',
 
+  // 收藏夹
+  108001: 'apiError.favouriteLimit',
+  108002: 'apiError.favouriteNotebookLimit',
+  108003: 'apiError.favouriteNotFound',
+  108004: 'apiError.favouriteNameInvalid',
+
   // 账号与登录
   106001: 'apiError.unsupportedLoginMethod',
   106002: 'apiError.loginServiceUnavailable',

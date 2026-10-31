@@ -4,6 +4,8 @@ import { AUTH_ERROR_PATH, RESET_PASSWORD_PATH } from '../lib/auth'
 import { AppRoot } from './AppRoot'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { AuthErrorPage } from '../pages/AuthErrorPage'
+import { FavouriteDetailPage } from '../pages/FavouriteDetailPage'
+import { FavouritesPage } from '../pages/FavouritesPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotebookWorkspacePage } from '../pages/NotebookWorkspacePage'
@@ -56,6 +58,22 @@ export const router = createBrowserRouter([
       element: (
         <AuthGate>
           <HomePage />
+        </AuthGate>
+      ),
+    },
+    {
+      path: '/favourites',
+      element: (
+        <AuthGate>
+          <FavouritesPage />
+        </AuthGate>
+      ),
+    },
+    {
+      path: '/favourites/:favouriteId',
+      element: (
+        <AuthGate>
+          <FavouriteDetailPage />
         </AuthGate>
       ),
     },

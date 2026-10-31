@@ -6,6 +6,7 @@ import {
   dismissApiErrorToast,
   resetApiErrorToastForTest,
   showApiErrorToast,
+  showAppToast,
 } from '@/lib/apiErrorToast'
 
 // Snackbar 的 transition 在 node 环境里会访问 document；沿用仓库里
@@ -100,5 +101,19 @@ describe('GlobalApiErrorToast', () => {
     })
 
     expect(renderer.toJSON()).toBeNull()
+  })
+
+  it('成功提示使用 success 语义，而不是默认 error', async () => {
+    const renderer = await renderToast()
+    await act(async () => {
+      showAppToast({ message: '已加入收藏夹', severity: 'success' })
+    })
+
+    expect(
+      renderer.root.findByProps({
+        'data-testid': 'api-error-toast',
+        severity: 'success',
+      }),
+    ).toBeTruthy()
   })
 })

@@ -5,6 +5,7 @@ import { parseLocale, patchLocalPreferences, readLocalPreferences } from '@/lib/
 
 import commonZh from '../locales/zh/common.json'
 import homeZh from '../locales/zh/home.json'
+import favouritesZh from '../locales/zh/favourites.json'
 import workspaceZh from '../locales/zh/workspace.json'
 import sourcesZh from '../locales/zh/sources.json'
 import studioZh from '../locales/zh/studio.json'
@@ -14,6 +15,7 @@ import settingsZh from '../locales/zh/settings.json'
 
 import commonEn from '../locales/en/common.json'
 import homeEn from '../locales/en/home.json'
+import favouritesEn from '../locales/en/favourites.json'
 import workspaceEn from '../locales/en/workspace.json'
 import sourcesEn from '../locales/en/sources.json'
 import studioEn from '../locales/en/studio.json'
@@ -45,6 +47,7 @@ void i18n
       zh: {
         common: commonZh,
         home: homeZh,
+        favourites: favouritesZh,
         workspace: workspaceZh,
         sources: sourcesZh,
         studio: studioZh,
@@ -55,6 +58,7 @@ void i18n
       en: {
         common: commonEn,
         home: homeEn,
+        favourites: favouritesEn,
         workspace: workspaceEn,
         sources: sourcesEn,
         studio: studioEn,
@@ -66,7 +70,17 @@ void i18n
     fallbackLng: DEFAULT_LOCALE,
     supportedLngs: [...SUPPORTED_LOCALES],
     defaultNS: 'common',
-    ns: ['common', 'home', 'workspace', 'sources', 'studio', 'chat', 'auth', 'settings'],
+    ns: [
+      'common',
+      'home',
+      'favourites',
+      'workspace',
+      'sources',
+      'studio',
+      'chat',
+      'auth',
+      'settings',
+    ],
     interpolation: {
       escapeValue: false,
     },

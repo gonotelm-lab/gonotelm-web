@@ -59,6 +59,8 @@ vi.mock('@mui/icons-material/PublicOutlined', () => ({
 }))
 vi.mock('@mui/icons-material/RefreshRounded', () => ({ default: () => null }))
 vi.mock('@mui/icons-material/TuneRounded', () => ({ default: () => null }))
+vi.mock('@mui/icons-material/BookmarkBorderOutlined', () => ({ default: () => null }))
+vi.mock('@mui/icons-material/BookmarkOutlined', () => ({ default: () => null }))
 
 // 账号菜单有自己的测试；这里只验证“更多选项”菜单的接线。
 vi.mock('../../auth/AccountMenu', () => ({ AccountMenu: () => <div data-testid="account-menu" /> }))
@@ -74,6 +76,8 @@ const renderHeader = (
     onNotebookNameCommit?: (value: string) => void
     onShareNotebook?: () => void
     onCustomizeNotebook?: () => void
+    onToggleFavourite?: () => void
+    isFavourited?: boolean
   } = {},
 ) => {
   let renderer!: ReactTestRenderer
@@ -88,6 +92,8 @@ const renderHeader = (
         onNotebookNameCommit={extra.onNotebookNameCommit ?? (() => undefined)}
         onShareNotebook={extra.onShareNotebook}
         onCustomizeNotebook={extra.onCustomizeNotebook}
+        onToggleFavourite={extra.onToggleFavourite}
+        isFavourited={extra.isFavourited}
         chatMenu={chatMenu}
       />,
     )
@@ -298,5 +304,24 @@ describe('WorkspaceHeader', () => {
     // 行高由 rowMinHeight 锁死，字号变大只吃控件盒内的余量，无需再减 padding。
     expect(sx.py).toBe(0)
     expect((sx['& input'] as Record<string, unknown>).py).toBe(0)
+  })
+
+  it('传入 onToggleFavourite 时渲染收藏图标，点击触发回调', () => {
+    const onToggleFavourite = vi.fn()
+    const without = renderHeader()
+    expect(
+      without.root.findAllByProps({ 'data-testid': 'workspace-toggle-favourite' }),
+    ).toHaveLength(0)
+
+    const renderer = renderHeader(undefined, {
+      onToggleFavourite,
+      isFavourited: true,
+    })
+    const button = renderer.root.findByProps({
+      'data-testid': 'workspace-toggle-favourite',
+    })
+    expect(button.props['aria-pressed']).toBe(true)
+    act(() => button.props.onClick())
+    expect(onToggleFavourite).toHaveBeenCalledTimes(1)
   })
 })

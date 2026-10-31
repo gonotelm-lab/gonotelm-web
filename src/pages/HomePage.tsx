@@ -23,14 +23,14 @@ import {
 import { apiErrorMessage } from '../lib/apiErrorMessage'
 import { isPinLimitReached } from '../lib/notebookPins'
 import { showAppToast } from '../lib/apiErrorToast'
-import { AccountMenu } from '../components/auth/AccountMenu'
 import { useMeQuery } from '../components/auth/useMeQuery'
-import { BrandMark } from '../components/brand/BrandMark'
+import { AddToFavouriteDialog } from '../components/favourites/AddToFavouriteDialog'
 import { CreateNotebookDialog } from '../components/home/CreateNotebookDialog'
 import { CreateNotebookEntry } from '../components/home/CreateNotebookEntry'
 import { HomeScopeSelector } from '../components/home/HomeScopeSelector'
 import { HomeSortSelector } from '../components/home/HomeSortSelector'
 import { NotebookCard } from '../components/home/NotebookCard'
+import { AppShellHeader } from '../components/shell/AppShellHeader'
 import {
   workspaceLayout,
   workspaceSpace,
@@ -40,13 +40,6 @@ import { buildCreateNotebookRequest } from './home/createNotebookRequest'
 import { patchHomePreferences, readHomePreferences } from '@/lib/localPreferences'
 import { toNotebookCardViewModel } from './home/notebookCardViewModel'
 import { getNotebookEmoji } from '../lib/notebookEmoji'
-
-/** Home header mirrors the workspace chrome so the account trigger matches across pages. */
-const homeHeaderChrome = {
-  rowMinHeight: 48,
-  controlHeight: 36,
-  avatarSize: 32,
-} as const
 
 const notebookGridSx = {
   display: 'grid',
@@ -86,6 +79,9 @@ export function HomePage() {
   })
   const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null)
   const [pinningNotebookId, setPinningNotebookId] = useState<string | null>(null)
+  const [addToFavouriteNotebookId, setAddToFavouriteNotebookId] = useState<string | null>(
+    null,
+  )
 
   const pinsQuery = useQuery({
     queryKey: ['notebooks', 'pins'],
@@ -226,6 +222,7 @@ export function HomePage() {
         }
         onPin={options.pinned ? undefined : () => handlePinNotebook(viewModel.id)}
         onUnpin={options.pinned ? () => handleUnpinNotebook(viewModel.id) : undefined}
+        onAddToFavourite={() => setAddToFavouriteNotebookId(viewModel.id)}
         deleting={deleteNotebookMutation.isPending && deletingNotebookId === viewModel.id}
         pinning={
           (pinNotebookMutation.isPending || unpinNotebookMutation.isPending) &&
@@ -239,23 +236,7 @@ export function HomePage() {
   return (
     <Container maxWidth="lg" sx={{ py: workspaceSpace.xl }}>
       <Stack spacing={workspaceLayout.panelPaddingY}>
-        <Stack
-          direction="row"
-          sx={{
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            minHeight: homeHeaderChrome.rowMinHeight,
-          }}
-        >
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <BrandMark />
-            <Typography variant="h6">GoNoteLM</Typography>
-          </Stack>
-          <AccountMenu
-            triggerSize={homeHeaderChrome.controlHeight}
-            avatarSize={homeHeaderChrome.avatarSize}
-          />
-        </Stack>
+        <AppShellHeader />
         <Box
           sx={{
             borderBottom: '1px solid',
@@ -368,6 +349,11 @@ export function HomePage() {
         onCreateWithName={() => {
           void handleCreateNotebook('with-name')
         }}
+      />
+      <AddToFavouriteDialog
+        open={Boolean(addToFavouriteNotebookId)}
+        notebookId={addToFavouriteNotebookId}
+        onClose={() => setAddToFavouriteNotebookId(null)}
       />
     </Container>
   )

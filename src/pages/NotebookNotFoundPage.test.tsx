@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import { NotebookNotFoundPage } from './NotebookNotFoundPage'
 
+vi.mock('../components/shell/AppShellHeader', () => ({
+  AppShellHeader: () => <div data-testid="app-shell-header" />,
+}))
+
 const renderPage = async (props?: {
   isRetrying?: boolean
   onRetry?: () => void
@@ -33,7 +37,7 @@ describe('NotebookNotFoundPage', () => {
       renderer.root.findByProps({ 'data-testid': 'notebook-not-found' }),
     ).toBeTruthy()
     expect(text(renderer)).toContain('找不到这个笔记本')
-    expect(text(renderer)).toContain('可能已被删除')
+    expect(text(renderer)).toContain('可能已被删除，或没有访问权限')
     expect(text(renderer)).toContain('返回首页')
   })
 

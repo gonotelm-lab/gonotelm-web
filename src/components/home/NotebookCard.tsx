@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlined'
+import BookmarkRemoveOutlinedIcon from '@mui/icons-material/BookmarkRemoveOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import MoreVertOutlinedIcon from '@mui/icons-material/MoreVertOutlined'
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
@@ -55,10 +57,20 @@ interface NotebookCardProps {
   owner?: NotebookCardOwner
   onOpen: () => void
   onDelete?: () => Promise<void>
+  /** 覆盖菜单里删除项文案（例如收藏夹内用「移出收藏夹」）。 */
+  deleteActionLabel?: string
+  /** 覆盖默认「删除笔记本」确认文案（例如收藏夹内删除=移出）。 */
+  deleteDialogTitle?: string
+  deleteDialogBody?: string
   onPin?: () => Promise<void>
   onUnpin?: () => Promise<void>
+  /** 首页 / 工作区：打开「加入收藏夹」对话框。 */
+  onAddToFavourite?: () => void
+  /** 夹内页：从当前收藏夹移出。 */
+  onRemoveFromFavourite?: () => Promise<void>
   deleting?: boolean
   pinning?: boolean
+  removingFromFavourite?: boolean
   /** 置顶额度已满：仍展示「置顶」入口，但禁用并提示。 */
   pinDisabled?: boolean
 }
@@ -73,13 +85,19 @@ export function NotebookCard({
   owner,
   onOpen,
   onDelete,
+  deleteActionLabel,
+  deleteDialogTitle,
+  deleteDialogBody,
   onPin,
   onUnpin,
+  onAddToFavourite,
+  onRemoveFromFavourite,
   deleting = false,
   pinning = false,
+  removingFromFavourite = false,
   pinDisabled = false,
 }: NotebookCardProps) {
-  const { t } = useTranslation(['home', 'common'])
+  const { t } = useTranslation(['home', 'common', 'favourites'])
   const hasCover = Boolean(coverUrl)
   const [actionAnchorEl, setActionAnchorEl] = useState<HTMLElement | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -88,8 +106,11 @@ export function NotebookCard({
   const canDelete = typeof onDelete === 'function'
   const canPin = typeof onPin === 'function'
   const canUnpin = typeof onUnpin === 'function'
-  const hasActions = canDelete || canPin || canUnpin
-  const actionsBusy = deleting || pinning
+  const canAddToFavourite = typeof onAddToFavourite === 'function'
+  const canRemoveFromFavourite = typeof onRemoveFromFavourite === 'function'
+  const hasActions =
+    canDelete || canPin || canUnpin || canAddToFavourite || canRemoveFromFavourite
+  const actionsBusy = deleting || pinning || removingFromFavourite
   const pinActionDisabled = actionsBusy || pinDisabled
   const ownerInitial = owner
     ? (Array.from(owner.nickname.trim())[0]?.toUpperCase() ?? '?')
@@ -118,6 +139,22 @@ export function NotebookCard({
       return
     }
     void onUnpin()
+  }
+
+  const handleAddToFavourite = () => {
+    handleCloseActionMenu()
+    if (!onAddToFavourite || actionsBusy) {
+      return
+    }
+    onAddToFavourite()
+  }
+
+  const handleRemoveFromFavourite = () => {
+    handleCloseActionMenu()
+    if (!onRemoveFromFavourite || actionsBusy) {
+      return
+    }
+    void onRemoveFromFavourite()
   }
 
   const handleOpenDeleteDialog = () => {
@@ -433,6 +470,42 @@ export function NotebookCard({
               </Typography>
             </MenuItem>
           ) : null}
+          {canAddToFavourite ? (
+            <MenuItem
+              onClick={handleAddToFavourite}
+              disabled={actionsBusy}
+              sx={{
+                minHeight: 34,
+                px: workspaceSpace.md,
+                gap: workspaceLayout.listInlineGap,
+              }}
+            >
+              <BookmarkBorderOutlinedIcon
+                sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }}
+              />
+              <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                {t('home:card.addToFavourite')}
+              </Typography>
+            </MenuItem>
+          ) : null}
+          {canRemoveFromFavourite ? (
+            <MenuItem
+              onClick={handleRemoveFromFavourite}
+              disabled={actionsBusy}
+              sx={{
+                minHeight: 34,
+                px: workspaceSpace.md,
+                gap: workspaceLayout.listInlineGap,
+              }}
+            >
+              <BookmarkRemoveOutlinedIcon
+                sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }}
+              />
+              <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
+                {t('favourites:detail.remove')}
+              </Typography>
+            </MenuItem>
+          ) : null}
           {canDelete ? (
             <MenuItem
               onClick={handleOpenDeleteDialog}
@@ -445,7 +518,7 @@ export function NotebookCard({
             >
               <DeleteOutlinedIcon sx={{ fontSize: workspaceIconSize.md, color: 'text.secondary' }} />
               <Typography sx={{ fontSize: workspaceType.xs, lineHeight: 1.2 }}>
-                {t('common:action.delete')}
+                {deleteActionLabel ?? t('common:action.delete')}
               </Typography>
             </MenuItem>
           ) : null}
@@ -458,10 +531,10 @@ export function NotebookCard({
         maxWidth="xs"
         slotProps={{ paper: { sx: { borderRadius: workspaceDialogLayout.paperRadius } } }}
       >
-        <DialogTitle>{t('home:card.deleteTitle')}</DialogTitle>
+        <DialogTitle>{deleteDialogTitle ?? t('home:card.deleteTitle')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
-            {t('home:card.deleteBody')}
+            {deleteDialogBody ?? t('home:card.deleteBody')}
           </Typography>
           {deleteErrorMessage ? (
             <Typography
@@ -483,7 +556,9 @@ export function NotebookCard({
             onClick={handleConfirmDelete}
             disabled={deleting}
           >
-            {deleting ? t('common:action.deleting') : t('common:action.delete')}
+            {deleting
+              ? t('common:action.deleting')
+              : (deleteActionLabel ?? t('common:action.delete'))}
           </Button>
         </DialogActions>
       </Dialog>

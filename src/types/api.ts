@@ -207,6 +207,20 @@ export interface NotebookFlags {
   customize_description: boolean
 }
 
+/** GET notebook 嵌套：当前用户把该本放入的某个收藏夹（含名称）。 */
+export interface NotebookFavouriteFolderRef {
+  id: string
+  name: string
+}
+
+/**
+ * GET notebook 嵌套收藏信息；列表接口不填。
+ * 是否已收藏看 `favourites` 是否非空。
+ */
+export interface NotebookFavouriteInfo {
+  favourites: NotebookFavouriteFolderRef[]
+}
+
 /**
  * Get / List 共用的 notebook 视图。
  * `desc` 仅表示自定义摘要；未自定义时为空串（AI 摘要不落库）。
@@ -231,6 +245,8 @@ export interface Notebook {
    * 旧后端缺字段时为 undefined（视为无封面）。
    */
   cover_url?: string
+  /** 仅 GET 详情填充；列表通常省略。 */
+  favourite?: NotebookFavouriteInfo
 }
 
 /** @deprecated 与 Notebook 同形；保留别名避免调用处大面积改名。 */
@@ -369,6 +385,56 @@ export interface ListPinnedNotebooksResponse {
 export interface PinNotebookResponse {
   is_pinned: boolean
   pinned_at: number
+}
+
+/** GET /api/v1/favourites 列表项。 */
+export interface Favourite {
+  id: string
+  name: string
+  notebook_count: number
+  created_at: number
+}
+
+export interface CreateFavouriteRequest {
+  name: string
+}
+
+export interface CreateFavouriteResponse {
+  id: string
+}
+
+export interface RenameFavouriteRequest {
+  name: string
+}
+
+export interface ListFavouritesResponse {
+  favourites: Favourite[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+/** GET /api/v1/favourites/:id/notebooks 列表项。 */
+export interface FavouriteNotebookItem {
+  notebook_id: string
+  invalid: boolean
+  favourited_at: number
+  notebook?: NotebookSummary
+}
+
+export interface ListFavouriteNotebooksResponse {
+  items: FavouriteNotebookItem[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+export interface AddFavouriteNotebookRequest {
+  notebook_id: string
+}
+
+export interface RemoveFavouriteNotebooksRequest {
+  notebook_ids: string[]
 }
 
 export interface GetNotebookChatResponse {

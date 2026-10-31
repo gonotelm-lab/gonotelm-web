@@ -31,7 +31,7 @@ function ApiErrorToastItem({ toast }: { toast: AppToast }) {
     >
       <Alert
         data-testid="api-error-toast"
-        severity="error"
+        severity={toast.severity ?? 'error'}
         variant="filled"
         onClose={handleClose}
         sx={{ maxWidth: 460, textAlign: 'left' }}

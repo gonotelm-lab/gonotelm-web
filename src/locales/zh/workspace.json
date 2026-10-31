@@ -9,6 +9,10 @@
     "configureChat": "配置对话",
     "refreshChat": "刷新对话",
     "customizeNotebook": "自定义笔记本",
+    "addToFavourite": "加入收藏夹",
+    "addFavouriteAria": "加入收藏夹",
+    "removeFavouriteAria": "移出收藏夹",
+    "removeFavouriteNamedAria": "移出收藏夹：{{names}}",
     "publicAria": "公开笔记本"
   },
   "customizeNotebook": {
@@ -92,8 +96,7 @@
   },
   "notFound": {
     "title": "找不到这个笔记本",
-    "description": "它可能已被删除，或您当前没有访问权限",
-    "hint": "请检查链接是否完整，或返回首页打开其他笔记本",
+    "description": "可能已被删除，或没有访问权限",
     "backHome": "返回首页",
     "retry": "重试",
     "retrying": "重试中"

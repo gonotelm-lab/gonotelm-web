@@ -1,5 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlined'
+import BookmarkOutlinedIcon from '@mui/icons-material/BookmarkOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded'
@@ -113,6 +115,19 @@ interface WorkspaceHeaderProps {
   onShareNotebook?: () => void
   /** 打开「自定义笔记本」对话框；仅 can_manage_notebook 传入。 */
   onCustomizeNotebook?: () => void
+  /** 打开「加入收藏夹」对话框（更多菜单；可加入其他夹）。 */
+  onAddToFavourite?: () => void
+  /**
+   * Header 收藏图标：未收藏时打开加入流程；已收藏时快速移出。
+   * 省略则不渲染图标按钮。
+   */
+  onToggleFavourite?: () => void
+  /** 当前用户是否已将该本放入至少一个收藏夹（来自 GET notebook.favourite）。 */
+  isFavourited?: boolean
+  /** 已加入的收藏夹名称；用于已收藏态 tooltip。 */
+  favouriteNames?: string[]
+  /** 收藏图标操作进行中。 */
+  favouriteBusy?: boolean
   /** 省略则不渲染“更多选项”入口，header 仍可单独使用。 */
   chatMenu?: WorkspaceHeaderChatMenu
 }
@@ -126,6 +141,11 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   onNotebookNameCommit,
   onShareNotebook,
   onCustomizeNotebook,
+  onAddToFavourite,
+  onToggleFavourite,
+  isFavourited = false,
+  favouriteNames = [],
+  favouriteBusy = false,
   chatMenu,
 }: WorkspaceHeaderProps) {
   const { t } = useTranslation('workspace')
@@ -167,7 +187,19 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   }, [])
 
   const isRefreshingChat = chatMenu?.isRefreshing ?? false
-  const showMoreMenu = Boolean(chatMenu || onCustomizeNotebook)
+  const showMoreMenu = Boolean(chatMenu || onCustomizeNotebook || onAddToFavourite)
+  const favouriteLabel = (() => {
+    if (!isFavourited) {
+      return t('workspace:header.addFavouriteAria')
+    }
+    const names = favouriteNames.map((name) => name.trim()).filter(Boolean)
+    if (names.length === 0) {
+      return t('workspace:header.removeFavouriteAria')
+    }
+    return t('workspace:header.removeFavouriteNamedAria', {
+      names: names.join('、'),
+    })
+  })()
 
   useEffect(() => {
     if (isEditing) {
@@ -205,6 +237,11 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
   const handleCustomizeNotebook = () => {
     setMoreMenuAnchorEl(null)
     onCustomizeNotebook?.()
+  }
+
+  const handleAddToFavourite = () => {
+    setMoreMenuAnchorEl(null)
+    onAddToFavourite?.()
   }
 
   return (
@@ -406,6 +443,32 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
               {t('workspace:header.share')}
             </Button>
           ) : null}
+          {onToggleFavourite ? (
+            <Tooltip title={favouriteLabel} placement="bottom">
+              <span>
+                <IconButton
+                  data-testid="workspace-toggle-favourite"
+                  size="small"
+                  aria-label={favouriteLabel}
+                  aria-pressed={isFavourited}
+                  disabled={favouriteBusy}
+                  onClick={onToggleFavourite}
+                  sx={{
+                    width: headerChrome.controlHeight,
+                    height: headerChrome.controlHeight,
+                    p: 0,
+                    color: isFavourited ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  {isFavourited ? (
+                    <BookmarkOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />
+                  ) : (
+                    <BookmarkBorderOutlinedIcon sx={{ fontSize: headerChrome.controlIconSize }} />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : null}
           {showMoreMenu ? (
             <IconButton
               data-testid="workspace-more-options"
@@ -448,6 +511,16 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           >
             <DescriptionOutlinedIcon sx={headerMenuIconSx} />
             {t('workspace:header.customizeNotebook')}
+          </MenuItem>
+        ) : null}
+        {onAddToFavourite ? (
+          <MenuItem
+            data-testid="workspace-add-to-favourite"
+            onClick={handleAddToFavourite}
+            sx={headerMenuItemSx}
+          >
+            <BookmarkBorderOutlinedIcon sx={headerMenuIconSx} />
+            {t('workspace:header.addToFavourite')}
           </MenuItem>
         ) : null}
         {chatMenu ? (

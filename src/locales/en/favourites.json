@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "home": "Home",
+    "favourites": "Favourites"
+  },
+  "list": {
+    "title": "Favourites",
+    "empty": "No favourites yet",
+    "emptyHint": "Create a favourite folder to collect notebooks",
+    "create": "New favourite",
+    "createTitle": "New favourite",
+    "renameTitle": "Rename favourite",
+    "nameLabel": "Name",
+    "nameRequired": "Please enter a name",
+    "notebookCount": "{{count}} notebooks",
+    "deleteTitle": "Delete favourite",
+    "deleteBody": "Links inside will be removed. Notebooks themselves are not deleted",
+    "actionsAria": "Favourite actions",
+    "rename": "Rename",
+    "createdAt": "Created {{date}}"
+  },
+  "detail": {
+    "back": "Back to favourites",
+    "empty": "This favourite is empty",
+    "emptyHint": "Use “Add to favourite” on a home notebook card",
+    "invalid": "Unavailable",
+    "removeFromFavourite": "Remove from favourite",
+    "deleteTitle": "Remove from favourite",
+    "deleteBody": "This only removes it from this favourite. The notebook itself is not deleted",
+    "removed": "Removed from favourite",
+    "notFound": "Favourite not found or already deleted",
+    "batchEdit": "Select",
+    "batchCancel": "Cancel",
+    "batchRemove": "Delete selected",
+    "batchRemoved": "Removed {{count}} items",
+    "selectedCount": "{{count}} selected"
+  },
+  "add": {
+    "title": "Add to favourite",
+    "menu": "Add to favourite",
+    "empty": "No favourites yet — create one first",
+    "createAndAdd": "Create and add",
+    "added": "Added to favourite",
+    "picking": "Choose a favourite"
+  }
+}

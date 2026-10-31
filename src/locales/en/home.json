@@ -27,6 +27,7 @@
     "actionsAria": "Notebook actions",
     "pin": "Pin",
     "unpin": "Unpin",
+    "addToFavourite": "Add to favourite",
     "deleteTitle": "Delete notebook",
     "deleteBody": "This will remove chat and source data permanently",
     "noDescription": "No description",

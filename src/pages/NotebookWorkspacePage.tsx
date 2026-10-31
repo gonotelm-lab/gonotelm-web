@@ -20,6 +20,7 @@ import {
   uploadFileSource,
   uploadToObjectStorage,
 } from '../api/source'
+import { removeFavouriteNotebooks } from '../api/favourite'
 import {
   generateNotebookDescription,
   getNotebook,
@@ -65,6 +66,8 @@ import {
 import type { ChatCitationJumpRequest } from '../components/notebook-workspace/panel/chat/types'
 import { collapsedPanelRailWidthPx } from '../components/notebook-workspace/shared/ui/collapsedPanelRailLayout'
 import type { SaveMessageAsNoteParams } from '../components/notebook-workspace/panel/studio/types'
+import { AddToFavouriteDialog } from '../components/favourites/AddToFavouriteDialog'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { NotebookNotFoundPage } from './NotebookNotFoundPage'
 import { resolveNotebookWorkspaceTitle } from './notebook-workspace/resolveNotebookWorkspaceTitle'
 
@@ -234,6 +237,8 @@ export function NotebookWorkspacePage() {
     (ChatCitationJumpRequest & { requestId: number }) | null
   >(null)
   const [isSharingDialogOpen, setIsSharingDialogOpen] = useState(false)
+  const [isAddToFavouriteDialogOpen, setIsAddToFavouriteDialogOpen] = useState(false)
+  const [isFavouriteToggling, setIsFavouriteToggling] = useState(false)
   const [isCustomizeNotebookDialogOpen, setIsCustomizeNotebookDialogOpen] = useState(false)
   const [aiNotebookDescription, setAiNotebookDescription] = useState('')
   const [isGeneratingNotebookDescription, setIsGeneratingNotebookDescription] = useState(false)
@@ -1042,6 +1047,9 @@ export function NotebookWorkspacePage() {
     [notebookMeta.name, notebookQuery.data?.name],
   )
 
+  // 仅笔记本名有值时改标签；空名 / 找不到页保持默认 GoNoteLM。
+  useDocumentTitle(displayNotebookName.trim() || null, !notebookNotFound)
+
   const handleNotebookNameCommit = useCallback((rawName: string) => {
     if (!id) {
       return
@@ -1125,6 +1133,62 @@ export function NotebookWorkspacePage() {
   const handleCloseSharingDialog = useCallback(() => {
     setIsSharingDialogOpen(false)
   }, [])
+
+  const notebookFavouriteFolders = useMemo(
+    () => notebookQuery.data?.favourite?.favourites ?? [],
+    [notebookQuery.data?.favourite?.favourites],
+  )
+  const notebookFavouriteIds = useMemo(
+    () => notebookFavouriteFolders.map((item) => item.id).filter(Boolean),
+    [notebookFavouriteFolders],
+  )
+  const notebookFavouriteNames = useMemo(
+    () => notebookFavouriteFolders.map((item) => item.name).filter(Boolean),
+    [notebookFavouriteFolders],
+  )
+  const isNotebookFavourited = notebookFavouriteIds.length > 0
+
+  const refreshNotebookFavourite = useCallback(async () => {
+    if (!id) return
+    await queryClient.invalidateQueries({ queryKey: ['notebook', id] })
+    await queryClient.invalidateQueries({ queryKey: ['favourites'] })
+  }, [id, queryClient])
+
+  const handleToggleFavourite = useCallback(async () => {
+    if (!id || isFavouriteToggling) return
+    if (!isNotebookFavourited) {
+      setIsAddToFavouriteDialogOpen(true)
+      return
+    }
+    setIsFavouriteToggling(true)
+    try {
+      await Promise.all(
+        notebookFavouriteIds.map((favouriteId) =>
+          removeFavouriteNotebooks(favouriteId, { notebook_ids: [id] }),
+        ),
+      )
+      queryClient.setQueryData<Notebook>(['notebook', id], (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          favourite: { favourites: [] },
+        }
+      })
+      await queryClient.invalidateQueries({ queryKey: ['favourites'] })
+      showAppToast({
+        message: i18n.t('favourites:detail.removed'),
+        severity: 'success',
+      })
+    } finally {
+      setIsFavouriteToggling(false)
+    }
+  }, [
+    id,
+    isFavouriteToggling,
+    isNotebookFavourited,
+    notebookFavouriteIds,
+    queryClient,
+  ])
 
   const handleOpenCustomizeNotebookDialog = useCallback(() => {
     if (!canManageNotebook) {
@@ -1738,7 +1802,24 @@ export function NotebookWorkspacePage() {
         onCustomizeNotebook={
           canManageNotebook ? handleOpenCustomizeNotebookDialog : undefined
         }
+        onAddToFavourite={
+          id ? () => setIsAddToFavouriteDialogOpen(true) : undefined
+        }
+        onToggleFavourite={id ? () => {
+          void handleToggleFavourite()
+        } : undefined}
+        isFavourited={isNotebookFavourited}
+        favouriteNames={notebookFavouriteNames}
+        favouriteBusy={isFavouriteToggling}
         chatMenu={chatMenu}
+      />
+      <AddToFavouriteDialog
+        open={isAddToFavouriteDialogOpen}
+        notebookId={id ?? null}
+        onClose={() => setIsAddToFavouriteDialogOpen(false)}
+        onAdded={() => {
+          void refreshNotebookFavourite()
+        }}
       />
       {isNotebookOwner ? (
         <NotebookSharingDialog

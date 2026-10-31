@@ -4,6 +4,8 @@ import {
   type ApiErrorFacts,
 } from './apiErrorPresentation'
 
+export type AppToastSeverity = 'error' | 'success' | 'info' | 'warning'
+
 export interface AppToast {
   id: number
   /** 业务代码已经翻译好的现成文案；与 `messageKey` 二选一。 */
@@ -11,6 +13,11 @@ export interface AppToast {
   /** `common` 命名空间下的 i18n key；优先用映射避免后端原文漏出。 */
   messageKey?: string
   values?: Record<string, string | number>
+  /**
+   * 视觉语义。缺省 `error`，兼容历史「错误 toast」调用；
+   * 正常完成的操作应显式传 `success`。
+   */
+  severity?: AppToastSeverity
 }
 
 type Listener = () => void
