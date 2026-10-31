@@ -1,4 +1,5 @@
 import type { ChatMessage, MessageCitation, MessageFragment } from '@/types/api'
+import { normalizeChatCreateTimeMs } from './chatTimeSeparator'
 import type { ChatUiCitation, ChatUiCitationDetail, ChatUiFragment, ChatUiMessage } from './types'
 
 function mapFragment(fragment: MessageFragment): ChatUiFragment {
@@ -47,10 +48,12 @@ export function mapApiCitationToUi(citation: MessageCitation): ChatUiCitation {
 
 export function mapChatMessageToUi(message: ChatMessage): ChatUiMessage {
   const role = String(message.role).toLowerCase() === 'user' ? 'user' : 'assistant'
+  const createTime = normalizeChatCreateTimeMs(message.create_time)
   return {
     id: message.id,
     clientKey: message.id,
     role,
+    ...(createTime > 0 ? { createTime } : {}),
     fragments: (message.fragments ?? []).map(mapFragment),
     citations: (message.citations ?? []).map(mapApiCitationToUi),
   }

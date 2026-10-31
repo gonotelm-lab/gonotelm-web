@@ -1,9 +1,14 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import { Box, CircularProgress, Stack } from '@mui/material'
 import { panelTitleToBodySpacing } from '../../shared/ui/panelStyles'
 import { subtleScrollbarSx } from '../../shared/ui/scrollbar'
 import { ChatMessageItem } from './ChatMessageItem'
+import { ChatTimeSeparator } from './ChatTimeSeparator'
+import {
+  computeChatTimeSeparatorFlags,
+  formatChatTimeLabel,
+} from './chatTimeSeparator'
 import type { ChatCitationJumpRequest, ChatUiMessage } from './types'
 import { workspaceSpace } from '../../shared/ui/layoutTokens'
 import {
@@ -61,6 +66,11 @@ export const ChatMessagesList = memo(function ChatMessagesList({
   onSaveAsNote,
   onOpenCitationJump,
 }: ChatMessagesListProps) {
+  const timeSeparatorFlags = useMemo(
+    () => computeChatTimeSeparatorFlags(messages),
+    [messages],
+  )
+
   return (
     <Stack
       ref={messageListRef}
@@ -119,6 +129,11 @@ export const ChatMessagesList = memo(function ChatMessagesList({
                 activeAssistantMessageId === message.clientKey),
           )
           const isLastMessage = index === messages.length - 1
+          const showTimeSeparator = timeSeparatorFlags[index] === true
+          const timeLabel =
+            showTimeSeparator && message.createTime
+              ? formatChatTimeLabel(message.createTime)
+              : null
           return (
             <Box
               key={messageKey}
@@ -131,6 +146,7 @@ export const ChatMessagesList = memo(function ChatMessagesList({
                 containIntrinsicSize: isLastMessage ? undefined : '0 120px',
               }}
             >
+              {timeLabel ? <ChatTimeSeparator label={timeLabel} /> : null}
               <ChatMessageItem
                 message={message}
                 selectedSourceIds={selectedSourceIds}

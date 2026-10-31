@@ -752,6 +752,7 @@ export function useChatConversation({
         id: userMessageId,
         clientKey: userMessageId,
         role: 'user',
+        createTime: Date.now(),
         fragments: [{ id: 1, type: 'REQUEST', request: { content: prompt } }],
         citations: [],
       },

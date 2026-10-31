@@ -22,7 +22,36 @@ describe('mapChatMessageToUi', () => {
     }
     const ui = mapChatMessageToUi(msg)
     expect(ui.role).toBe('user')
+    expect(ui.createTime).toBeUndefined()
     expect(ui.fragments[0]?.request?.content).toBe('你好')
+  })
+
+  it('maps create_time to createTime in ms', () => {
+    const msg: ChatMessage = {
+      id: 'u2',
+      create_time: 1_700_000_000_000,
+      update_time: 0,
+      chat_id: 'c1',
+      user_id: 'u',
+      role: 'user',
+      seq_no: 1,
+      fragments: [],
+    }
+    expect(mapChatMessageToUi(msg).createTime).toBe(1_700_000_000_000)
+  })
+
+  it('normalizes second-scale create_time to ms', () => {
+    const msg: ChatMessage = {
+      id: 'u3',
+      create_time: 1_700_000_000,
+      update_time: 0,
+      chat_id: 'c1',
+      user_id: 'u',
+      role: 'user',
+      seq_no: 1,
+      fragments: [],
+    }
+    expect(mapChatMessageToUi(msg).createTime).toBe(1_700_000_000_000)
   })
 
   it('maps assistant RESPONSE + citations', () => {

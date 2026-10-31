@@ -40,6 +40,8 @@ export interface ChatUiMessage {
   id: string
   clientKey?: string
   role: 'user' | 'assistant'
+  /** 消息创建时间（毫秒）；用于微信式时间分隔，缺省则不参与分隔计算。 */
+  createTime?: number
   fragments: ChatUiFragment[]
   citations: ChatUiCitation[]
 }
